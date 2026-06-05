@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Jimmy's Mind Map</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root{
+    --bg:#0f0f13;
+    --surface:#1a1a22;
+    --surface2:#22222d;
+    --border:#2e2e3e;
+    --text:#e8e8f0;
+    --text2:#8888a0;
+    --purple:#7f77dd;
+    --purple-light:#aea9ec;
+    --accent:#534AB7;
+    --family:#D85A30;
+    --friends:#378ADD;
+    --work:#1D9E75;
+    --neighbors:#888780;
+    --church:#D4537E;
+    --golf:#639922;
+    --other:#BA7517;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text)}
+  #shell{display:flex;flex-direction:column;height:100dvh}
+
+  /* TOP BAR */
+  #topbar{
+    display:flex;align-items:center;gap:10px;
+    padding:12px 14px;
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  #topbar h1{font-size:15px;font-weight:600;color:var(--purple-light);letter-spacing:.02em;white-space:nowrap}
+  #topbar .spacer{flex:1}
+  #countBadge{
+    font-size:11px;font-family:'DM Mono',monospace;
+    background:var(--surface2);border:1px solid var(--border);
+    color:var(--text2);padding:3px 8px;border-radius:20px;white-space:nowrap
+  }
+  #menuBtn{
+    width:34px;height:34px;border-radius:8px;
+    background:var(--surface2);border:1px solid var(--border);
+    color:var(--text);font-size:18px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0
+  }
+
+  /* CANVAS */
+  #canvas-wrap{flex:1;position:relative;overflow:hidden;touch-action:none}
+  svg#canvas{width:100%;height:100%;display:block}
+  .edge{fill:none;stroke-width:1.5;stroke-opacity:.35}
+  .node-group{cursor:pointer}
+  .node-circle{transition:opacity .15s}
+
+  /* PANEL (slide-up) */
+  #panel{
+    position:fixed;bottom:0;left:0;right:0;
+    background:var(--surface);border-top:1px solid var(--border);
+    border-radius:20px 20px 0 0;
+    padding:0 16px 24px;
+    transform:translateY(100%);transition:transform .3s ease;
+    z-index:100;max-height:80dvh;overflow-y:auto
+  }
+  #panel.open{transform:translateY(0)}
+  #panel-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 16px}
+  #panel h2{font-size:14px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+
+  /* FORM */
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px}
+  .field input,.field select{
+    width:100%;height:42px;background:var(--surface2);
+    border:1px solid var(--border);border-radius:10px;
+    color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
+    padding:0 12px;outline:none;-webkit-appearance:none;appearance:none
+  }
+  .field input:focus,.field select:focus{border-color:var(--purple)}
+  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+  
+  #addBtn{
+    width:100%;height:46px;background:var(--accent);border:none;border-radius:12px;
+    color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;
+    cursor:pointer;margin-top:4px;letter-spacing:.01em
+  }
+  #addBtn:active{opacity:.85}
+
+  /* LEGEND */
+  #legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+  .leg{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2)}
+  .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+  /* CONTEXT MENU */
+  #ctx{
+    position:fixed;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:6px;z-index:200;display:none;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:140px
+  }
+  #ctx button{
+    display:block;width:100%;text-align:left;background:none;border:none;
+    color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;
+    padding:8px 12px;border-radius:8px;cursor:pointer
+  }
+  #ctx button:hover{background:var(--surface2)}
+  #ctx button.danger{color:#E24B4A}
+
+  /* EXPORT MODAL */
+  #exportModal{
+    position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
+    display:none;align-items:flex-end;justify-content:center
+  }
+  #exportModal.open{display:flex}
+  #exportBox{
+    background:var(--surface);border-radius:20px 20px 0 0;
+    padding:20px 16px 32px;width:100%;max-height:70dvh;overflow-y:auto
+  }
+  #exportBox h3{font-size:14px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+  #exportBox pre{
+    background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+    padding:12px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text);
+    white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto
+  }
+  #exportBox .row{display:flex;gap:8px;margin-top:12px}
+  #exportBox .row button{
+    flex:1;height:42px;border-radius:10px;border:1px solid var(--border);
+    background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;
+    font-size:13px;cursor:pointer
+  }
+  #exportBox .row button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
+  /* Stars background */
+  #stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+  .star{position:absolute;background:#fff;border-radius:50%;opacity:.15}
+</style>
+</head>
+<body>
+
+<div id="stars"></div>
+
+<div id="shell">
+  <div id="topbar">
+    <h1>🗺 My People</h1>
+    <div class="spacer"></div>
+    <div id="countBadge">0 people</div>
+    <button id="menuBtn" onclick="openPanel()" aria-label="Add person">＋</button>
+  </div>
+
+  <div id="canvas-wrap">
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#7f77dd"/>
+          <stop offset="100%" stop-color="#534AB7"/>
+        </radialGradient>
+      </defs>
+      <g id="edges"></g>
+      <g id="nodes"></g>
+    </svg>
+  </div>
+</div>
+
+<!-- Add Person Panel -->
+<div id="panel" role="dialog" aria-modal="true" aria-label="Add person">
+  <div id="panel-handle"></div>
+  <h2>Add a person</h2>
+  <div class="field">
+    <label for="nameIn">Name</label>
+    <input id="nameIn" type="text" placeholder="e.g. Sarah M." maxlength="24" autocomplete="off"/>
+  </div>
+  <div class="field">
+    <label for="catSel">Category</label>
+    <select id="catSel">
+      <option value="family">Family</option>
+      <option value="friends">Friends</option>
+      <option value="work">Work / School</option>
+      <option value="neighbors">Neighbors</option>
+      <option value="church">Church / Community</option>
+      <option value="golf">Golf / Sports</option>
+      <option value="other">Other</option>
+    </select>
+  </div>
+  <button id="addBtn">Add to map</button>
+
+  <div id="legend">
+    <div class="leg"><div class="leg-dot" style="background:#D85A30"></div>Family</div>
+    <div class="leg"><div class="leg-dot" style="background:#378ADD"></div>Friends</div>
+    <div class="leg"><div class="leg-dot" style="background:#1D9E75"></div>Work / School</div>
+    <div class="leg"><div class="leg-dot" style="background:#888780"></div>Neighbors</div>
+    <div class="leg"><div class="leg-dot" style="background:#D4537E"></div>Church / Comm</div>
+    <div class="leg"><div class="leg-dot" style="background:#639922"></div>Golf / Sports</div>
+    <div class="leg"><div class="leg-dot" style="background:#BA7517"></div>Other</div>
+  </div>
+</div>
+
+<!-- Context Menu -->
+<div id="ctx">
+  <button id="ctx-edit">✏️ Edit name</button>
+  <button id="ctx-cat">🎨 Change category</button>
+  <button id="ctx-export">📋 Export list</button>
+  <button id="ctx-delete" class="danger">🗑 Remove person</button>
+</div>
+
+<!-- Export Modal -->
+<div id="exportModal">
+  <div id="exportBox">
+    <h3>Your people</h3>
+    <pre id="exportText"></pre>
+    <div class="row">
+      <button onclick="closeExport()">Close</button>
+      <button class="primary" onclick="copyExport()">Copy list</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STARS ──────────────────────────────────────────────────────
+const starsEl=document.getElementById('stars');
+for(let i=0;i<60;i++){
+  const s=document.createElement('div');s.className='star';
+  const sz=Math.random()*2+1;
+  s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;opacity:${Math.random()*.2+.05}`;
+  starsEl.appendChild(s);
+}
+
+// ── STATE ──────────────────────────────────────────────────────
+const CATS={
+  family:{fill:'#2a1510',stroke:'#D85A30',text:'#f0a080'},
+  friends:{fill:'#0e1a2a',stroke:'#378ADD',text:'#85B7EB'},
+  work:{fill:'#0a1f18',stroke:'#1D9E75',text:'#5DCAA5'},
+  neighbors:{fill:'#1a1a18',stroke:'#888780',text:'#B4B2A9'},
+  church:{fill:'#240d17',stroke:'#D4537E',text:'#ED93B1'},
+  golf:{fill:'#131f08',stroke:'#639922',text:'#97C459'},
+  other:{fill:'#201408',stroke:'#BA7517',text:'#EF9F27'}
+};
+const LABELS={family:'Family',friends:'Friends',work:'Work / School',neighbors:'Neighbors',church:'Church / Comm',golf:'Golf / Sports',other:'Other'};
+
+let nodes=[];
+let nextId=1;
+let vx=0,vy=0,vs=1;
+let selectedNode=null;
+
+// ── STORAGE ────────────────────────────────────────────────────
+function save(){localStorage.setItem('mm_nodes',JSON.stringify(nodes));localStorage.setItem('mm_id',nextId);}
+function load(){
+  try{
+    const d=localStorage.getItem('mm_nodes');
+    if(d){nodes=JSON.parse(d);nextId=parseInt(localStorage.getItem('mm_id')||'1');}
+  }catch(e){}
+}
+
+// ── CANVAS ─────────────────────────────────────────────────────
+const svg=document.getElementById('canvas');
+const edgesG=document.getElementById('edges');
+const nodesG=document.getElementById('nodes');
+
+function centerPt(){
+  const r=svg.getBoundingClientRect();
+  return{x:(r.width/2-vx)/vs,y:(r.height/2-vy)/vs};
+}
+
+function applyT(){
+  const t=`translate(${vx},${vy}) scale(${vs})`;
+  edgesG.setAttribute('transform',t);
+  nodesG.setAttribute('transform',t);
+}
+
+function spawnPos(total){
+  const c=centerPt();
+  if(total===0)return{x:c.x+140,y:c.y};
+  const angle=(total/Math.max(total,1))*Math.PI*2*(total%2===0?1:-1)+(total*2.4);
+  const r=Math.min(100+total*14,220);
+  return{x:c.x+Math.cos(angle)*r,y:c.y+Math.sin(angle)*r};
+}
+
+function render(){
+  edgesG.innerHTML='';nodesG.innerHTML='';
+  const c=centerPt();
+
+  // Edges
+  nodes.forEach(n=>{
+    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+    l.setAttribute('x1',c.x);l.setAttribute('y1',c.y);
+    l.setAttribute('x2',n.x);l.setAttribute('y2',n.y);
+    l.setAttribute('class','edge');
+    l.setAttribute('stroke',CATS[n.cat].stroke);
+    edgesG.appendChild(l);
+  });
+
+  // Center node
+  const cg=document.createElementNS('http://www.w3.org/2000/svg','g');
+  const cc=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  cc.setAttribute('cx',c.x);cc.setAttribute('cy',c.y);cc.setAttribute('r',32);
+  cc.setAttribute('fill','url(#centerGrad)');cc.setAttribute('stroke','#7f77dd');cc.setAttribute('stroke-width','2');
+  const ct=document.createElementNS('http://www.w3.org/2000/svg','text');
+  ct.setAttribute('x',c.x);ct.setAttribute('y',c.y);
+  ct.setAttribute('text-anchor','middle');ct.setAttribute('dominant-baseline','central');
+  ct.setAttribute('fill','#fff');ct.setAttribute('font-size','13');ct.setAttribute('font-weight','600');
+  ct.setAttribute('font-family','DM Sans,sans-serif');ct.textContent='Jimmy';
+  cg.appendChild(cc);cg.appendChild(ct);nodesG.appendChild(cg);
+
+  // Person nodes
+  nodes.forEach(n=>{
+    const cat=CATS[n.cat];
+    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','node-group');g.setAttribute('data-id',n.id);
+
+    const circ=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    circ.setAttribute('cx',n.x);circ.setAttribute('cy',n.y);circ.setAttribute('r',24);
+    circ.setAttribute('fill',cat.fill);circ.setAttribute('stroke',cat.stroke);circ.setAttribute('stroke-width','1.5');
+    g.appendChild(circ);
+
+    const words=n.name.split(' ');
+    if(words.length>1&&n.name.length>9){
+      addText(g,n.x,n.y-7,words[0],cat.text,10);
+      addText(g,n.x,n.y+7,words.slice(1).join(' '),cat.text,10);
+    } else {
+      addText(g,n.x,n.y,n.name,cat.text,11);
+    }
+
+    // Touch & mouse events
+    let longPressTimer=null;
+    let moved=false;
+    let touchStartPos=null;
+    let isDragging=false;
+
+    g.addEventListener('touchstart',e=>{
+      e.stopPropagation();moved=false;isDragging=false;
+      const t=e.touches[0];
+      touchStartPos={x:t.clientX,y:t.clientY};
+      longPressTimer=setTimeout(()=>{
+        if(!moved){showCtx(n,touchStartPos.x,touchStartPos.y);}
+      },500);
+    },{passive:true});
+
+    g.addEventListener('touchmove',e=>{
+      e.stopPropagation();
+      const t=e.touches[0];
+      const dx=t.clientX-touchStartPos.x,dy=t.clientY-touchStartPos.y;
+      if(Math.abs(dx)>6||Math.abs(dy)>6){
+        moved=true;isDragging=true;clearTimeout(longPressTimer);
+        const svgR=svg.getBoundingClientRect();
+        n.x=(t.clientX-svgR.left-vx)/vs;
+        n.y=(t.clientY-svgR.top-vy)/vs;
+        render();
+      }
+    },{passive:true});
+
+    g.addEventListener('touchend',e=>{
+      e.stopPropagation();clearTimeout(longPressTimer);
+      if(!moved&&!isDragging){save();}
+      else if(isDragging){save();}
+    });
+
+    // Mouse
+    let mouseDragging=false;
+    let mouseStart=null;
+    g.addEventListener('mousedown',e=>{
+      e.stopPropagation();mouseDragging=false;mouseStart={x:e.clientX,y:e.clientY};
+      const onMove=ev=>{
+        const dx=ev.clientX-mouseStart.x,dy=ev.clientY-mouseStart.y;
+        if(Math.abs(dx)>4||Math.abs(dy)>4){
+          mouseDragging=true;
+          const svgR=svg.getBoundingClientRect();
+          n.x=(ev.clientX-svgR.left-vx)/vs;
+          n.y=(ev.clientY-svgR.top-vy)/vs;
+          render();
+        }
+      };
+      const onUp=ev=>{
+        window.removeEventListener('mousemove',onMove);
+        window.removeEventListener('mouseup',onUp);
+        if(mouseDragging)save();
+      };
+      window.addEventListener('mousemove',onMove);
+      window.addEventListener('mouseup',onUp);
+    });
+
+    g.addEventListener('contextmenu',e=>{e.preventDefault();showCtx(n,e.clientX,e.clientY);});
+
+    nodesG.appendChild(g);
+  });
+
+  applyT();
+  document.getElementById('countBadge').textContent=nodes.length+' '+(nodes.length===1?'person':'people');
+}
+
+function addText(g,x,y,txt,fill,size){
+  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',x);t.setAttribute('y',y);
+  t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','central');
+  t.setAttribute('fill',fill);t.setAttribute('font-size',size);
+  t.setAttribute('font-weight','500');t.setAttribute('font-family','DM Sans,sans-serif');
+  t.textContent=txt;g.appendChild(t);
+}
+
+// ── PAN / ZOOM ─────────────────────────────────────────────────
+let panStart=null,panOrigin=null;
+let pinchStart=null,pinchOriginScale=1,pinchOriginV={x:0,y:0};
+
+svg.addEventListener('touchstart',e=>{
+  closeCtx();
+  if(e.touches.length===2){
+    const t1=e.touches[0],t2=e.touches[1];
+    pinchStart=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
+    pinchOriginScale=vs;pinchOriginV={x:vx,y:vy};
+    panStart=null;
+  } else if(e.touches.length===1){
+    panStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    panOrigin={x:vx,y:vy};
+  }
+},{passive:true});
+
+svg.addEventListener('touchmove',e=>{
+  if(e.touches.length===2&&pinchStart){
+    const t1=e.touches[0],t2=e.touches[1];
+    const dist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
+    const newScale=Math.max(.3,Math.min(4,pinchOriginScale*(dist/pinchStart)));
+    const mx=(t1.clientX+t2.clientX)/2,my=(t1.clientY+t2.clientY)/2;
+    const r=svg.getBoundingClientRect();
+    const cx=mx-r.left,cy=my-r.top;
+    vx=cx-(cx-pinchOriginV.x)*(newScale/pinchOriginScale);
+    vy=cy-(cy-pinchOriginV.y)*(newScale/pinchOriginScale);
+    vs=newScale;applyT();
+  } else if(e.touches.length===1&&panStart){
+    vx=panOrigin.x+(e.touches[0].clientX-panStart.x);
+    vy=panOrigin.y+(e.touches[0].clientY-panStart.y);
+    applyT();
+  }
+},{passive:true});
+
+svg.addEventListener('touchend',e=>{if(e.touches.length<2)pinchStart=null;},{passive:true});
+
+let mousePanStart=null,mousePanOrigin=null;
+svg.addEventListener('mousedown',e=>{
+  closeCtx();
+  mousePanStart={x:e.clientX,y:e.clientY};mousePanOrigin={x:vx,y:vy};
+  const onMove=ev=>{vx=mousePanOrigin.x+(ev.clientX-mousePanStart.x);vy=mousePanOrigin.y+(ev.clientY-mousePanStart.y);applyT();};
+  const onUp=()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
+  window.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
+});
+
+svg.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const r=svg.getBoundingClientRect();
+  const mx=e.clientX-r.left,my=e.clientY-r.top;
+  const delta=e.deltaY<0?1.1:.91;
+  const ns=Math.max(.3,Math.min(4,vs*delta));
+  vx=mx-(mx-vx)*(ns/vs);vy=my-(my-vy)*(ns/vs);vs=ns;applyT();
+},{passive:false});
+
+// ── ADD PERSON ─────────────────────────────────────────────────
+function openPanel(){
+  document.getElementById('panel').classList.add('open');
+  setTimeout(()=>document.getElementById('nameIn').focus(),300);
+}
+function closePanel(){document.getElementById('panel').classList.remove('open');}
+
+document.getElementById('panel').addEventListener('touchstart',e=>{
+  if(e.target===document.getElementById('panel-handle'))closePanel();
+},{passive:true});
+
+document.getElementById('addBtn').addEventListener('click',()=>{
+  const name=document.getElementById('nameIn').value.trim();
+  if(!name)return;
+  const cat=document.getElementById('catSel').value;
+  const pos=spawnPos(nodes.length);
+  nodes.push({id:nextId++,name,cat,x:pos.x,y:pos.y});
+  document.getElementById('nameIn').value='';
+  save();render();
+});
+
+document.getElementById('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('addBtn').click();});
+
+// Click outside panel closes it
+document.addEventListener('click',e=>{
+  const panel=document.getElementById('panel');
+  if(panel.classList.contains('open')&&!panel.contains(e.target)&&e.target.id!=='menuBtn'){closePanel();}
+});
+
+// ── CONTEXT MENU ───────────────────────────────────────────────
+let ctxNode=null;
+function showCtx(n,cx,cy){
+  ctxNode=n;
+  const menu=document.getElementById('ctx');
+  menu.style.display='block';
+  const vw=window.innerWidth,vh=window.innerHeight;
+  const mw=160,mh=160;
+  menu.style.left=Math.min(cx,vw-mw-8)+'px';
+  menu.style.top=Math.min(cy,vh-mh-8)+'px';
+}
+function closeCtx(){document.getElementById('ctx').style.display='none';ctxNode=null;}
+document.addEventListener('click',e=>{if(!document.getElementById('ctx').contains(e.target))closeCtx();});
+
+document.getElementById('ctx-edit').addEventListener('click',()=>{
+  if(!ctxNode)return;
+  const newName=prompt('New name:',ctxNode.name);
+  if(newName&&newName.trim()){ctxNode.name=newName.trim();save();render();}
+  closeCtx();
+});
+
+document.getElementById('ctx-cat').addEventListener('click',()=>{
+  if(!ctxNode)return;
+  const cats=Object.keys(CATS);
+  const cur=cats.indexOf(ctxNode.cat);
+  ctxNode.cat=cats[(cur+1)%cats.length];
+  save();render();closeCtx();
+});
+
+document.getElementById('ctx-export').addEventListener('click',()=>{
+  closeCtx();openExport();
+});
+
+document.getElementById('ctx-delete').addEventListener('click',()=>{
+  if(!ctxNode)return;
+  if(confirm(`Remove "${ctxNode.name}"?`)){
+    nodes=nodes.filter(n=>n.id!==ctxNode.id);save();render();
+  }
+  closeCtx();
+});
+
+// ── EXPORT ─────────────────────────────────────────────────────
+function openExport(){
+  const grouped={};
+  nodes.forEach(n=>{if(!grouped[n.cat])grouped[n.cat]=[];grouped[n.cat].push(n.name);});
+  const lines=[];
+  Object.entries(grouped).forEach(([cat,names])=>{
+    lines.push(LABELS[cat]+':');
+    names.forEach(n=>lines.push('  • '+n));lines.push('');
+  });
+  if(lines.length===0)lines.push('No people added yet.');
+  document.getElementById('exportText').textContent=lines.join('\n').trim();
+  document.getElementById('exportModal').classList.add('open');
+}
+function closeExport(){document.getElementById('exportModal').classList.remove('open');}
+function copyExport(){
+  navigator.clipboard.writeText(document.getElementById('exportText').textContent)
+    .then(()=>alert('Copied to clipboard!'))
+    .catch(()=>alert('Select the text above and copy manually.'));
+}
+document.getElementById('exportModal').addEventListener('click',e=>{
+  if(e.target===document.getElementById('exportModal'))closeExport();
+});
+
+// ── RESIZE ─────────────────────────────────────────────────────
+window.addEventListener('resize',()=>render());
+
+// ── INIT ───────────────────────────────────────────────────────
+load();render();
+// Center the view on first load
+setTimeout(()=>{
+  const r=svg.getBoundingClientRect();
+  vx=r.width/2;vy=r.height/2;vs=1;applyT();render();
+},50);
+</script>
+</body>
+</html>
