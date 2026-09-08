@@ -143,13 +143,16 @@
 
   .field{margin-bottom:14px}
   .field label{display:block;font-size:11.5px;color:var(--text2);margin-bottom:6px;font-weight:500}
-  .field input[type=text],.field input[type=date],.field textarea{
+  .field input[type=text],.field input[type=date],.field textarea,.field select{
     width:100%;background:var(--surface2);
     border:1px solid var(--border);border-radius:10px;
     color:var(--text);font-family:inherit;font-size:14.5px;
     padding:11px 12px;outline:none;-webkit-appearance:none;appearance:none;
   }
-  .field input[type=text],.field input[type=date]{height:44px}
+  .field input[type=text],.field input[type=date],.field select{height:44px}
+  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+  .checkField label{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:var(--text2);line-height:1.4}
+  .checkField input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}
   .field textarea{resize:none;min-height:64px;line-height:1.4}
   .field input:focus,.field textarea:focus{border-color:var(--purple)}
   .chiprow{display:flex;flex-wrap:wrap;gap:7px}
@@ -347,9 +350,19 @@
     <label>How do you know them?</label>
     <div class="chiprow" id="addCatChips"></div>
   </div>
-  <div class="field">
+  <div class="field" id="addRingField">
     <label>How close are you?</label>
     <div class="chiprow" id="addRingChips"></div>
+  </div>
+  <div class="field checkField" id="addIndirectField" style="display:none">
+    <label for="addIndirectCheck">
+      <input type="checkbox" id="addIndirectCheck"/>
+      <span>I don't know them directly — they're connected to me through someone else</span>
+    </label>
+  </div>
+  <div class="field" id="addAnchorField" style="display:none">
+    <label for="addAnchorSelect">Connected through</label>
+    <select id="addAnchorSelect"></select>
   </div>
   <div class="detailToggle" id="addMoreToggle">＋ Add a note, tags, last contact</div>
   <div class="moreFields" id="addMoreFields">
@@ -385,9 +398,13 @@
     <label>How do you know them?</label>
     <div class="chiprow" id="detailCatChips"></div>
   </div>
-  <div class="field">
+  <div class="field" id="detailRingField">
     <label>How close are you?</label>
     <div class="chiprow" id="detailRingChips"></div>
+  </div>
+  <div class="field" id="detailIndirectNote" style="display:none">
+    <div style="font-size:12.5px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;line-height:1.5">You don't know this person directly — they're connected to you through someone else on your map.</div>
+    <button class="ghostBtn" id="makeDirectBtn">Actually, I know them directly</button>
   </div>
   <div class="field">
     <label for="detailHowMet">How you met / know them</label>
@@ -497,9 +514,19 @@
     <label for="groupNameIn">Name</label>
     <input id="groupNameIn" type="text" maxlength="30" autocomplete="off"/>
   </div>
+  <div class="field">
+    <label for="groupParentSelect">Nested under</label>
+    <select id="groupParentSelect"></select>
+  </div>
   <div class="sectionLabel">Members</div>
   <div id="groupMembersList"></div>
   <button class="ghostBtn" id="groupMemberAddBtn">＋ Add people</button>
+  <div class="sectionLabel">Sub-groups</div>
+  <div id="subGroupsList"></div>
+  <div class="field" style="display:flex;gap:8px">
+    <input id="newSubGroupName" type="text" placeholder="Name a sub-group…" maxlength="30" autocomplete="off" style="flex:1"/>
+    <button class="primaryBtn" id="newSubGroupCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+  </div>
   <button class="dangerBtn" id="groupDeleteBtn">Delete this group</button>
 </div>
 
@@ -569,7 +596,8 @@
     <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">You sit at the center. Everyone you add orbits you — <b style="color:var(--text)">color</b> shows how you know them, and <b style="color:var(--text)">distance</b> shows how close you are, from your Inner Circle out to Acquaintances.</p>
     <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">The rings echo anthropologist Robin Dunbar's research on the layered structure of human social groups — roughly 5 intimate confidants, 15 close friends, 50 real friendships, and about 150 relationships we can meaningfully maintain at once.</p>
     <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">Drag anyone to reposition them. Tap to open their profile. Link two people who know each other — mark partners and parent/child ties and the family tree draws itself, kids branching down from the couple that raised them.</p>
-    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:4px">Name a group for anything that clusters people — a school, a hometown, a team — and it becomes its own small orbit. Everything drifts gently, like a real night sky, and everything stays on this device.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">Name a group for anything that clusters people — a school, a hometown, a team — and it becomes its own small orbit. Groups can nest inside other groups too, so a class can live under its school.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:4px">Someone doesn't have to be connected straight to you, either — mark them as connected through someone else, and they'll show up as a small satellite of that person instead. Everything stays on this device.</p>
   </div>
 </div>
 
@@ -703,7 +731,7 @@ function hash01(id){ const x=Math.sin(id*999.111)*10000; return x-Math.floor(x);
 function layoutAuto(){
   const byCat={}; CAT_ORDER.forEach(c=>byCat[c]=[]);
   const ordered=[...people].sort((a,b)=>(a.createdAt-b.createdAt)||(a.id-b.id));
-  ordered.forEach(p=>{ if(!p.manual && byCat[p.cat]) byCat[p.cat].push(p); });
+  ordered.forEach(p=>{ if(!p.manual && !p.indirect && byCat[p.cat]) byCat[p.cat].push(p); });
   const sectorWidth=360/CAT_ORDER.length;
   CAT_ORDER.forEach((cat,ci)=>{
     const arr=byCat[cat];
@@ -723,12 +751,75 @@ function layoutAuto(){
 }
 
 function layoutGroupsAuto(){
-  const auto=groups.filter(g=>!g.manual).sort((a,b)=>(a.createdAt-b.createdAt)||(a.id-b.id));
+  // Only top-level groups orbit you directly — nested sub-groups are
+  // positioned by layoutSubGroupsAuto, as satellites of their parent.
+  const auto=groups.filter(g=>!g.manual&&!g.parentGroupId).sort((a,b)=>(a.createdAt-b.createdAt)||(a.id-b.id));
   const n=auto.length;
   auto.forEach((g,i)=>{
     const angle=(-90+(360/Math.max(n,1))*i)*Math.PI/180;
     g.x=Math.cos(angle)*GROUP_HUB_R;
     g.y=Math.sin(angle)*GROUP_HUB_R;
+  });
+}
+
+function layoutSubGroupsAuto(){
+  const resolved=new Map();
+  groups.forEach(g=>{ if(!g.parentGroupId||g.manual) resolved.set(g.id,{x:g.x,y:g.y}); });
+  let remaining=groups.filter(g=>g.parentGroupId&&!g.manual);
+  const satCount=new Map();
+  let iterations=0;
+  while(remaining.length&&iterations<6){
+    iterations++;
+    const stillRemaining=[];
+    remaining.forEach(g=>{
+      const apos=resolved.get(g.parentGroupId);
+      if(apos){
+        const idx=satCount.get(g.parentGroupId)||0; satCount.set(g.parentGroupId,idx+1);
+        const angle=(idx*81+hash01(g.id*13)*360)*Math.PI/180;
+        const rOff=90+(idx%3)*20;
+        g.x=apos.x+Math.cos(angle)*rOff;
+        g.y=apos.y+Math.sin(angle)*rOff;
+        resolved.set(g.id,{x:g.x,y:g.y});
+      } else stillRemaining.push(g);
+    });
+    remaining=stillRemaining;
+  }
+  // orphaned (parent deleted, or a cycle) — fall back to the normal ring
+  remaining.forEach((g,i)=>{
+    const angle=(hash01(g.id)*360)*Math.PI/180;
+    g.x=Math.cos(angle)*GROUP_HUB_R;g.y=Math.sin(angle)*GROUP_HUB_R;
+  });
+}
+
+// People who aren't known to you directly have no ring/sector — they're placed as
+// satellites of whoever DOES connect them to your world, not around you.
+function layoutIndirectAuto(){
+  const resolved=new Map();
+  people.forEach(p=>{ if(!p.indirect||p.manual) resolved.set(p.id,{x:p.x,y:p.y}); });
+  let remaining=people.filter(p=>p.indirect&&!p.manual);
+  const satCount=new Map();
+  let iterations=0;
+  while(remaining.length&&iterations<6){
+    iterations++;
+    const stillRemaining=[];
+    remaining.forEach(p=>{
+      const link=links.find(l=>(l.a===p.id&&resolved.has(l.b))||(l.b===p.id&&resolved.has(l.a)));
+      if(link){
+        const anchorId=link.a===p.id?link.b:link.a;
+        const apos=resolved.get(anchorId);
+        const idx=satCount.get(anchorId)||0; satCount.set(anchorId,idx+1);
+        const angle=(idx*67+hash01(p.id)*360)*Math.PI/180;
+        const rOff=56+(idx%3)*15;
+        p.x=apos.x+Math.cos(angle)*rOff;
+        p.y=apos.y+Math.sin(angle)*rOff;
+        resolved.set(p.id,{x:p.x,y:p.y});
+      } else stillRemaining.push(p);
+    });
+    remaining=stillRemaining;
+  }
+  remaining.forEach(p=>{
+    const angle=hash01(p.id)*360*Math.PI/180;
+    p.x=Math.cos(angle)*90;p.y=Math.sin(angle)*90;
   });
 }
 
@@ -834,13 +925,16 @@ function createNodeEl(p){
   return {g,circ,t1,t2};
 }
 
+const INDIRECT_SIZE=14;
+
 function updateNodeEl(el,p){
   const cat=CATS[p.cat]||CATS.other;
-  const ring=RINGS[(p.ring||3)-1];
-  el.circ.setAttribute('cx',p.x);el.circ.setAttribute('cy',p.y);el.circ.setAttribute('r',ring.size);
+  const size=p.indirect?INDIRECT_SIZE:RINGS[(p.ring||3)-1].size;
+  el.circ.setAttribute('cx',p.x);el.circ.setAttribute('cy',p.y);el.circ.setAttribute('r',size);
   el.circ.setAttribute('fill',cat.fill);el.circ.setAttribute('stroke',cat.stroke);el.circ.setAttribute('stroke-width',1.6);
+  el.circ.setAttribute('stroke-dasharray',p.indirect?'2 2.5':'none');
 
-  const small=ring.size<20;
+  const small=size<20;
   const words=p.name.split(' ');
   el.t1.setAttribute('fill',cat.text);el.t2.setAttribute('fill',cat.text);
   el.t1.setAttribute('font-size',small?9.5:11);el.t2.setAttribute('font-size',small?9.5:11);
@@ -888,12 +982,14 @@ function createGroupEl(g){
 
 function updateGroupEl(el,g){
   const color=g.color||GROUP_COLORS[0];
-  el.circ.setAttribute('cx',g.x);el.circ.setAttribute('cy',g.y);
-  el.circ.setAttribute('fill','#14141c');el.circ.setAttribute('stroke',color);el.circ.setAttribute('stroke-width',2);
+  const nested=!!g.parentGroupId;
+  const r=nested?23:30;
+  el.circ.setAttribute('cx',g.x);el.circ.setAttribute('cy',g.y);el.circ.setAttribute('r',r);
+  el.circ.setAttribute('fill','#14141c');el.circ.setAttribute('stroke',color);el.circ.setAttribute('stroke-width',nested?1.6:2);
   const members=groupLinks.filter(gl=>gl.groupId===g.id).length;
   const name=g.name.length>12?g.name.slice(0,11)+'…':g.name;
-  el.t1.textContent=name;el.t1.setAttribute('x',g.x);el.t1.setAttribute('y',g.y-6);el.t1.setAttribute('fill',color);el.t1.setAttribute('font-size',10.5);
-  el.t2.textContent=members+(members===1?' person':' people');el.t2.setAttribute('x',g.x);el.t2.setAttribute('y',g.y+9);el.t2.setAttribute('fill','#8888a0');el.t2.setAttribute('font-size',8.5);
+  el.t1.textContent=name;el.t1.setAttribute('x',g.x);el.t1.setAttribute('y',g.y-6);el.t1.setAttribute('fill',color);el.t1.setAttribute('font-size',nested?9.5:10.5);
+  el.t2.textContent=members+(members===1?' person':' people');el.t2.setAttribute('x',g.x);el.t2.setAttribute('y',g.y+9);el.t2.setAttribute('fill','#8888a0');el.t2.setAttribute('font-size',8);
   const dim=filterCats.size||filterText ? !groupMatchesFilter(g) : false;
   el.g.classList.toggle('dimmed',dim);
 }
@@ -966,6 +1062,9 @@ function syncHubEdges(){
   const seen=new Set();
   const groupedIds=new Set(groupLinks.map(gl=>gl.personId));
   people.forEach(p=>{
+    // Someone you don't know directly has no line to you at all — they're only
+    // reachable through whoever connects you, via a person-to-person link.
+    if(p.indirect) return;
     seen.add(p.id);
     let l=hubEdgeEls.get(p.id);
     if(!l){ l=svgEl('line',{class:'hub-edge',x1:0,y1:0}); hubG.appendChild(l); hubEdgeEls.set(p.id,l); }
@@ -1077,13 +1176,18 @@ function updateEdgesForNode(id){
 function syncGroupThreads(){
   const seen=new Set();
   groups.forEach(g=>{
-    const youId='you-'+g.id;
-    seen.add(youId);
-    let yl=groupThreadEls.get(youId);
-    if(!yl){ yl=svgEl('line',{class:'group-thread',x1:0,y1:0}); groupThreadsG.appendChild(yl); groupThreadEls.set(youId,yl); }
-    yl.setAttribute('x2',g.x);yl.setAttribute('y2',g.y);
-    yl.setAttribute('stroke',g.color||GROUP_COLORS[0]);
-    yl.setAttribute('opacity',groupMatchesFilter(g)?0.28:0.03);
+    // A nested sub-group connects through its parent group, not straight to
+    // you — same idea as an indirect person connecting through their anchor.
+    const parent=g.parentGroupId?groupsById.get(g.parentGroupId):null;
+    const originKey=parent?('parent-'+g.id):('you-'+g.id);
+    seen.add(originKey);
+    let ol=groupThreadEls.get(originKey);
+    if(!ol){ ol=svgEl('line',{class:'group-thread'}); groupThreadsG.appendChild(ol); groupThreadEls.set(originKey,ol); }
+    const ox=parent?parent.x:0, oy=parent?parent.y:0;
+    ol.setAttribute('x1',ox);ol.setAttribute('y1',oy);
+    ol.setAttribute('x2',g.x);ol.setAttribute('y2',g.y);
+    ol.setAttribute('stroke',g.color||GROUP_COLORS[0]);
+    ol.setAttribute('opacity',groupMatchesFilter(g)?0.28:0.03);
 
     groupLinks.filter(gl=>gl.groupId===g.id).forEach(gl=>{
       const p=peopleById.get(gl.personId); if(!p) return;
@@ -1101,13 +1205,17 @@ function syncGroupThreads(){
 
 function updateThreadsForGroup(groupId){
   const g=groupsById.get(groupId); if(!g) return;
-  const yl=groupThreadEls.get('you-'+groupId);
-  if(yl){ yl.setAttribute('x2',g.x); yl.setAttribute('y2',g.y); }
+  const parent=g.parentGroupId?groupsById.get(g.parentGroupId):null;
+  const originKey=parent?('parent-'+g.id):('you-'+g.id);
+  const ol=groupThreadEls.get(originKey);
+  if(ol){ ol.setAttribute('x2',g.x); ol.setAttribute('y2',g.y); }
   groupLinks.filter(gl=>gl.groupId===groupId).forEach(gl=>{
     const ml=groupThreadEls.get('m-'+gl.id);
     const p=peopleById.get(gl.personId);
     if(ml&&p){ ml.setAttribute('x1',g.x);ml.setAttribute('y1',g.y);ml.setAttribute('x2',p.x);ml.setAttribute('y2',p.y); }
   });
+  // moving this group also moves the origin point for any of ITS sub-groups
+  groups.forEach(sub=>{ if(sub.parentGroupId===groupId) updateThreadsForGroup(sub.id); });
 }
 
 // ── FULL RENDER ────────────────────────────────────────────────
@@ -1115,6 +1223,8 @@ function renderAll(){
   rebuildIndex();
   layoutAuto();
   layoutGroupsAuto();
+  layoutSubGroupsAuto();
+  layoutIndirectAuto();
   syncNodes();
   syncGroupNodes();
   syncHubEdges();
@@ -1126,7 +1236,9 @@ function renderAll(){
 }
 
 function updateBadge(){
-  document.getElementById('countBadge').innerHTML=`<b>${people.length}</b> ${people.length===1?'person':'people'} known`;
+  const direct=people.filter(p=>!p.indirect).length;
+  const indirect=people.length-direct;
+  document.getElementById('countBadge').innerHTML=`<b>${direct}</b> ${direct===1?'person':'people'} known`+(indirect?` <span style="opacity:.65">+${indirect} extended</span>`:'');
   toggleOnboard();
   maybeShowInstallBanner();
 }
@@ -1278,8 +1390,28 @@ function refreshAddChips(){
 }
 refreshAddChips();
 
+function populateAnchorSelect(selectEl,excludeId){
+  selectEl.innerHTML='';
+  people.filter(p=>p.id!==excludeId).forEach(p=>{
+    const opt=document.createElement('option');
+    opt.value=p.id;opt.textContent=p.name;
+    selectEl.appendChild(opt);
+  });
+}
+
 function openAddPanel(){
   closeAllPopovers();
+  const indirectField=document.getElementById('addIndirectField');
+  const check=document.getElementById('addIndirectCheck');
+  check.checked=false;
+  document.getElementById('addRingField').style.display='block';
+  document.getElementById('addAnchorField').style.display='none';
+  if(people.length>0){
+    indirectField.style.display='block';
+    populateAnchorSelect(document.getElementById('addAnchorSelect'),null);
+  } else {
+    indirectField.style.display='none';
+  }
   document.getElementById('addScrim').classList.add('open');
   document.getElementById('panel').classList.add('open');
   setTimeout(()=>document.getElementById('nameIn').focus(),260);
@@ -1293,26 +1425,38 @@ document.getElementById('addClose').addEventListener('click',closeAddPanel);
 document.getElementById('addMoreToggle').addEventListener('click',()=>{
   document.getElementById('addMoreFields').classList.toggle('open');
 });
+document.getElementById('addIndirectCheck').addEventListener('change',e=>{
+  const on=e.target.checked;
+  document.getElementById('addRingField').style.display=on?'none':'block';
+  document.getElementById('addAnchorField').style.display=on?'block':'none';
+});
 
 document.getElementById('addBtn').addEventListener('click',()=>{
   const name=document.getElementById('nameIn').value.trim();
   if(!name) return;
+  const indirect=document.getElementById('addIndirectCheck').checked;
+  let anchorId=null;
+  if(indirect){
+    anchorId=parseInt(document.getElementById('addAnchorSelect').value);
+    if(!anchorId) return;
+  }
   const howMet=document.getElementById('addHowMet').value.trim();
   const note=document.getElementById('addNote').value.trim();
   const tagsRaw=document.getElementById('addTags').value.trim();
   const tags=tagsRaw?tagsRaw.split(',').map(t=>t.trim()).filter(Boolean):[];
   const p={
-    id:nextId++,name,cat:addCat,ring:addRing,x:0,y:0,manual:false,
-    note,howMet,tags,lastContact:'',createdAt:Date.now()
+    id:nextId++,name,cat:addCat,ring:indirect?null:addRing,x:0,y:0,manual:false,
+    indirect,note,howMet,tags,lastContact:'',createdAt:Date.now()
   };
   people.push(p);
+  if(indirect) links.push({id:nextLinkId++,type:'custom',a:p.id,b:anchorId});
   document.getElementById('nameIn').value='';
   document.getElementById('addHowMet').value='';
   document.getElementById('addNote').value='';
   document.getElementById('addTags').value='';
   document.getElementById('addMoreFields').classList.remove('open');
   save();renderAll();closeAddPanel();
-  toast(`${name} added to your map`);
+  toast(indirect?`${name} added, connected through ${peopleById.get(anchorId)?.name||'someone'}`:`${name} added to your map`);
   haptic(16);
 });
 document.getElementById('nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('addBtn').click(); });
@@ -1334,9 +1478,16 @@ function openDetail(id){
   buildCatChips(document.getElementById('detailCatChips'),p.cat,c=>{
     p.cat=c;p.manual=false;save();renderAll();openDetail(id);
   });
-  buildRingChips(document.getElementById('detailRingChips'),p.ring||3,r=>{
-    p.ring=r;p.manual=false;save();renderAll();openDetail(id);
-  });
+  if(p.indirect){
+    document.getElementById('detailRingField').style.display='none';
+    document.getElementById('detailIndirectNote').style.display='block';
+  } else {
+    document.getElementById('detailRingField').style.display='block';
+    document.getElementById('detailIndirectNote').style.display='none';
+    buildRingChips(document.getElementById('detailRingChips'),p.ring||3,r=>{
+      p.ring=r;p.manual=false;save();renderAll();openDetail(id);
+    });
+  }
   document.getElementById('detailHowMet').value=p.howMet||'';
   document.getElementById('detailNote').value=p.note||'';
   document.getElementById('detailLastContact').value=p.lastContact||'';
@@ -1428,6 +1579,13 @@ document.getElementById('resetPosBtn').addEventListener('click',()=>{
   const p=peopleById.get(detailId); if(!p) return;
   p.manual=false; save(); renderAll(); openDetail(detailId);
   toast('Position reset');
+});
+
+document.getElementById('makeDirectBtn').addEventListener('click',()=>{
+  const p=peopleById.get(detailId); if(!p) return;
+  p.indirect=false; p.ring=3; p.manual=false;
+  save();renderAll();openDetail(detailId);
+  toast(`${p.name} is now a direct connection`);haptic(14);
 });
 
 document.getElementById('detailDelete').addEventListener('click',()=>{
@@ -1621,17 +1779,85 @@ document.getElementById('groupPickerCreate').addEventListener('click',()=>{
 
 // ── GROUP DETAIL SHEET ───────────────────────────────────────────
 let groupSheetId=null;
+function descendantGroupIds(id){
+  const out=new Set();
+  const stack=[id];
+  while(stack.length){
+    const cur=stack.pop();
+    groups.forEach(g=>{ if(g.parentGroupId===cur && !out.has(g.id)){ out.add(g.id); stack.push(g.id); } });
+  }
+  return out;
+}
+
+function populateParentSelect(g){
+  const sel=document.getElementById('groupParentSelect');
+  sel.innerHTML='';
+  const top=document.createElement('option');
+  top.value='';top.textContent='— Top level (connects straight to you)';
+  sel.appendChild(top);
+  const excluded=descendantGroupIds(g.id);
+  excluded.add(g.id);
+  groups.filter(o=>!excluded.has(o.id)).forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o.id;opt.textContent=o.name;
+    sel.appendChild(opt);
+  });
+  sel.value=g.parentGroupId||'';
+}
+
+function renderSubGroups(g){
+  const wrap=document.getElementById('subGroupsList');
+  wrap.innerHTML='';
+  const subs=groups.filter(o=>o.parentGroupId===g.id);
+  if(!subs.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3)">No sub-groups yet.</div>';
+    return;
+  }
+  subs.forEach(sub=>{
+    const count=groupLinks.filter(gl=>gl.groupId===sub.id).length;
+    const row=document.createElement('div');
+    row.className='pickRow';
+    row.innerHTML=`<div class="pickAvatar" style="background:#14141c;color:${sub.color};border:1.5px solid ${sub.color}">◎</div>
+      <div><div class="pickName">${escapeHtml(sub.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
+    row.onclick=()=>openGroupSheet(sub.id);
+    wrap.appendChild(row);
+  });
+}
+
 function openGroupSheet(id){
   closeAllPopovers();
   const g=groupsById.get(id);
   if(!g) return;
   groupSheetId=id;
   document.getElementById('groupNameIn').value=g.name;
+  populateParentSelect(g);
   renderGroupMembers(g);
+  renderSubGroups(g);
+  document.getElementById('newSubGroupName').value='';
   document.getElementById('groupScrim').classList.add('open');
   document.getElementById('groupSheet').classList.add('open');
   revealWorldPoint(g.x,g.y);
 }
+document.getElementById('groupParentSelect').addEventListener('change',e=>{
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  const val=e.target.value;
+  g.parentGroupId=val?parseInt(val):null;
+  g.manual=false;
+  save();renderAll();
+  revealWorldPoint(g.x,g.y);
+  toast(val?`Nested under ${groupsById.get(g.parentGroupId).name}`:'Moved to top level');
+});
+document.getElementById('newSubGroupCreate').addEventListener('click',()=>{
+  const name=document.getElementById('newSubGroupName').value.trim();
+  if(!name||groupSheetId==null) return;
+  const sub={id:nextGroupId++,name,color:GROUP_COLORS[(nextGroupId-2)%GROUP_COLORS.length],x:0,y:0,manual:false,parentGroupId:groupSheetId,createdAt:Date.now()};
+  groups.push(sub);
+  save();renderAll();
+  document.getElementById('newSubGroupName').value='';
+  renderSubGroups(groupsById.get(groupSheetId));
+  revealWorldPoint(sub.x,sub.y);
+  toast(`Created ${name}`);haptic(16);
+});
 function closeGroupSheet(){
   if(groupSheetId!=null) commitGroupName();
   document.getElementById('groupScrim').classList.remove('open');
@@ -1724,7 +1950,10 @@ function renderGroupMemberPicker(q){
 
 document.getElementById('groupDeleteBtn').addEventListener('click',()=>{
   const g=groupsById.get(groupSheetId); if(!g) return;
-  if(confirm(`Delete "${g.name}"? This removes the group but not the people in it.`)){
+  const subCount=groups.filter(x=>x.parentGroupId===g.id).length;
+  const msg=subCount?`Delete "${g.name}"? This removes the group and un-nests its ${subCount} sub-group${subCount===1?'':'s'} back to top level. People in it stay on your map.`:`Delete "${g.name}"? This removes the group but not the people in it.`;
+  if(confirm(msg)){
+    groups.forEach(x=>{ if(x.parentGroupId===g.id) x.parentGroupId=null; });
     groups=groups.filter(x=>x.id!==g.id);
     groupLinks=groupLinks.filter(x=>x.groupId!==g.id);
     save();renderAll();
@@ -1752,15 +1981,20 @@ function renderGroupsList(){
     wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No groups yet — name a school, a hometown, a team, anything that clusters people together.</div>';
     return;
   }
-  groups.forEach(g=>{
+  const addRow=(g,depth)=>{
     const count=groupLinks.filter(gl=>gl.groupId===g.id).length;
     const row=document.createElement('div');
     row.className='pickRow';
+    row.style.paddingLeft=(4+depth*22)+'px';
     row.innerHTML=`<div class="pickAvatar" style="background:#14141c;color:${g.color};border:1.5px solid ${g.color}">◎</div>
-      <div><div class="pickName">${escapeHtml(g.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
+      <div><div class="pickName">${depth?'↳ ':''}${escapeHtml(g.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
     row.onclick=()=>{ document.getElementById('groupsListScrim').classList.remove('open'); openGroupSheet(g.id); };
     wrap.appendChild(row);
-  });
+    groups.filter(o=>o.parentGroupId===g.id).forEach(child=>addRow(child,depth+1));
+  };
+  groups.filter(g=>!g.parentGroupId).forEach(g=>addRow(g,0));
+  // orphans (parent missing/deleted, defensive) still show at top level
+  groups.filter(g=>g.parentGroupId&&!groupsById.has(g.parentGroupId)).forEach(g=>addRow(g,0));
 }
 document.getElementById('newGroupCreate').addEventListener('click',()=>{
   const name=document.getElementById('newGroupName').value.trim();
@@ -1835,10 +2069,14 @@ function applyFilterOnly(){
 
 // ── INSIGHTS ─────────────────────────────────────────────────────
 function computeInsights(){
-  const total=people.length;
+  // Insights are about people YOU know — friends-of-friends who aren't
+  // directly connected to you don't count toward your own totals.
+  const direct=people.filter(p=>!p.indirect);
+  const total=direct.length;
+  const indirectCount=people.length-direct.length;
   const byRing=[0,0,0,0,0];
   const byCat={}; CAT_ORDER.forEach(c=>byCat[c]=0);
-  people.forEach(p=>{ byRing[(p.ring||3)-1]++; byCat[p.cat]=(byCat[p.cat]||0)+1; });
+  direct.forEach(p=>{ byRing[(p.ring||3)-1]++; byCat[p.cat]=(byCat[p.cat]||0)+1; });
   const linkCountById={};
   links.forEach(lk=>{ linkCountById[lk.a]=(linkCountById[lk.a]||0)+1; linkCountById[lk.b]=(linkCountById[lk.b]||0)+1; });
   let mostConnected=null,mostConnectedCount=0;
@@ -1850,16 +2088,16 @@ function computeInsights(){
     const d=new Date(now.getFullYear(),now.getMonth()-i,1);
     months.push({key:d.getFullYear()+'-'+d.getMonth(),label:d.toLocaleString(undefined,{month:'short'}),count:0});
   }
-  people.forEach(p=>{
+  direct.forEach(p=>{
     const d=new Date(p.createdAt);
     const key=d.getFullYear()+'-'+d.getMonth();
     const m=months.find(mm=>mm.key===key);
     if(m)m.count++;
   });
   let oldest=null;
-  people.forEach(p=>{ if(!oldest||p.createdAt<oldest.createdAt) oldest=p; });
+  direct.forEach(p=>{ if(!oldest||p.createdAt<oldest.createdAt) oldest=p; });
   const familyTies=links.filter(l=>l.type==='partner'||l.type==='parent'||l.type==='sibling').length;
-  return {total,byRing,byCat,mostConnected,mostConnectedCount,distinctCats,months,totalLinks:links.length,oldest,familyTies,groupCount:groups.length};
+  return {total,indirectCount,byRing,byCat,mostConnected,mostConnectedCount,distinctCats,months,totalLinks:links.length,oldest,familyTies,groupCount:groups.length};
 }
 
 function buildDonut(byCat,total){
@@ -1885,7 +2123,7 @@ function renderInsights(){
   const dunbarPct=Math.min(100,(ins.total/150)*100);
 
   let html='';
-  html+=`<div class="bigStat"><div class="num">${ins.total}</div><div class="lbl">${ins.total===1?'person':'people'} in your world${ins.total===0?' — start mapping.':''}</div></div>`;
+  html+=`<div class="bigStat"><div class="num">${ins.total}</div><div class="lbl">${ins.total===1?'person':'people'} in your world${ins.total===0?' — start mapping.':''}${ins.indirectCount?` <span style="opacity:.7">+ ${ins.indirectCount} you know through others</span>`:''}</div></div>`;
 
   html+=`<div class="insCard"><h4>Against Dunbar's Number</h4>
     <div style="font-size:12.5px;color:var(--text2);line-height:1.5">Anthropologist Robin Dunbar's research puts the cap on relationships we can meaningfully maintain at around <b style="color:var(--text)">150</b>. You've mapped <b style="color:var(--purple-light)">${ins.total}</b> — that's ${dunbarPct.toFixed(0)}% of it.</div>
@@ -2003,7 +2241,7 @@ document.querySelectorAll('.tabRow .tab').forEach(tab=>{
 
 function buildTextExport(){
   const grouped={};
-  people.forEach(p=>{ (grouped[p.cat]=grouped[p.cat]||[]).push(p); });
+  people.filter(p=>!p.indirect).forEach(p=>{ (grouped[p.cat]=grouped[p.cat]||[]).push(p); });
   const lines=[];
   CAT_ORDER.forEach(cat=>{
     if(!grouped[cat]) return;
@@ -2014,6 +2252,16 @@ function buildTextExport(){
     });
     lines.push('');
   });
+  const indirect=people.filter(p=>p.indirect);
+  if(indirect.length){
+    lines.push('People you know through others:');
+    indirect.forEach(p=>{
+      const link=links.find(l=>l.a===p.id||l.b===p.id);
+      const anchor=link?peopleById.get(link.a===p.id?link.b:link.a):null;
+      lines.push(`  • ${p.name}${anchor?' — via '+anchor.name:''}`);
+    });
+    lines.push('');
+  }
   if(!lines.length) lines.push('No people added yet.');
   document.getElementById('exportText').textContent=lines.join('\n').trim();
 }
