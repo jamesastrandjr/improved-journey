@@ -35,6 +35,8 @@
     --church:#D4537E;
     --golf:#639922;
     --other:#BA7517;
+    --kin:#FFD25E;
+    --sibling:#c9c3ff;
     --safe-t:env(safe-area-inset-top,0px);
     --safe-b:env(safe-area-inset-bottom,0px);
   }
@@ -111,6 +113,39 @@
   #centerG{cursor:pointer}
   .center-halo{animation:halo 3.6s ease-in-out infinite}
   @keyframes halo{0%,100%{opacity:.28;r:70}50%{opacity:.42;r:78}}
+
+  /* LUNAR MOTION — gentle orbital drift, moons around planets around the sun */
+  @media (prefers-reduced-motion: no-preference){
+    @keyframes moonDrift{
+      0%{transform:translate(0,0)}
+      25%{transform:translate(4px,-3px)}
+      50%{transform:translate(-3px,4px)}
+      75%{transform:translate(-4px,-2px)}
+      100%{transform:translate(0,0)}
+    }
+    @keyframes planetDrift{
+      0%{transform:translate(0,0)}
+      25%{transform:translate(7px,-5px)}
+      50%{transform:translate(-5px,6px)}
+      75%{transform:translate(-6px,-4px)}
+      100%{transform:translate(0,0)}
+    }
+    .node-group{animation:moonDrift var(--odur,12s) ease-in-out var(--odelay,0s) infinite}
+    .node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),moonDrift var(--odur,12s) ease-in-out var(--odelay,0s) infinite}
+    .node-group.dragging{animation-play-state:paused}
+    .group-node-group{animation:planetDrift var(--odur,24s) ease-in-out var(--odelay,0s) infinite}
+    .group-node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),planetDrift var(--odur,24s) ease-in-out var(--odelay,0s) infinite}
+    .group-node-group.dragging{animation-play-state:paused}
+  }
+
+  /* GROUPS (custom named hubs — school, hometown, etc.) */
+  .group-node-group{cursor:pointer;transform-box:fill-box;transform-origin:center;touch-action:none}
+  .group-circle{transition:cx .45s cubic-bezier(.22,.9,.35,1),cy .45s cubic-bezier(.22,.9,.35,1),opacity .3s;stroke-dasharray:3 3}
+  .group-node-group.dragging .group-circle,.group-node-group.dragging text{transition:none}
+  .group-node-group text{transition:x .45s cubic-bezier(.22,.9,.35,1),y .45s cubic-bezier(.22,.9,.35,1),opacity .3s;pointer-events:none}
+  .group-node-group.dimmed{opacity:.15}
+  .group-thread{transition:x1 .45s cubic-bezier(.22,.9,.35,1),y1 .45s cubic-bezier(.22,.9,.35,1),x2 .45s cubic-bezier(.22,.9,.35,1),y2 .45s cubic-bezier(.22,.9,.35,1),opacity .3s;stroke-dasharray:2 5;stroke-linecap:round}
+  .groupDot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 
   /* BOTTOM SHEETS */
   .sheet-scrim{position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s;z-index:90}
@@ -302,8 +337,10 @@
       </defs>
       <g id="world">
         <g id="ringsG"></g>
+        <g id="groupThreadsG"></g>
         <g id="linksG"></g>
         <g id="hubG"></g>
+        <g id="groupNodesG"></g>
         <g id="nodesG"></g>
         <g id="centerG"></g>
       </g>
@@ -397,6 +434,10 @@
   <div id="linksList"></div>
   <button class="ghostBtn" id="linkAddBtn">＋ Link to someone else</button>
 
+  <div class="sectionLabel">Groups</div>
+  <div id="personGroupsList"></div>
+  <button class="ghostBtn" id="groupAddBtn">＋ Add to a group</button>
+
   <button class="ghostBtn" id="resetPosBtn">↺ Reset position on map</button>
   <button class="dangerBtn" id="detailDelete">Remove from my map</button>
 </div>
@@ -421,8 +462,76 @@
 <div class="modal-scrim" id="linkPickerScrim">
   <div class="modalBox" id="linkPickerBox">
     <h3>Link to someone<span class="closeX" id="linkPickerClose">✕</span></h3>
-    <div class="field"><input id="linkPickerSearch" type="text" placeholder="Search people…" autocomplete="off"/></div>
-    <div id="linkPickerList"></div>
+    <div id="linkPickerStep1">
+      <div class="field"><input id="linkPickerSearch" type="text" placeholder="Search people…" autocomplete="off"/></div>
+      <div id="linkPickerList"></div>
+    </div>
+    <div id="linkPickerStep2" style="display:none">
+      <div class="detailToggle" id="linkStepBack" style="text-align:left;padding-left:0">← Back</div>
+      <div class="field">
+        <label id="relTypeLabel">How are you connected?</label>
+        <div class="chiprow" id="relTypeChips"></div>
+      </div>
+      <div class="field" id="relCustomField" style="display:none">
+        <label for="relCustomIn">What do you call it?</label>
+        <input id="relCustomIn" type="text" placeholder="e.g. College roommates, Co-founders" maxlength="40" autocomplete="off"/>
+      </div>
+      <div class="field" id="cascadeField" style="display:none">
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer" id="cascadeLabel">
+          <input type="checkbox" id="cascadeCheck" checked style="width:17px;height:17px;accent-color:var(--accent)"/>
+          <span id="cascadeText"></span>
+        </label>
+      </div>
+      <button class="primaryBtn" id="relConfirmBtn">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add-to-Group Picker (from a person's detail sheet) -->
+<div class="modal-scrim" id="groupPickerScrim">
+  <div class="modalBox" id="groupPickerBox">
+    <h3>Add to a group<span class="closeX" id="groupPickerClose">✕</span></h3>
+    <div class="field" style="display:flex;gap:8px">
+      <input id="groupPickerNewName" type="text" placeholder="Name a new group…" maxlength="30" autocomplete="off" style="flex:1"/>
+      <button class="primaryBtn" id="groupPickerCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+    </div>
+    <div id="groupPickerList"></div>
+  </div>
+</div>
+
+<!-- Groups List (from menu) -->
+<div class="modal-scrim" id="groupsListScrim">
+  <div class="modalBox" id="groupsListBox">
+    <h3>Groups<span class="closeX" id="groupsListClose">✕</span></h3>
+    <div class="field" style="display:flex;gap:8px">
+      <input id="newGroupName" type="text" placeholder="e.g. Roosevelt High, Lake House Crew…" maxlength="30" autocomplete="off" style="flex:1"/>
+      <button class="primaryBtn" id="newGroupCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+    </div>
+    <div id="groupsListContent"></div>
+  </div>
+</div>
+
+<!-- Group Detail Sheet -->
+<div class="sheet-scrim" id="groupScrim"></div>
+<div class="sheet" id="groupSheet" role="dialog" aria-modal="true" aria-label="Group detail">
+  <div class="sheet-handle"></div>
+  <h2>Group<span class="closeX" id="groupClose">✕</span></h2>
+  <div class="field">
+    <label for="groupNameIn">Name</label>
+    <input id="groupNameIn" type="text" maxlength="30" autocomplete="off"/>
+  </div>
+  <div class="sectionLabel">Members</div>
+  <div id="groupMembersList"></div>
+  <button class="ghostBtn" id="groupMemberAddBtn">＋ Add people</button>
+  <button class="dangerBtn" id="groupDeleteBtn">Delete this group</button>
+</div>
+
+<!-- Add-Member Picker (from a group's detail sheet) -->
+<div class="modal-scrim" id="groupMemberPickerScrim">
+  <div class="modalBox" id="groupMemberPickerBox">
+    <h3>Add people<span class="closeX" id="groupMemberPickerClose">✕</span></h3>
+    <div class="field"><input id="groupMemberPickerSearch" type="text" placeholder="Search people…" autocomplete="off"/></div>
+    <div id="groupMemberPickerList"></div>
   </div>
 </div>
 
@@ -438,7 +547,8 @@
 <div class="modal-scrim" id="menuScrim">
   <div class="modalBox" id="menuBox">
     <h3>Menu<span class="closeX" id="menuClose">✕</span></h3>
-    <button class="ghostBtn" id="menuExport" style="margin-top:0">⇩ Export / Backup</button>
+    <button class="ghostBtn" id="menuGroups" style="margin-top:0">◎ Groups</button>
+    <button class="ghostBtn" id="menuExport">⇩ Export / Backup</button>
     <button class="ghostBtn" id="menuImport">⇧ Import backup</button>
     <button class="ghostBtn" id="menuAbout">✦ About this map</button>
     <button class="dangerBtn" id="menuClear">Clear all data</button>
@@ -476,7 +586,8 @@
     <h3>About this map<span class="closeX" id="aboutClose">✕</span></h3>
     <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">You sit at the center. Everyone you add orbits you — <b style="color:var(--text)">color</b> shows how you know them, and <b style="color:var(--text)">distance</b> shows how close you are, from your Inner Circle out to Acquaintances.</p>
     <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">The rings echo anthropologist Robin Dunbar's research on the layered structure of human social groups — roughly 5 intimate confidants, 15 close friends, 50 real friendships, and about 150 relationships we can meaningfully maintain at once.</p>
-    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:4px">Drag anyone to reposition them. Tap to open their profile. Link two people who know each other to build out the real shape of your world. Everything stays on this device.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">Drag anyone to reposition them. Tap to open their profile. Link two people who know each other — mark partners and parent/child ties and the family tree draws itself, kids branching down from the couple that raised them.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:4px">Name a group for anything that clusters people — a school, a hometown, a team — and it becomes its own small orbit. Everything drifts gently, like a real night sky, and everything stays on this device.</p>
   </div>
 </div>
 
@@ -519,13 +630,28 @@ const RINGS=[
   {n:5,label:'Acquaintances',hint:'You know each other',r:308,size:15,target:1500}
 ];
 
+const REL_TYPES=[
+  {n:'partner',label:'Partners'},
+  {n:'parentOf',label:'Their parent'},
+  {n:'childOf',label:'Their child'},
+  {n:'sibling',label:'Siblings'},
+  {n:'custom',label:'Custom'}
+];
+const GROUP_COLORS=['#5EC8D8','#C9A66B','#8E7CC3','#6FCF97','#E0A458','#4FA8E0','#D87BB0'];
+const GROUP_HUB_R=380;
+
 // ── STATE ──────────────────────────────────────────────────────
 let me={name:'You',tagline:''};
 let people=[];
 let links=[];
+let groups=[];
+let groupLinks=[];
 let nextId=1;
 let nextLinkId=1;
+let nextGroupId=1;
+let nextGroupLinkId=1;
 let peopleById=new Map();
+let groupsById=new Map();
 
 let vx=0,vy=0,vs=1;
 let filterCats=new Set();
@@ -534,25 +660,36 @@ let filterText='';
 const nodeEls=new Map();
 const hubEdgeEls=new Map();
 const linkEdgeEls=new Map();
+const groupNodeEls=new Map();
+const groupThreadEls=new Map();
 
 // ── STORAGE / MIGRATION ───────────────────────────────────────
 function save(){
   localStorage.setItem('cst_me',JSON.stringify(me));
   localStorage.setItem('cst_people',JSON.stringify(people));
   localStorage.setItem('cst_links',JSON.stringify(links));
+  localStorage.setItem('cst_groups',JSON.stringify(groups));
+  localStorage.setItem('cst_groupLinks',JSON.stringify(groupLinks));
   localStorage.setItem('cst_nextId',nextId);
   localStorage.setItem('cst_nextLinkId',nextLinkId);
-  localStorage.setItem('cst_version','2');
+  localStorage.setItem('cst_nextGroupId',nextGroupId);
+  localStorage.setItem('cst_nextGroupLinkId',nextGroupLinkId);
+  localStorage.setItem('cst_version','3');
 }
 
 function load(){
   try{
-    if(localStorage.getItem('cst_version')==='2'){
+    const v=localStorage.getItem('cst_version');
+    if(v==='2'||v==='3'){
       me=JSON.parse(localStorage.getItem('cst_me')||'{"name":"You","tagline":""}');
       people=JSON.parse(localStorage.getItem('cst_people')||'[]');
       links=JSON.parse(localStorage.getItem('cst_links')||'[]');
+      groups=JSON.parse(localStorage.getItem('cst_groups')||'[]');
+      groupLinks=JSON.parse(localStorage.getItem('cst_groupLinks')||'[]');
       nextId=parseInt(localStorage.getItem('cst_nextId')||'1');
       nextLinkId=parseInt(localStorage.getItem('cst_nextLinkId')||'1');
+      nextGroupId=parseInt(localStorage.getItem('cst_nextGroupId')||'1');
+      nextGroupLinkId=parseInt(localStorage.getItem('cst_nextGroupLinkId')||'1');
       return;
     }
     // migrate legacy "mm_nodes" single-hub format
@@ -567,13 +704,16 @@ function load(){
         createdAt:Date.now()
       }));
       nextId=parseInt(localStorage.getItem('mm_id')||String(people.length+1));
-      links=[];nextLinkId=1;
+      links=[];nextLinkId=1;groups=[];groupLinks=[];nextGroupId=1;nextGroupLinkId=1;
       save();
     }
   }catch(e){/* start fresh */}
 }
 
-function rebuildIndex(){ peopleById=new Map(people.map(p=>[p.id,p])); }
+function rebuildIndex(){
+  peopleById=new Map(people.map(p=>[p.id,p]));
+  groupsById=new Map(groups.map(g=>[g.id,g]));
+}
 
 // ── LAYOUT ─────────────────────────────────────────────────────
 function hash01(id){ const x=Math.sin(id*999.111)*10000; return x-Math.floor(x); }
@@ -600,11 +740,29 @@ function layoutAuto(){
   });
 }
 
+function layoutGroupsAuto(){
+  const auto=groups.filter(g=>!g.manual).sort((a,b)=>(a.createdAt-b.createdAt)||(a.id-b.id));
+  const n=auto.length;
+  auto.forEach((g,i)=>{
+    const angle=(-90+(360/Math.max(n,1))*i)*Math.PI/180;
+    g.x=Math.cos(angle)*GROUP_HUB_R;
+    g.y=Math.sin(angle)*GROUP_HUB_R;
+  });
+}
+
 // ── SVG HELPERS ────────────────────────────────────────────────
 function svgEl(tag,attrs){
   const e=document.createElementNS(SVGNS,tag);
   for(const k in attrs)e.setAttribute(k,attrs[k]);
   return e;
+}
+
+// per-id deterministic orbit timing so nodes don't drift in lockstep
+function orbitVars(id,isGroup){
+  const h=hash01(id*7+(isGroup?913:0));
+  const dur=isGroup?(20+h*14):(9+h*9);
+  const delay=-(h*dur);
+  return `--odur:${dur.toFixed(2)}s;--odelay:${delay.toFixed(2)}s`;
 }
 
 // ── STATIC LAYERS (built once) ────────────────────────────────
@@ -614,6 +772,8 @@ const linksG=document.getElementById('linksG');
 const hubG=document.getElementById('hubG');
 const nodesG=document.getElementById('nodesG');
 const centerG=document.getElementById('centerG');
+const groupThreadsG=document.getElementById('groupThreadsG');
+const groupNodesG=document.getElementById('groupNodesG');
 const svg=document.getElementById('canvas');
 
 function buildRings(){
@@ -690,7 +850,7 @@ function initials(name){
 }
 
 function createNodeEl(p){
-  const g=svgEl('g',{class:'node-group','data-id':p.id});
+  const g=svgEl('g',{class:'node-group','data-id':p.id,style:orbitVars(p.id,false)});
   const circ=svgEl('circle',{class:'node-circle'});
   g.appendChild(circ);
   const t1=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-weight':500,'font-family':"'DM Sans',sans-serif"});
@@ -740,6 +900,90 @@ function syncNodes(){
   });
 }
 
+// ── GROUP NODES ────────────────────────────────────────────────
+function createGroupEl(g){
+  const gg=svgEl('g',{class:'group-node-group','data-gid':g.id,style:orbitVars(g.id,true)});
+  const circ=svgEl('circle',{class:'group-circle',r:30});
+  gg.appendChild(circ);
+  const t1=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-weight':600,'font-family':"'DM Sans',sans-serif"});
+  const t2=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-family':"'DM Mono',monospace"});
+  gg.appendChild(t1);gg.appendChild(t2);
+  attachGroupNodeEvents(gg,g);
+  return {g:gg,circ,t1,t2};
+}
+
+function updateGroupEl(el,g){
+  const color=g.color||GROUP_COLORS[0];
+  el.circ.setAttribute('cx',g.x);el.circ.setAttribute('cy',g.y);
+  el.circ.setAttribute('fill','#14141c');el.circ.setAttribute('stroke',color);el.circ.setAttribute('stroke-width',2);
+  const members=groupLinks.filter(gl=>gl.groupId===g.id).length;
+  const name=g.name.length>12?g.name.slice(0,11)+'…':g.name;
+  el.t1.textContent=name;el.t1.setAttribute('x',g.x);el.t1.setAttribute('y',g.y-6);el.t1.setAttribute('fill',color);el.t1.setAttribute('font-size',10.5);
+  el.t2.textContent=members+(members===1?' person':' people');el.t2.setAttribute('x',g.x);el.t2.setAttribute('y',g.y+9);el.t2.setAttribute('fill','#8888a0');el.t2.setAttribute('font-size',8.5);
+  const dim=filterCats.size||filterText ? !groupMatchesFilter(g) : false;
+  el.g.classList.toggle('dimmed',dim);
+}
+
+function groupMatchesFilter(g){
+  if(!filterText && !filterCats.size) return true;
+  const memberIds=groupLinks.filter(gl=>gl.groupId===g.id).map(gl=>gl.personId);
+  return memberIds.some(pid=>{ const p=peopleById.get(pid); return p&&matchesFilter(p); });
+}
+
+function syncGroupNodes(){
+  const seen=new Set();
+  groups.forEach(g=>{
+    seen.add(g.id);
+    let el=groupNodeEls.get(g.id);
+    if(!el){
+      el=createGroupEl(g);
+      groupNodeEls.set(g.id,el);
+      groupNodesG.appendChild(el.g);
+      el.g.classList.add('enter');
+      el.g.addEventListener('animationend',()=>el.g.classList.remove('enter'),{once:true});
+    }
+    updateGroupEl(el,g);
+  });
+  [...groupNodeEls.keys()].forEach(id=>{
+    if(!seen.has(id)){ groupNodeEls.get(id).g.remove(); groupNodeEls.delete(id); }
+  });
+}
+
+function attachGroupNodeEvents(gg,g){
+  gg.style.touchAction='none';
+  gg.addEventListener('pointerdown',e=>{
+    e.stopPropagation();
+    gg.setPointerCapture(e.pointerId);
+    const sx=e.clientX,sy=e.clientY;
+    let dragging=false;
+    const onMove=ev=>{
+      const dx=ev.clientX-sx,dy=ev.clientY-sy;
+      if(!dragging&&Math.hypot(dx,dy)>6){ dragging=true; gg.classList.add('dragging'); haptic(8); }
+      if(dragging){
+        const r=svg.getBoundingClientRect();
+        g.x=(ev.clientX-r.left-vx)/vs;
+        g.y=(ev.clientY-r.top-vy)/vs;
+        g.manual=true;
+        const el=groupNodeEls.get(g.id);
+        if(el) updateGroupEl(el,g);
+        updateThreadsForGroup(g.id);
+      }
+    };
+    const onUp=ev=>{
+      gg.releasePointerCapture(e.pointerId);
+      gg.removeEventListener('pointermove',onMove);
+      gg.removeEventListener('pointerup',onUp);
+      gg.removeEventListener('pointercancel',onUp);
+      gg.classList.remove('dragging');
+      if(dragging){ save(); haptic(14); }
+      else { openGroupSheet(g.id); }
+    };
+    gg.addEventListener('pointermove',onMove);
+    gg.addEventListener('pointerup',onUp);
+    gg.addEventListener('pointercancel',onUp);
+  });
+}
+
 // ── EDGES ──────────────────────────────────────────────────────
 const RING_OPACITY={1:.55,2:.45,3:.35,4:.25,5:.16};
 const RING_WIDTH={1:2,2:1.7,3:1.4,4:1.1,5:.9};
@@ -770,16 +1014,75 @@ function linkPathD(a,b){
   return `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`;
 }
 
+const REL_STYLE={
+  partner:{stroke:'var(--kin)',width:2.2,opacity:.55,dash:'none'},
+  descent:{stroke:'var(--kin)',width:1.6,opacity:.45,dash:'none'},
+  parent:{stroke:'var(--kin)',width:1.5,opacity:.4,dash:'none'},
+  sibling:{stroke:'var(--sibling)',width:1.2,opacity:.35,dash:'4 4'},
+  custom:{stroke:'#9c96e8',width:1.3,opacity:.4,dash:'none'}
+};
+
+function computeFamilyEdges(){
+  const partners=[],parents=[],siblings=[],customs=[];
+  links.forEach(lk=>{
+    const type=lk.type||'custom';
+    if(type==='partner') partners.push(lk);
+    else if(type==='parent') parents.push(lk);
+    else if(type==='sibling') siblings.push(lk);
+    else customs.push(lk);
+  });
+  const edges=[];
+  partners.forEach(lk=>{
+    const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
+    if(a&&b) edges.push({id:'p'+lk.id,kind:'partner',a,b});
+  });
+  const byChild={};
+  parents.forEach(lk=>{ (byChild[lk.b]=byChild[lk.b]||[]).push(lk); });
+  Object.keys(byChild).forEach(key=>{
+    const childId=Number(key),plinks=byChild[key];
+    const child=peopleById.get(childId); if(!child) return;
+    if(plinks.length===2){
+      const pa=plinks[0].a,pb=plinks[1].a;
+      const isPartnered=partners.some(pl=>(pl.a===pa&&pl.b===pb)||(pl.a===pb&&pl.b===pa));
+      if(isPartnered){
+        const a=peopleById.get(pa),b=peopleById.get(pb);
+        if(a&&b){
+          const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+          edges.push({id:'union'+pa+'-'+pb+'-'+childId,kind:'descent',a:mid,b:child,filterA:a,filterB:b});
+        }
+        return;
+      }
+    }
+    plinks.forEach(l=>{
+      const parent=peopleById.get(l.a);
+      if(parent) edges.push({id:'par'+l.id,kind:'parent',a:parent,b:child});
+    });
+  });
+  siblings.forEach(lk=>{
+    const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
+    if(a&&b) edges.push({id:'sib'+lk.id,kind:'sibling',a,b});
+  });
+  customs.forEach(lk=>{
+    const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
+    if(a&&b) edges.push({id:'cus'+lk.id,kind:'custom',a,b});
+  });
+  return edges;
+}
+
 function syncLinkEdges(){
   const seen=new Set();
-  links.forEach(lk=>{
-    const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
-    if(!a||!b) return;
-    seen.add(lk.id);
-    let path=linkEdgeEls.get(lk.id);
-    if(!path){ path=svgEl('path',{class:'link-edge'}); linksG.appendChild(path); linkEdgeEls.set(lk.id,path); }
-    path.setAttribute('d',linkPathD(a,b));
-    path.setAttribute('opacity',(matchesFilter(a)&&matchesFilter(b))?0.4:0.03);
+  computeFamilyEdges().forEach(edge=>{
+    seen.add(edge.id);
+    let path=linkEdgeEls.get(edge.id);
+    if(!path){ path=svgEl('path',{class:'link-edge'}); linksG.appendChild(path); linkEdgeEls.set(edge.id,path); }
+    const style=REL_STYLE[edge.kind]||REL_STYLE.custom;
+    path.setAttribute('d',linkPathD(edge.a,edge.b));
+    path.setAttribute('stroke',style.stroke);
+    path.setAttribute('stroke-width',style.width);
+    path.setAttribute('stroke-dasharray',style.dash);
+    const fa=edge.filterA||edge.a,fb=edge.filterB||edge.b;
+    const visible=matchesFilter(fa)&&matchesFilter(fb);
+    path.setAttribute('opacity',visible?style.opacity:0.03);
   });
   [...linkEdgeEls.keys()].forEach(id=>{ if(!seen.has(id)){ linkEdgeEls.get(id).remove(); linkEdgeEls.delete(id); } });
 }
@@ -789,12 +1092,44 @@ function updateEdgesForNode(id){
   if(!p) return;
   const hub=hubEdgeEls.get(id);
   if(hub){ hub.setAttribute('x2',p.x); hub.setAttribute('y2',p.y); }
-  links.forEach(lk=>{
-    if(lk.a===id||lk.b===id){
-      const path=linkEdgeEls.get(lk.id);
-      const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
-      if(path&&a&&b) path.setAttribute('d',linkPathD(a,b));
-    }
+  syncLinkEdges();
+  groupLinks.forEach(gl=>{ if(gl.personId===id) updateThreadsForGroup(gl.groupId); });
+}
+
+// ── GROUP THREADS (You ↔ group ↔ members) ──────────────────────
+function syncGroupThreads(){
+  const seen=new Set();
+  groups.forEach(g=>{
+    const youId='you-'+g.id;
+    seen.add(youId);
+    let yl=groupThreadEls.get(youId);
+    if(!yl){ yl=svgEl('line',{class:'group-thread',x1:0,y1:0}); groupThreadsG.appendChild(yl); groupThreadEls.set(youId,yl); }
+    yl.setAttribute('x2',g.x);yl.setAttribute('y2',g.y);
+    yl.setAttribute('stroke',g.color||GROUP_COLORS[0]);
+    yl.setAttribute('opacity',groupMatchesFilter(g)?0.28:0.03);
+
+    groupLinks.filter(gl=>gl.groupId===g.id).forEach(gl=>{
+      const p=peopleById.get(gl.personId); if(!p) return;
+      const key='m-'+gl.id;
+      seen.add(key);
+      let ml=groupThreadEls.get(key);
+      if(!ml){ ml=svgEl('line',{class:'group-thread'}); groupThreadsG.appendChild(ml); groupThreadEls.set(key,ml); }
+      ml.setAttribute('x1',g.x);ml.setAttribute('y1',g.y);ml.setAttribute('x2',p.x);ml.setAttribute('y2',p.y);
+      ml.setAttribute('stroke',g.color||GROUP_COLORS[0]);
+      ml.setAttribute('opacity',matchesFilter(p)?0.32:0.03);
+    });
+  });
+  [...groupThreadEls.keys()].forEach(key=>{ if(!seen.has(key)){ groupThreadEls.get(key).remove(); groupThreadEls.delete(key); } });
+}
+
+function updateThreadsForGroup(groupId){
+  const g=groupsById.get(groupId); if(!g) return;
+  const yl=groupThreadEls.get('you-'+groupId);
+  if(yl){ yl.setAttribute('x2',g.x); yl.setAttribute('y2',g.y); }
+  groupLinks.filter(gl=>gl.groupId===groupId).forEach(gl=>{
+    const ml=groupThreadEls.get('m-'+gl.id);
+    const p=peopleById.get(gl.personId);
+    if(ml&&p){ ml.setAttribute('x1',g.x);ml.setAttribute('y1',g.y);ml.setAttribute('x2',p.x);ml.setAttribute('y2',p.y); }
   });
 }
 
@@ -802,9 +1137,12 @@ function updateEdgesForNode(id){
 function renderAll(){
   rebuildIndex();
   layoutAuto();
+  layoutGroupsAuto();
   syncNodes();
+  syncGroupNodes();
   syncHubEdges();
   syncLinkEdges();
+  syncGroupThreads();
   applyT();
   updateBadge();
   renderFilterChips();
@@ -1011,6 +1349,7 @@ function openDetail(id){
   document.getElementById('detailLastContact').value=p.lastContact||'';
   renderTags(p);
   renderLinksList(p);
+  renderPersonGroups(p);
   document.getElementById('resetPosBtn').style.display=p.manual?'block':'none';
 
   document.getElementById('detailScrim').classList.add('open');
@@ -1061,6 +1400,15 @@ document.getElementById('detailTagIn').addEventListener('keydown',e=>{
   }
 });
 
+function relLabelFor(l,p){
+  const type=l.type||'custom';
+  if(type==='partner') return 'Partner — ';
+  if(type==='sibling') return 'Sibling — ';
+  if(type==='parent') return (l.a===p.id?'Parent of ':'Child of ')+'';
+  if(l.label) return l.label+' — ';
+  return '';
+}
+
 function renderLinksList(p){
   const wrap=document.getElementById('linksList');
   wrap.innerHTML='';
@@ -1075,7 +1423,8 @@ function renderLinksList(p){
     if(!other) return;
     const chip=document.createElement('div');
     chip.className='linkChip';
-    chip.innerHTML=`${other.name}<span class="x">✕</span>`;
+    const prefix=relLabelFor(l,p);
+    chip.innerHTML=`<span>${prefix?`<span style="color:var(--text3)">${escapeHtml(prefix)}</span>`:''}${escapeHtml(other.name)}</span><span class="x">✕</span>`;
     chip.querySelector('.x').onclick=(ev)=>{ ev.stopPropagation(); links=links.filter(x=>x.id!==l.id); save(); renderAll(); renderLinksList(p); };
     chip.addEventListener('click',()=>openDetail(otherId));
     wrap.appendChild(chip);
@@ -1093,20 +1442,31 @@ document.getElementById('detailDelete').addEventListener('click',()=>{
   if(confirm(`Remove ${p.name} from your map?`)){
     people=people.filter(x=>x.id!==p.id);
     links=links.filter(l=>l.a!==p.id&&l.b!==p.id);
+    groupLinks=groupLinks.filter(gl=>gl.personId!==p.id);
     save();renderAll();closeDetail();
     toast(`${p.name} removed`);haptic(20);
   }
 });
 
-// ── LINK PICKER ─────────────────────────────────────────────────
+// ── LINK PICKER (step 1: pick person, step 2: relationship type) ─
+let pendingLinkTarget=null;
+let pendingRelType='partner';
+
 document.getElementById('linkAddBtn').addEventListener('click',()=>{
   document.getElementById('linkPickerSearch').value='';
   renderLinkPicker('');
+  showLinkStep(1);
   document.getElementById('linkPickerScrim').classList.add('open');
 });
 document.getElementById('linkPickerClose').addEventListener('click',()=>document.getElementById('linkPickerScrim').classList.remove('open'));
 document.getElementById('linkPickerScrim').addEventListener('click',e=>{ if(e.target.id==='linkPickerScrim') document.getElementById('linkPickerScrim').classList.remove('open'); });
 document.getElementById('linkPickerSearch').addEventListener('input',e=>renderLinkPicker(e.target.value));
+document.getElementById('linkStepBack').addEventListener('click',()=>showLinkStep(1));
+
+function showLinkStep(n){
+  document.getElementById('linkPickerStep1').style.display=n===1?'block':'none';
+  document.getElementById('linkPickerStep2').style.display=n===2?'block':'none';
+}
 
 function renderLinkPicker(q){
   const list=document.getElementById('linkPickerList');
@@ -1122,16 +1482,281 @@ function renderLinkPicker(q){
     row.innerHTML=`<div class="pickAvatar" style="background:${cat.fill};color:${cat.text};border:1.5px solid ${cat.stroke}">${initials(p.name)}</div>
       <div><div class="pickName">${escapeHtml(p.name)}</div><div class="pickSub">${cat.label}</div></div>`;
     row.onclick=()=>{
-      links.push({id:nextLinkId++,a:detailId,b:p.id});
-      save();renderAll();
-      document.getElementById('linkPickerScrim').classList.remove('open');
-      renderLinksList(peopleById.get(detailId));
-      toast('Connected');haptic(12);
+      pendingLinkTarget=p.id;
+      pendingRelType='partner';
+      document.getElementById('relCustomIn').value='';
+      renderRelStep();
+      showLinkStep(2);
     };
     list.appendChild(row);
   });
 }
 function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function findPartnerOf(personId){
+  const l=links.find(x=>x.type==='partner'&&(x.a===personId||x.b===personId));
+  if(!l) return null;
+  return l.a===personId?l.b:l.a;
+}
+function hasParentLink(parentId,childId){
+  return links.some(x=>x.type==='parent'&&x.a===parentId&&x.b===childId);
+}
+
+function renderRelStep(){
+  const target=peopleById.get(pendingLinkTarget);
+  if(!target) return;
+  document.getElementById('relTypeLabel').textContent=`How are you connected to ${target.name}?`;
+  const chips=document.getElementById('relTypeChips');
+  chips.innerHTML='';
+  REL_TYPES.forEach(rt=>{
+    const chip=document.createElement('div');
+    chip.className='chip'+(rt.n===pendingRelType?' on':'');
+    chip.textContent=rt.label;
+    chip.onclick=()=>{ pendingRelType=rt.n; renderRelStep(); };
+    chips.appendChild(chip);
+  });
+  document.getElementById('relCustomField').style.display=pendingRelType==='custom'?'block':'none';
+
+  const cascadeField=document.getElementById('cascadeField');
+  if(pendingRelType==='parentOf'||pendingRelType==='childOf'){
+    const parentId=pendingRelType==='parentOf'?detailId:pendingLinkTarget;
+    const childId=pendingRelType==='parentOf'?pendingLinkTarget:detailId;
+    const partnerId=findPartnerOf(parentId);
+    const partner=partnerId?peopleById.get(partnerId):null;
+    const child=peopleById.get(childId);
+    if(partner && child && !hasParentLink(partnerId,childId)){
+      document.getElementById('cascadeText').textContent=`Also connect ${partner.name} as ${child.name}'s parent`;
+      document.getElementById('cascadeCheck').checked=true;
+      cascadeField.style.display='block';
+    } else {
+      cascadeField.style.display='none';
+    }
+  } else {
+    cascadeField.style.display='none';
+  }
+}
+
+document.getElementById('relConfirmBtn').addEventListener('click',()=>{
+  if(pendingLinkTarget==null) return;
+  const target=pendingLinkTarget;
+  let newLink=null;
+  if(pendingRelType==='partner') newLink={type:'partner',a:detailId,b:target};
+  else if(pendingRelType==='parentOf') newLink={type:'parent',a:detailId,b:target};
+  else if(pendingRelType==='childOf') newLink={type:'parent',a:target,b:detailId};
+  else if(pendingRelType==='sibling') newLink={type:'sibling',a:detailId,b:target};
+  else newLink={type:'custom',a:detailId,b:target,label:document.getElementById('relCustomIn').value.trim()};
+  newLink.id=nextLinkId++;
+  links.push(newLink);
+
+  if((pendingRelType==='parentOf'||pendingRelType==='childOf') && document.getElementById('cascadeField').style.display!=='none' && document.getElementById('cascadeCheck').checked){
+    const parentId=pendingRelType==='parentOf'?detailId:target;
+    const childId=pendingRelType==='parentOf'?target:detailId;
+    const partnerId=findPartnerOf(parentId);
+    if(partnerId) links.push({id:nextLinkId++,type:'parent',a:partnerId,b:childId});
+  }
+
+  save();renderAll();
+  document.getElementById('linkPickerScrim').classList.remove('open');
+  renderLinksList(peopleById.get(detailId));
+  toast('Connected');haptic(12);
+  pendingLinkTarget=null;
+});
+
+// ── PERSON ↔ GROUP (add-to-group picker, from person detail) ────
+function renderPersonGroups(p){
+  const wrap=document.getElementById('personGroupsList');
+  wrap.innerHTML='';
+  const myGroups=groupLinks.filter(gl=>gl.personId===p.id);
+  if(!myGroups.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3)">Not in any groups yet.</div>';
+    return;
+  }
+  myGroups.forEach(gl=>{
+    const g=groupsById.get(gl.groupId);
+    if(!g) return;
+    const chip=document.createElement('div');
+    chip.className='linkChip';
+    chip.innerHTML=`<span class="groupDot" style="background:${g.color}"></span>${escapeHtml(g.name)}<span class="x">✕</span>`;
+    chip.querySelector('.x').onclick=(ev)=>{ ev.stopPropagation(); groupLinks=groupLinks.filter(x=>x.id!==gl.id); save(); renderAll(); renderPersonGroups(p); };
+    chip.addEventListener('click',()=>{ document.getElementById('detailScrim').classList.remove('open'); document.getElementById('detailSheet').classList.remove('open'); openGroupSheet(g.id); });
+    wrap.appendChild(chip);
+  });
+}
+
+document.getElementById('groupAddBtn').addEventListener('click',()=>{
+  document.getElementById('groupPickerNewName').value='';
+  renderGroupPicker();
+  document.getElementById('groupPickerScrim').classList.add('open');
+});
+document.getElementById('groupPickerClose').addEventListener('click',()=>document.getElementById('groupPickerScrim').classList.remove('open'));
+document.getElementById('groupPickerScrim').addEventListener('click',e=>{ if(e.target.id==='groupPickerScrim') document.getElementById('groupPickerScrim').classList.remove('open'); });
+
+function renderGroupPicker(){
+  const list=document.getElementById('groupPickerList');
+  list.innerHTML='';
+  const existingIds=new Set(groupLinks.filter(gl=>gl.personId===detailId).map(gl=>gl.groupId));
+  const candidates=groups.filter(g=>!existingIds.has(g.id));
+  if(!candidates.length){ list.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No other groups yet — name one above.</div>'; return; }
+  candidates.forEach(g=>{
+    const row=document.createElement('div');
+    row.className='pickRow';
+    const count=groupLinks.filter(gl=>gl.groupId===g.id).length;
+    row.innerHTML=`<div class="pickAvatar" style="background:#14141c;color:${g.color};border:1.5px solid ${g.color}">◎</div>
+      <div><div class="pickName">${escapeHtml(g.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
+    row.onclick=()=>{
+      groupLinks.push({id:nextGroupLinkId++,personId:detailId,groupId:g.id});
+      save();renderAll();
+      document.getElementById('groupPickerScrim').classList.remove('open');
+      renderPersonGroups(peopleById.get(detailId));
+      toast(`Added to ${g.name}`);haptic(12);
+    };
+    list.appendChild(row);
+  });
+}
+document.getElementById('groupPickerCreate').addEventListener('click',()=>{
+  const name=document.getElementById('groupPickerNewName').value.trim();
+  if(!name) return;
+  const g={id:nextGroupId++,name,color:GROUP_COLORS[(nextGroupId-2)%GROUP_COLORS.length],x:0,y:0,manual:false,createdAt:Date.now()};
+  groups.push(g);
+  groupLinks.push({id:nextGroupLinkId++,personId:detailId,groupId:g.id});
+  save();renderAll();
+  document.getElementById('groupPickerScrim').classList.remove('open');
+  renderPersonGroups(peopleById.get(detailId));
+  toast(`Created ${name}`);haptic(16);
+});
+
+// ── GROUP DETAIL SHEET ───────────────────────────────────────────
+let groupSheetId=null;
+function openGroupSheet(id){
+  closeAllPopovers();
+  const g=groupsById.get(id);
+  if(!g) return;
+  groupSheetId=id;
+  document.getElementById('groupNameIn').value=g.name;
+  renderGroupMembers(g);
+  document.getElementById('groupScrim').classList.add('open');
+  document.getElementById('groupSheet').classList.add('open');
+}
+function closeGroupSheet(){
+  if(groupSheetId!=null) commitGroupName();
+  document.getElementById('groupScrim').classList.remove('open');
+  document.getElementById('groupSheet').classList.remove('open');
+  groupSheetId=null;
+}
+function commitGroupName(){
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  const n=document.getElementById('groupNameIn').value.trim();
+  if(n) g.name=n;
+  save();renderAll();
+}
+document.getElementById('groupScrim').addEventListener('click',closeGroupSheet);
+document.getElementById('groupClose').addEventListener('click',closeGroupSheet);
+document.getElementById('groupNameIn').addEventListener('blur',commitGroupName);
+document.getElementById('groupNameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('groupNameIn').blur(); });
+
+function renderGroupMembers(g){
+  const wrap=document.getElementById('groupMembersList');
+  wrap.innerHTML='';
+  const members=groupLinks.filter(gl=>gl.groupId===g.id);
+  if(!members.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3)">Nobody added yet.</div>';
+    return;
+  }
+  members.forEach(gl=>{
+    const p=peopleById.get(gl.personId);
+    if(!p) return;
+    const chip=document.createElement('div');
+    chip.className='linkChip';
+    chip.innerHTML=`${escapeHtml(p.name)}<span class="x">✕</span>`;
+    chip.querySelector('.x').onclick=(ev)=>{ ev.stopPropagation(); groupLinks=groupLinks.filter(x=>x.id!==gl.id); save(); renderAll(); renderGroupMembers(g); };
+    chip.addEventListener('click',()=>{ closeGroupSheet(); openDetail(p.id); });
+    wrap.appendChild(chip);
+  });
+}
+
+document.getElementById('groupMemberAddBtn').addEventListener('click',()=>{
+  document.getElementById('groupMemberPickerSearch').value='';
+  renderGroupMemberPicker('');
+  document.getElementById('groupMemberPickerScrim').classList.add('open');
+});
+document.getElementById('groupMemberPickerClose').addEventListener('click',()=>document.getElementById('groupMemberPickerScrim').classList.remove('open'));
+document.getElementById('groupMemberPickerScrim').addEventListener('click',e=>{ if(e.target.id==='groupMemberPickerScrim') document.getElementById('groupMemberPickerScrim').classList.remove('open'); });
+document.getElementById('groupMemberPickerSearch').addEventListener('input',e=>renderGroupMemberPicker(e.target.value));
+
+function renderGroupMemberPicker(q){
+  const list=document.getElementById('groupMemberPickerList');
+  list.innerHTML='';
+  const query=q.trim().toLowerCase();
+  const existingIds=new Set(groupLinks.filter(gl=>gl.groupId===groupSheetId).map(gl=>gl.personId));
+  const candidates=people.filter(p=>!existingIds.has(p.id)&&(!query||p.name.toLowerCase().includes(query)));
+  if(!candidates.length){ list.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No matches.</div>'; return; }
+  candidates.forEach(p=>{
+    const cat=CATS[p.cat]||CATS.other;
+    const row=document.createElement('div');
+    row.className='pickRow';
+    row.innerHTML=`<div class="pickAvatar" style="background:${cat.fill};color:${cat.text};border:1.5px solid ${cat.stroke}">${initials(p.name)}</div>
+      <div><div class="pickName">${escapeHtml(p.name)}</div><div class="pickSub">${cat.label}</div></div>`;
+    row.onclick=()=>{
+      groupLinks.push({id:nextGroupLinkId++,personId:p.id,groupId:groupSheetId});
+      save();renderAll();
+      renderGroupMemberPicker(document.getElementById('groupMemberPickerSearch').value);
+      renderGroupMembers(groupsById.get(groupSheetId));
+      toast(`${p.name} added`);haptic(12);
+    };
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('groupDeleteBtn').addEventListener('click',()=>{
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  if(confirm(`Delete "${g.name}"? This removes the group but not the people in it.`)){
+    groups=groups.filter(x=>x.id!==g.id);
+    groupLinks=groupLinks.filter(x=>x.groupId!==g.id);
+    save();renderAll();
+    document.getElementById('groupScrim').classList.remove('open');
+    document.getElementById('groupSheet').classList.remove('open');
+    groupSheetId=null;
+    toast('Group deleted');haptic(20);
+  }
+});
+
+// ── GROUPS LIST (from menu) ──────────────────────────────────────
+document.getElementById('menuGroups').addEventListener('click',()=>{
+  document.getElementById('menuScrim').classList.remove('open');
+  document.getElementById('newGroupName').value='';
+  renderGroupsList();
+  document.getElementById('groupsListScrim').classList.add('open');
+});
+document.getElementById('groupsListClose').addEventListener('click',()=>document.getElementById('groupsListScrim').classList.remove('open'));
+document.getElementById('groupsListScrim').addEventListener('click',e=>{ if(e.target.id==='groupsListScrim') document.getElementById('groupsListScrim').classList.remove('open'); });
+
+function renderGroupsList(){
+  const wrap=document.getElementById('groupsListContent');
+  wrap.innerHTML='';
+  if(!groups.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No groups yet — name a school, a hometown, a team, anything that clusters people together.</div>';
+    return;
+  }
+  groups.forEach(g=>{
+    const count=groupLinks.filter(gl=>gl.groupId===g.id).length;
+    const row=document.createElement('div');
+    row.className='pickRow';
+    row.innerHTML=`<div class="pickAvatar" style="background:#14141c;color:${g.color};border:1.5px solid ${g.color}">◎</div>
+      <div><div class="pickName">${escapeHtml(g.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
+    row.onclick=()=>{ document.getElementById('groupsListScrim').classList.remove('open'); openGroupSheet(g.id); };
+    wrap.appendChild(row);
+  });
+}
+document.getElementById('newGroupCreate').addEventListener('click',()=>{
+  const name=document.getElementById('newGroupName').value.trim();
+  if(!name) return;
+  const g={id:nextGroupId++,name,color:GROUP_COLORS[(nextGroupId-2)%GROUP_COLORS.length],x:0,y:0,manual:false,createdAt:Date.now()};
+  groups.push(g);
+  save();renderAll();
+  document.getElementById('newGroupName').value='';
+  renderGroupsList();
+  toast(`Created ${name}`);haptic(16);
+});
 
 // ── ME SHEET ──────────────────────────────────────────────────
 function openMeSheet(){
@@ -1188,7 +1813,8 @@ function renderFilterChips(){
 }
 function applyFilterOnly(){
   people.forEach(p=>{ const el=nodeEls.get(p.id); if(el) el.g.classList.toggle('dimmed',!matchesFilter(p)); });
-  syncHubEdges();syncLinkEdges();
+  groups.forEach(g=>{ const el=groupNodeEls.get(g.id); if(el) el.g.classList.toggle('dimmed',!groupMatchesFilter(g)); });
+  syncHubEdges();syncLinkEdges();syncGroupThreads();
 }
 
 // ── INSIGHTS ─────────────────────────────────────────────────────
@@ -1216,7 +1842,8 @@ function computeInsights(){
   });
   let oldest=null;
   people.forEach(p=>{ if(!oldest||p.createdAt<oldest.createdAt) oldest=p; });
-  return {total,byRing,byCat,mostConnected,mostConnectedCount,distinctCats,months,totalLinks:links.length,oldest};
+  const familyTies=links.filter(l=>l.type==='partner'||l.type==='parent'||l.type==='sibling').length;
+  return {total,byRing,byCat,mostConnected,mostConnectedCount,distinctCats,months,totalLinks:links.length,oldest,familyTies,groupCount:groups.length};
 }
 
 function buildDonut(byCat,total){
@@ -1271,6 +1898,8 @@ function renderInsights(){
 
   html+=`<div class="insCard"><h4>The Shape of It</h4>
     <div class="insRow"><div class="k">Connections between people</div><div class="v">${ins.totalLinks}</div></div>
+    <div class="insRow"><div class="k">Family &amp; kinship ties</div><div class="v">${ins.familyTies}</div></div>
+    <div class="insRow"><div class="k">Groups you've named</div><div class="v">${ins.groupCount}</div></div>
     <div class="insRow"><div class="k">Kinds of relationships</div><div class="v">${ins.distinctCats} / ${CAT_ORDER.length}</div></div>
     <div class="insRow"><div class="k">Most connected person</div><div class="v">${ins.mostConnected?escapeHtml(ins.mostConnected.name):'—'}</div></div>
     ${ins.oldest?`<div class="insRow"><div class="k">Mapping since</div><div class="v">${new Date(ins.oldest.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</div></div>`:''}
@@ -1316,8 +1945,12 @@ document.getElementById('importFile').addEventListener('change',e=>{
       me=data.me||{name:'You',tagline:''};
       people=data.people;
       links=Array.isArray(data.links)?data.links:[];
+      groups=Array.isArray(data.groups)?data.groups:[];
+      groupLinks=Array.isArray(data.groupLinks)?data.groupLinks:[];
       nextId=Math.max(1,...people.map(p=>p.id||0))+1;
-      nextLinkId=Math.max(1,...links.map(l=>l.id||0))+1;
+      nextLinkId=Math.max(1,...links.map(l=>l.id||0),0)+1;
+      nextGroupId=Math.max(1,...groups.map(g=>g.id||0),0)+1;
+      nextGroupLinkId=Math.max(1,...groupLinks.map(gl=>gl.id||0),0)+1;
       save();renderAll();updateCenterLabel();
       toast('Backup imported');
     }catch(err){ alert('Could not read that file — is it a Constellation backup?'); }
@@ -1329,7 +1962,7 @@ document.getElementById('importFile').addEventListener('change',e=>{
 document.getElementById('menuClear').addEventListener('click',()=>{
   document.getElementById('menuScrim').classList.remove('open');
   if(confirm('Erase everyone from your map? This cannot be undone.')){
-    people=[];links=[];nextId=1;nextLinkId=1;
+    people=[];links=[];groups=[];groupLinks=[];nextId=1;nextLinkId=1;nextGroupId=1;nextGroupLinkId=1;
     save();renderAll();
     toast('Map cleared');
   }
@@ -1374,7 +2007,7 @@ document.getElementById('copyExport').addEventListener('click',()=>{
     .catch(()=>alert('Select the text above and copy manually.'));
 });
 
-function backupJSON(){ return JSON.stringify({me,people,links,exportedAt:new Date().toISOString(),version:2},null,2); }
+function backupJSON(){ return JSON.stringify({me,people,links,groups,groupLinks,exportedAt:new Date().toISOString(),version:3},null,2); }
 document.getElementById('downloadBackup').addEventListener('click',()=>{
   const blob=new Blob([backupJSON()],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -1431,6 +2064,9 @@ function closeAllPopovers(){
   document.getElementById('panel').classList.remove('open');
   document.getElementById('menuScrim').classList.remove('open');
   document.getElementById('linkPickerScrim').classList.remove('open');
+  document.getElementById('groupPickerScrim').classList.remove('open');
+  document.getElementById('groupsListScrim').classList.remove('open');
+  document.getElementById('groupMemberPickerScrim').classList.remove('open');
   const bar=document.getElementById('searchbar');
   if(bar.classList.contains('open')){ /* keep search open across taps intentionally closed below */ }
 }
