@@ -114,32 +114,9 @@
   .center-halo{animation:halo 3.6s ease-in-out infinite}
   @keyframes halo{0%,100%{opacity:.28;r:70}50%{opacity:.42;r:78}}
 
-  /* LUNAR MOTION — orbital drift, moons around planets around the sun.
-     Deliberately unconditional (not gated on prefers-reduced-motion) — this
-     is a core, explicitly-requested part of the map, not decoration. */
-  @keyframes moonDrift{
-    0%{transform:translate(0,0) rotate(0deg)}
-    25%{transform:translate(9px,-7px) rotate(1deg)}
-    50%{transform:translate(-6px,9px) rotate(-1deg)}
-    75%{transform:translate(-9px,-5px) rotate(1deg)}
-    100%{transform:translate(0,0) rotate(0deg)}
-  }
-  @keyframes planetDrift{
-    0%{transform:translate(0,0)}
-    25%{transform:translate(15px,-11px)}
-    50%{transform:translate(-11px,13px)}
-    75%{transform:translate(-13px,-9px)}
-    100%{transform:translate(0,0)}
-  }
-  .node-group{animation:moonDrift var(--odur,9s) ease-in-out var(--odelay,0s) infinite}
-  .node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),moonDrift var(--odur,9s) ease-in-out var(--odelay,0s) infinite}
-  .node-group.dragging{animation-play-state:paused}
-  .group-node-group{animation:planetDrift var(--odur,20s) ease-in-out var(--odelay,0s) infinite}
-  .group-node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),planetDrift var(--odur,20s) ease-in-out var(--odelay,0s) infinite}
-  .group-node-group.dragging{animation-play-state:paused}
-
   /* GROUPS (custom named hubs — school, hometown, etc.) */
   .group-node-group{cursor:pointer;transform-box:fill-box;transform-origin:center;touch-action:none}
+  .group-node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1)}
   .group-circle{transition:cx .45s cubic-bezier(.22,.9,.35,1),cy .45s cubic-bezier(.22,.9,.35,1),opacity .3s;stroke-dasharray:3 3}
   .group-node-group.dragging .group-circle,.group-node-group.dragging text{transition:none}
   .group-node-group text{transition:x .45s cubic-bezier(.22,.9,.35,1),y .45s cubic-bezier(.22,.9,.35,1),opacity .3s;pointer-events:none}
@@ -762,14 +739,6 @@ function svgEl(tag,attrs){
   return e;
 }
 
-// per-id deterministic orbit timing so nodes don't drift in lockstep
-function orbitVars(id,isGroup){
-  const h=hash01(id*7+(isGroup?913:0));
-  const dur=isGroup?(20+h*14):(9+h*9);
-  const delay=-(h*dur);
-  return `--odur:${dur.toFixed(2)}s;--odelay:${delay.toFixed(2)}s`;
-}
-
 // ── STATIC LAYERS (built once) ────────────────────────────────
 const world=document.getElementById('world');
 const ringsG=document.getElementById('ringsG');
@@ -855,7 +824,7 @@ function initials(name){
 }
 
 function createNodeEl(p){
-  const g=svgEl('g',{class:'node-group','data-id':p.id,style:orbitVars(p.id,false)});
+  const g=svgEl('g',{class:'node-group','data-id':p.id});
   const circ=svgEl('circle',{class:'node-circle'});
   g.appendChild(circ);
   const t1=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-weight':500,'font-family':"'DM Sans',sans-serif"});
@@ -907,7 +876,7 @@ function syncNodes(){
 
 // ── GROUP NODES ────────────────────────────────────────────────
 function createGroupEl(g){
-  const gg=svgEl('g',{class:'group-node-group','data-gid':g.id,style:orbitVars(g.id,true)});
+  const gg=svgEl('g',{class:'group-node-group','data-gid':g.id});
   const circ=svgEl('circle',{class:'group-circle',r:30});
   gg.appendChild(circ);
   const t1=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-weight':600,'font-family':"'DM Sans',sans-serif"});
@@ -995,6 +964,7 @@ const RING_WIDTH={1:2,2:1.7,3:1.4,4:1.1,5:.9};
 
 function syncHubEdges(){
   const seen=new Set();
+  const groupedIds=new Set(groupLinks.map(gl=>gl.personId));
   people.forEach(p=>{
     seen.add(p.id);
     let l=hubEdgeEls.get(p.id);
@@ -1004,7 +974,9 @@ function syncHubEdges(){
     l.setAttribute('x2',p.x);l.setAttribute('y2',p.y);
     l.setAttribute('stroke',cat.stroke);
     l.setAttribute('stroke-width',RING_WIDTH[ringN]);
-    l.setAttribute('opacity',matchesFilter(p)?RING_OPACITY[ringN]:0.04);
+    // A person already threaded to you through a group doesn't need a second,
+    // direct line back to you too — that would just double up the connection.
+    l.setAttribute('opacity',groupedIds.has(p.id)?0:(matchesFilter(p)?RING_OPACITY[ringN]:0.04));
   });
   [...hubEdgeEls.keys()].forEach(id=>{ if(!seen.has(id)){ hubEdgeEls.get(id).remove(); hubEdgeEls.delete(id); } });
 }
