@@ -2,20 +2,32 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-<title>Jimmy's Mind Map</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+<title>Constellation — My People</title>
+<meta name="description" content="A living map of everyone you know, with you at the center."/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icons/icon-180.png"/>
+<link rel="icon" href="icons/icon-192.png" type="image/png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Constellation"/>
+<meta name="theme-color" content="#0b0b10"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
   :root{
-    --bg:#0f0f13;
-    --surface:#1a1a22;
-    --surface2:#22222d;
+    --bg:#0b0b10;
+    --surface:#17171f;
+    --surface2:#1f1f2a;
+    --surface3:#272733;
     --border:#2e2e3e;
     --text:#e8e8f0;
     --text2:#8888a0;
+    --text3:#5c5c72;
     --purple:#7f77dd;
     --purple-light:#aea9ec;
-    --accent:#534AB7;
+    --accent:#615ad1;
+    --danger:#e0555a;
     --family:#D85A30;
     --friends:#378ADD;
     --work:#1D9E75;
@@ -23,118 +35,254 @@
     --church:#D4537E;
     --golf:#639922;
     --other:#BA7517;
+    --kin:#FFD25E;
+    --sibling:#c9c3ff;
+    --safe-t:env(safe-area-inset-top,0px);
+    --safe-b:env(safe-area-inset-bottom,0px);
   }
-  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text)}
-  #shell{display:flex;flex-direction:column;height:100dvh}
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+  html,body{height:100%;overflow:hidden;background:var(--bg);font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:var(--text)}
+  input,textarea{-webkit-user-select:text;user-select:text}
+  #shell{display:flex;flex-direction:column;height:100dvh;position:relative}
 
   /* TOP BAR */
   #topbar{
-    display:flex;align-items:center;gap:10px;
-    padding:12px 14px;
-    background:var(--surface);
+    display:flex;align-items:center;gap:8px;
+    padding:calc(10px + var(--safe-t)) 12px 10px;
+    background:rgba(23,23,31,.86);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
     border-bottom:1px solid var(--border);
-    flex-shrink:0;
+    flex-shrink:0;position:relative;z-index:20;
   }
-  #topbar h1{font-size:15px;font-weight:600;color:var(--purple-light);letter-spacing:.02em;white-space:nowrap}
-  #topbar .spacer{flex:1}
+  #topbar h1{font-size:14px;font-weight:700;color:var(--purple-light);letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:5px;min-width:0;flex:0 1 auto}
+  #topbar h1 .mark{font-size:15px;flex-shrink:0}
+  #topbar h1 #appTitle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+  #topbar .spacer{flex:1;min-width:6px}
   #countBadge{
     font-size:11px;font-family:'DM Mono',monospace;
     background:var(--surface2);border:1px solid var(--border);
-    color:var(--text2);padding:3px 8px;border-radius:20px;white-space:nowrap
+    color:var(--text2);padding:6px 10px;border-radius:20px;white-space:nowrap;cursor:pointer;flex-shrink:0;
   }
-  #menuBtn{
-    width:34px;height:34px;border-radius:8px;
+  #countBadge b{color:var(--purple-light);font-weight:600}
+  .iconBtn{
+    width:34px;height:34px;border-radius:10px;flex-shrink:0;
     background:var(--surface2);border:1px solid var(--border);
-    color:var(--text);font-size:18px;cursor:pointer;
-    display:flex;align-items:center;justify-content:center;flex-shrink:0
+    color:var(--text);font-size:15px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
   }
+  .iconBtn.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  #addBtn2{background:var(--accent);border-color:var(--accent);color:#fff;font-size:19px;font-weight:600}
+
+  /* SEARCH BAR */
+  #searchbar{
+    max-height:0;overflow:hidden;flex-shrink:0;
+    background:var(--surface);border-bottom:1px solid var(--border);
+    transition:max-height .25s ease;position:relative;z-index:19;
+  }
+  #searchbar.open{max-height:110px}
+  #searchInner{padding:10px 12px 12px}
+  #searchIn{
+    width:100%;height:38px;background:var(--surface2);border:1px solid var(--border);
+    border-radius:10px;color:var(--text);font-family:inherit;font-size:14px;padding:0 12px;outline:none;
+  }
+  #searchIn:focus{border-color:var(--purple)}
+  #filterChips{display:flex;gap:6px;overflow-x:auto;margin-top:8px;padding-bottom:2px;scrollbar-width:none}
+  #filterChips::-webkit-scrollbar{display:none}
+  .chip{
+    flex-shrink:0;padding:6px 11px;border-radius:20px;font-size:12px;font-weight:500;
+    background:var(--surface2);border:1px solid var(--border);color:var(--text2);cursor:pointer;
+    white-space:nowrap;display:flex;align-items:center;gap:5px;
+  }
+  .chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip .dot{width:7px;height:7px;border-radius:50%}
 
   /* CANVAS */
   #canvas-wrap{flex:1;position:relative;overflow:hidden;touch-action:none}
   svg#canvas{width:100%;height:100%;display:block}
-  .edge{fill:none;stroke-width:1.5;stroke-opacity:.35}
-  .node-group{cursor:pointer}
-  .node-circle{transition:opacity .15s}
+  .ring-circle{fill:none;stroke:#33334a;stroke-width:1;opacity:.4}
+  .ring-label{fill:#4c4c66;font-size:9.5px;font-family:'DM Mono',monospace;letter-spacing:.05em;text-transform:uppercase}
+  .sector-line{stroke:#26263a;stroke-width:1;opacity:.5}
+  .hub-edge{fill:none;transition:x2 .45s cubic-bezier(.22,.9,.35,1),y2 .45s cubic-bezier(.22,.9,.35,1),opacity .3s}
+  .link-edge{fill:none;stroke:#9c96e8;stroke-width:1.3;transition:d .45s cubic-bezier(.22,.9,.35,1),opacity .3s}
+  .node-group{cursor:pointer;transform-box:fill-box;transform-origin:center;touch-action:none}
+  .node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes nodePop{from{transform:scale(.15);opacity:0}to{transform:scale(1);opacity:1}}
+  .node-circle{transition:cx .45s cubic-bezier(.22,.9,.35,1),cy .45s cubic-bezier(.22,.9,.35,1),r .25s,opacity .3s}
+  .node-group.dragging .node-circle,.node-group.dragging text{transition:none}
+  .node-group text{transition:x .45s cubic-bezier(.22,.9,.35,1),y .45s cubic-bezier(.22,.9,.35,1),opacity .3s;pointer-events:none}
+  .node-group.dimmed{opacity:.12}
+  #centerG{cursor:pointer}
+  .center-halo{animation:halo 3.6s ease-in-out infinite}
+  @keyframes halo{0%,100%{opacity:.28;r:70}50%{opacity:.42;r:78}}
 
-  /* PANEL (slide-up) */
-  #panel{
+  /* GROUPS (custom named hubs — school, hometown, etc.) */
+  .group-node-group{cursor:pointer;transform-box:fill-box;transform-origin:center;touch-action:none}
+  .group-node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1)}
+  .group-circle{transition:cx .45s cubic-bezier(.22,.9,.35,1),cy .45s cubic-bezier(.22,.9,.35,1),opacity .3s;stroke-dasharray:3 3}
+  .group-node-group.dragging .group-circle,.group-node-group.dragging text{transition:none}
+  .group-node-group text{transition:x .45s cubic-bezier(.22,.9,.35,1),y .45s cubic-bezier(.22,.9,.35,1),opacity .3s;pointer-events:none}
+  .group-node-group.dimmed{opacity:.15}
+  .group-thread{transition:x1 .45s cubic-bezier(.22,.9,.35,1),y1 .45s cubic-bezier(.22,.9,.35,1),x2 .45s cubic-bezier(.22,.9,.35,1),y2 .45s cubic-bezier(.22,.9,.35,1),opacity .3s;stroke-dasharray:2 5;stroke-linecap:round}
+  .groupDot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+
+  /* BOTTOM SHEETS */
+  .sheet-scrim{position:fixed;inset:0;background:rgba(0,0,0,0);pointer-events:none;transition:background .3s;z-index:90}
+  .sheet-scrim.open{background:rgba(0,0,0,.55);pointer-events:auto}
+  .sheet{
     position:fixed;bottom:0;left:0;right:0;
     background:var(--surface);border-top:1px solid var(--border);
-    border-radius:20px 20px 0 0;
-    padding:0 16px 24px;
-    transform:translateY(100%);transition:transform .3s ease;
-    z-index:100;max-height:80dvh;overflow-y:auto
+    border-radius:22px 22px 0 0;
+    padding:0 18px calc(26px + var(--safe-b));
+    transform:translateY(102%);transition:transform .35s cubic-bezier(.22,.9,.3,1);
+    z-index:100;max-height:86dvh;overflow-y:auto;
+    box-shadow:0 -10px 40px rgba(0,0,0,.5);
   }
-  #panel.open{transform:translateY(0)}
-  #panel-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 16px}
-  #panel h2{font-size:14px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
+  .sheet.open{transform:translateY(0)}
+  .sheet-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 14px}
+  .sheet h2{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.09em;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+  .sheet h2 .closeX{width:26px;height:26px;border-radius:50%;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:13px;color:var(--text2);cursor:pointer;text-transform:none;letter-spacing:0}
 
-  /* FORM */
-  .field{margin-bottom:12px}
-  .field label{display:block;font-size:12px;color:var(--text2);margin-bottom:5px}
-  .field input,.field select{
-    width:100%;height:42px;background:var(--surface2);
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11.5px;color:var(--text2);margin-bottom:6px;font-weight:500}
+  .field input[type=text],.field input[type=date],.field textarea,.field select{
+    width:100%;background:var(--surface2);
     border:1px solid var(--border);border-radius:10px;
-    color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
-    padding:0 12px;outline:none;-webkit-appearance:none;appearance:none
+    color:var(--text);font-family:inherit;font-size:14.5px;
+    padding:11px 12px;outline:none;-webkit-appearance:none;appearance:none;
   }
-  .field input:focus,.field select:focus{border-color:var(--purple)}
-  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
-  
-  #addBtn{
-    width:100%;height:46px;background:var(--accent);border:none;border-radius:12px;
-    color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:600;
-    cursor:pointer;margin-top:4px;letter-spacing:.01em
-  }
-  #addBtn:active{opacity:.85}
+  .field input[type=text],.field input[type=date],.field select{height:44px}
+  .field select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238888a0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+  .checkField label{display:flex;align-items:center;gap:9px;cursor:pointer;font-size:13px;color:var(--text2);line-height:1.4}
+  .checkField input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}
+  .field textarea{resize:none;min-height:64px;line-height:1.4}
+  .field input:focus,.field textarea:focus{border-color:var(--purple)}
+  .chiprow{display:flex;flex-wrap:wrap;gap:7px}
+  .chiprow .chip{padding:8px 12px}
 
-  /* LEGEND */
-  #legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
-  .leg{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2)}
-  .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .primaryBtn{
+    width:100%;height:48px;background:var(--accent);border:none;border-radius:13px;
+    color:#fff;font-family:inherit;font-size:15px;font-weight:600;
+    cursor:pointer;margin-top:6px;letter-spacing:.01em;
+  }
+  .primaryBtn:active{opacity:.85}
+  .ghostBtn{
+    width:100%;height:44px;background:transparent;border:1px solid var(--border);border-radius:12px;
+    color:var(--text2);font-family:inherit;font-size:13.5px;font-weight:500;cursor:pointer;margin-top:10px;
+  }
+  .dangerBtn{
+    width:100%;height:44px;background:rgba(224,85,90,.1);border:1px solid rgba(224,85,90,.35);border-radius:12px;
+    color:var(--danger);font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;margin-top:10px;
+  }
+  .detailToggle{font-size:12.5px;color:var(--purple-light);text-align:center;padding:8px 0;cursor:pointer;font-weight:500}
+  .moreFields{max-height:0;overflow:hidden;transition:max-height .3s ease}
+  .moreFields.open{max-height:600px}
 
-  /* CONTEXT MENU */
-  #ctx{
-    position:fixed;background:var(--surface);border:1px solid var(--border);
-    border-radius:12px;padding:6px;z-index:200;display:none;
-    box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:140px
-  }
-  #ctx button{
-    display:block;width:100%;text-align:left;background:none;border:none;
-    color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;
-    padding:8px 12px;border-radius:8px;cursor:pointer
-  }
-  #ctx button:hover{background:var(--surface2)}
-  #ctx button.danger{color:#E24B4A}
+  /* DETAIL SHEET SPECIFIC */
+  #detailHead{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  #detailAvatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:700;flex-shrink:0;border:2px solid transparent}
+  #detailNameWrap{flex:1;min-width:0}
+  #detailName{font-size:18px;font-weight:700;background:none;border:none;color:var(--text);font-family:inherit;width:100%;padding:2px 0;outline:none;border-bottom:1px solid transparent}
+  #detailName:focus{border-bottom-color:var(--purple)}
+  #detailMeta{font-size:12px;color:var(--text2);margin-top:2px}
+  .sectionLabel{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin:16px 0 8px}
+  #linksList{display:flex;flex-wrap:wrap;gap:7px}
+  .linkChip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 6px 6px 12px;font-size:12.5px;cursor:pointer}
+  .linkChip .x{width:18px;height:18px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text2)}
+  #tagsList{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .tagChip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 10px 5px 12px;font-size:12px;color:var(--purple-light);display:flex;align-items:center;gap:6px}
+  .tagChip .x{cursor:pointer;color:var(--text3)}
 
-  /* EXPORT MODAL */
-  #exportModal{
-    position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;
-    display:none;align-items:flex-end;justify-content:center
-  }
-  #exportModal.open{display:flex}
-  #exportBox{
-    background:var(--surface);border-radius:20px 20px 0 0;
-    padding:20px 16px 32px;width:100%;max-height:70dvh;overflow-y:auto
-  }
-  #exportBox h3{font-size:14px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px}
+  /* MODALS (list pickers, export, insights, onboarding) */
+  .modal-scrim{position:fixed;inset:0;background:rgba(0,0,0,0);z-index:150;display:none;align-items:flex-end;justify-content:center;transition:background .25s}
+  .modal-scrim.open{display:flex;background:rgba(0,0,0,.6)}
+  .modalBox{background:var(--surface);border-radius:22px 22px 0 0;padding:0 18px calc(26px + var(--safe-b));width:100%;max-height:82dvh;overflow-y:auto;transform:translateY(100%);transition:transform .32s cubic-bezier(.22,.9,.3,1)}
+  .modal-scrim.open .modalBox{transform:translateY(0)}
+  .modalBox h3{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.09em;padding:16px 0 12px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface)}
+  .pickRow{display:flex;align-items:center;gap:10px;padding:11px 4px;border-bottom:1px solid var(--surface2);cursor:pointer}
+  .pickAvatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+  .pickName{font-size:14px;font-weight:500}
+  .pickSub{font-size:11px;color:var(--text2)}
+
+  /* INSIGHTS */
+  #insightsBox{max-height:90dvh}
+  .bigStat{text-align:center;padding:6px 0 18px}
+  .bigStat .num{font-size:52px;font-weight:700;color:var(--purple-light);font-family:'DM Mono',monospace;line-height:1}
+  .bigStat .lbl{font-size:13px;color:var(--text2);margin-top:6px}
+  .insCard{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
+  .insCard h4{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);font-weight:700;margin-bottom:10px}
+  .dunbarTrack{position:relative;height:10px;background:var(--surface3);border-radius:6px;margin:14px 2px 6px;overflow:visible}
+  .dunbarFill{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--purple),var(--accent));border-radius:6px;transition:width .6s cubic-bezier(.22,.9,.3,1)}
+  .dunbarTick{position:absolute;top:-4px;width:1px;height:18px;background:var(--text3)}
+  .dunbarTick span{position:absolute;top:20px;left:50%;transform:translateX(-50%);font-size:9.5px;color:var(--text3);white-space:nowrap}
+  .ringBarRow{display:flex;align-items:center;gap:10px;margin-bottom:9px;font-size:12px}
+  .ringBarRow .rname{width:96px;flex-shrink:0;color:var(--text2)}
+  .ringBarTrack{flex:1;height:8px;background:var(--surface3);border-radius:5px;overflow:hidden}
+  .ringBarFill{height:100%;background:var(--purple);border-radius:5px;transition:width .6s cubic-bezier(.22,.9,.3,1)}
+  .ringBarRow .rcount{width:22px;text-align:right;font-family:'DM Mono',monospace;color:var(--text)}
+  #donutWrap{display:flex;align-items:center;gap:16px}
+  #donutLegend{flex:1;display:flex;flex-direction:column;gap:6px}
+  .legRow{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text2)}
+  .legRow .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .legRow b{color:var(--text);font-weight:600;margin-left:auto;font-family:'DM Mono',monospace}
+  #sparkRow{display:flex;align-items:flex-end;gap:6px;height:60px}
+  .sparkBar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .sparkBar .bar{width:100%;background:var(--purple);border-radius:4px 4px 0 0;min-height:3px;transition:height .5s ease}
+  .sparkBar .m{font-size:9px;color:var(--text3);margin-top:5px}
+  .insRow{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--surface3);font-size:13px}
+  .insRow:last-child{border-bottom:none}
+  .insRow .k{color:var(--text2)}
+  .insRow .v{font-weight:600;color:var(--text)}
+
+  /* EXPORT */
   #exportBox pre{
     background:var(--surface2);border:1px solid var(--border);border-radius:10px;
-    padding:12px;font-family:'DM Mono',monospace;font-size:12px;color:var(--text);
-    white-space:pre-wrap;word-break:break-word;max-height:200px;overflow-y:auto
+    padding:12px;font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text);
+    white-space:pre-wrap;word-break:break-word;max-height:220px;overflow-y:auto;
   }
-  #exportBox .row{display:flex;gap:8px;margin-top:12px}
-  #exportBox .row button{
-    flex:1;height:42px;border-radius:10px;border:1px solid var(--border);
-    background:var(--surface2);color:var(--text);font-family:'DM Sans',sans-serif;
-    font-size:13px;cursor:pointer
+  .row2{display:flex;gap:8px;margin-top:12px}
+  .row2 button{
+    flex:1;height:44px;border-radius:11px;border:1px solid var(--border);
+    background:var(--surface2);color:var(--text);font-family:inherit;
+    font-size:13px;cursor:pointer;font-weight:500;
   }
-  #exportBox .row button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .row2 button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .tabRow{display:flex;gap:6px;margin-bottom:12px}
+  .tabRow .tab{flex:1;text-align:center;padding:9px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:12.5px;color:var(--text2);cursor:pointer;font-weight:500}
+  .tabRow .tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
+  .tabPane{display:none}
+  .tabPane.on{display:block}
+  #importFile{display:none}
+
+  /* ONBOARDING */
+  #onboard{position:fixed;inset:0;background:radial-gradient(circle at 50% 38%,#1c1c2c,#0b0b10 70%);z-index:250;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:36px 30px calc(30px + var(--safe-b));transition:opacity .4s,visibility .4s}
+  #onboard.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  #onboard .orb{width:78px;height:78px;border-radius:50%;background:radial-gradient(circle at 40% 35%,#c3bdf7,#4d43a8 80%);box-shadow:0 0 50px rgba(127,119,221,.5);margin-bottom:26px;animation:halo 3.6s ease-in-out infinite}
+  #onboard h2{font-size:22px;font-weight:700;margin-bottom:12px;color:var(--text)}
+  #onboard p{font-size:14.5px;color:var(--text2);line-height:1.55;max-width:320px;margin-bottom:8px}
+  #onboard .cta{margin-top:22px;width:100%;max-width:280px}
+
+  /* ME SHEET */
+  #meSheet .field:last-of-type{margin-bottom:6px}
+
+  /* IOS INSTALL BANNER */
+  #installBanner{
+    position:fixed;left:12px;right:12px;bottom:calc(12px + var(--safe-b));
+    background:var(--surface2);border:1px solid var(--border);border-radius:16px;
+    padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:80;
+    box-shadow:0 8px 30px rgba(0,0,0,.4);
+    transform:translateY(140%);transition:transform .4s cubic-bezier(.22,.9,.3,1);
+  }
+  #installBanner.show{transform:translateY(0)}
+  #installBanner .txt{flex:1;font-size:12.5px;color:var(--text2);line-height:1.4}
+  #installBanner .txt b{color:var(--text);display:block;font-size:13px;margin-bottom:2px}
+  #installBanner .close{width:24px;height:24px;border-radius:50%;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--text2);cursor:pointer;flex-shrink:0}
 
   /* Stars background */
   #stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
   .star{position:absolute;background:#fff;border-radius:50%;opacity:.15}
+
+  /* Toast */
+  #toast{position:fixed;left:50%;top:calc(64px + var(--safe-t));transform:translate(-50%,-14px);background:var(--surface3);border:1px solid var(--border);color:var(--text);font-size:13px;padding:10px 16px;border-radius:30px;z-index:400;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:80vw;overflow:hidden;text-overflow:ellipsis}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
@@ -143,418 +291,2065 @@
 
 <div id="shell">
   <div id="topbar">
-    <h1>🗺 My People</h1>
+    <h1><span class="mark">✦</span><span id="appTitle">Constellation</span></h1>
     <div class="spacer"></div>
-    <div id="countBadge">0 people</div>
-    <button id="menuBtn" onclick="openPanel()" aria-label="Add person">＋</button>
+    <div id="countBadge" onclick="openInsights()">0 people</div>
+    <button class="iconBtn" id="searchToggle" aria-label="Search">⌕</button>
+    <button class="iconBtn" id="menuToggle" aria-label="Menu">⋯</button>
+    <button class="iconBtn" id="addBtn2" onclick="openAddPanel()" aria-label="Add person">＋</button>
+  </div>
+
+  <div id="searchbar">
+    <div id="searchInner">
+      <input id="searchIn" type="text" placeholder="Search people, notes, tags…" autocomplete="off"/>
+      <div id="filterChips"></div>
+    </div>
   </div>
 
   <div id="canvas-wrap">
     <svg id="canvas" xmlns="http://www.w3.org/2000/svg">
       <defs>
-        <radialGradient id="centerGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stop-color="#7f77dd"/>
-          <stop offset="100%" stop-color="#534AB7"/>
+        <radialGradient id="centerGrad" cx="42%" cy="38%" r="65%">
+          <stop offset="0%" stop-color="#c3bdf7"/>
+          <stop offset="45%" stop-color="#8b82e8"/>
+          <stop offset="100%" stop-color="#4d43a8"/>
         </radialGradient>
       </defs>
-      <g id="edges"></g>
-      <g id="nodes"></g>
+      <g id="world">
+        <g id="ringsG"></g>
+        <g id="groupThreadsG"></g>
+        <g id="linksG"></g>
+        <g id="hubG"></g>
+        <g id="groupNodesG"></g>
+        <g id="nodesG"></g>
+        <g id="centerG"></g>
+      </g>
     </svg>
   </div>
 </div>
 
-<!-- Add Person Panel -->
-<div id="panel" role="dialog" aria-modal="true" aria-label="Add person">
-  <div id="panel-handle"></div>
-  <h2>Add a person</h2>
+<!-- Onboarding -->
+<div id="onboard">
+  <div class="orb"></div>
+  <h2>This is your constellation.</h2>
+  <p>Every person you know, mapped around you. Color shows <i>how</i> you know them. Distance from the center shows <i>how close</i> you are.</p>
+  <p>Add people as you think of them. Over time you'll see the true shape of your world — and finally know how many people you actually know.</p>
+  <button class="primaryBtn cta" id="onboardCta">Add your first person</button>
+</div>
+
+<!-- Add Person Sheet -->
+<div class="sheet-scrim" id="addScrim"></div>
+<div class="sheet" id="panel" role="dialog" aria-modal="true" aria-label="Add person">
+  <div class="sheet-handle"></div>
+  <h2>Add a person<span class="closeX" id="addClose">✕</span></h2>
   <div class="field">
     <label for="nameIn">Name</label>
-    <input id="nameIn" type="text" placeholder="e.g. Sarah M." maxlength="24" autocomplete="off"/>
+    <input id="nameIn" type="text" placeholder="e.g. Sarah M." maxlength="30" autocomplete="off"/>
   </div>
   <div class="field">
-    <label for="catSel">Category</label>
-    <select id="catSel">
-      <option value="family">Family</option>
-      <option value="friends">Friends</option>
-      <option value="work">Work / School</option>
-      <option value="neighbors">Neighbors</option>
-      <option value="church">Church / Community</option>
-      <option value="golf">Golf / Sports</option>
-      <option value="other">Other</option>
-    </select>
+    <label>How do you know them?</label>
+    <div class="chiprow" id="addCatChips"></div>
   </div>
-  <button id="addBtn">Add to map</button>
-
-  <div id="legend">
-    <div class="leg"><div class="leg-dot" style="background:#D85A30"></div>Family</div>
-    <div class="leg"><div class="leg-dot" style="background:#378ADD"></div>Friends</div>
-    <div class="leg"><div class="leg-dot" style="background:#1D9E75"></div>Work / School</div>
-    <div class="leg"><div class="leg-dot" style="background:#888780"></div>Neighbors</div>
-    <div class="leg"><div class="leg-dot" style="background:#D4537E"></div>Church / Comm</div>
-    <div class="leg"><div class="leg-dot" style="background:#639922"></div>Golf / Sports</div>
-    <div class="leg"><div class="leg-dot" style="background:#BA7517"></div>Other</div>
+  <div class="field" id="addRingField">
+    <label>How close are you?</label>
+    <div class="chiprow" id="addRingChips"></div>
   </div>
+  <div class="field checkField" id="addIndirectField" style="display:none">
+    <label for="addIndirectCheck">
+      <input type="checkbox" id="addIndirectCheck"/>
+      <span>I don't know them directly — they're connected to me through someone else</span>
+    </label>
+  </div>
+  <div class="field" id="addAnchorField" style="display:none">
+    <label for="addAnchorSelect">Connected through</label>
+    <select id="addAnchorSelect"></select>
+  </div>
+  <div class="detailToggle" id="addMoreToggle">＋ Add a note, tags, last contact</div>
+  <div class="moreFields" id="addMoreFields">
+    <div class="field">
+      <label for="addHowMet">How you met / know them</label>
+      <input id="addHowMet" type="text" placeholder="e.g. College roommate" maxlength="80" autocomplete="off"/>
+    </div>
+    <div class="field">
+      <label for="addNote">Notes</label>
+      <textarea id="addNote" placeholder="Anything worth remembering…" maxlength="400"></textarea>
+    </div>
+    <div class="field">
+      <label for="addTags">Tags (comma separated)</label>
+      <input id="addTags" type="text" placeholder="e.g. college, hiking, book club" autocomplete="off"/>
+    </div>
+  </div>
+  <button class="primaryBtn" id="addBtn">Add to my map</button>
 </div>
 
-<!-- Context Menu -->
-<div id="ctx">
-  <button id="ctx-edit">✏️ Edit name</button>
-  <button id="ctx-cat">🎨 Change category</button>
-  <button id="ctx-export">📋 Export list</button>
-  <button id="ctx-delete" class="danger">🗑 Remove person</button>
+<!-- Detail Sheet -->
+<div class="sheet-scrim" id="detailScrim"></div>
+<div class="sheet" id="detailSheet" role="dialog" aria-modal="true" aria-label="Person detail">
+  <div class="sheet-handle"></div>
+  <h2>Person<span class="closeX" id="detailClose">✕</span></h2>
+  <div id="detailHead">
+    <div id="detailAvatar"></div>
+    <div id="detailNameWrap">
+      <input id="detailName" type="text" maxlength="30"/>
+      <div id="detailMeta"></div>
+    </div>
+  </div>
+  <div class="field">
+    <label>How do you know them?</label>
+    <div class="chiprow" id="detailCatChips"></div>
+  </div>
+  <div class="field" id="detailRingField">
+    <label>How close are you?</label>
+    <div class="chiprow" id="detailRingChips"></div>
+  </div>
+  <div class="field" id="detailIndirectNote" style="display:none">
+    <div style="font-size:12.5px;color:var(--text3);background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;line-height:1.5">You don't know this person directly — they're connected to you through someone else on your map.</div>
+    <button class="ghostBtn" id="makeDirectBtn">Actually, I know them directly</button>
+  </div>
+  <div class="field">
+    <label for="detailHowMet">How you met / know them</label>
+    <input id="detailHowMet" type="text" maxlength="80" autocomplete="off"/>
+  </div>
+  <div class="field">
+    <label for="detailNote">Notes</label>
+    <textarea id="detailNote" maxlength="400"></textarea>
+  </div>
+  <div class="field">
+    <label for="detailLastContact">Last connected</label>
+    <input id="detailLastContact" type="date"/>
+  </div>
+  <div class="field">
+    <label for="detailTagIn">Tags</label>
+    <div id="tagsList"></div>
+    <input id="detailTagIn" type="text" placeholder="Add a tag and press enter…" autocomplete="off"/>
+  </div>
+
+  <div class="sectionLabel">Connections</div>
+  <div id="linksList"></div>
+  <button class="ghostBtn" id="linkAddBtn">＋ Link to someone else</button>
+
+  <div class="sectionLabel">Groups</div>
+  <div id="personGroupsList"></div>
+  <button class="ghostBtn" id="groupAddBtn">＋ Add to a group</button>
+
+  <button class="ghostBtn" id="resetPosBtn">↺ Reset position on map</button>
+  <button class="dangerBtn" id="detailDelete">Remove from my map</button>
 </div>
 
-<!-- Export Modal -->
-<div id="exportModal">
-  <div id="exportBox">
-    <h3>Your people</h3>
-    <pre id="exportText"></pre>
-    <div class="row">
-      <button onclick="closeExport()">Close</button>
-      <button class="primary" onclick="copyExport()">Copy list</button>
+<!-- Me Sheet -->
+<div class="sheet-scrim" id="meScrim"></div>
+<div class="sheet" id="meSheet" role="dialog" aria-modal="true" aria-label="Edit yourself">
+  <div class="sheet-handle"></div>
+  <h2>You, at the center<span class="closeX" id="meClose">✕</span></h2>
+  <div class="field">
+    <label for="meNameIn">Your name</label>
+    <input id="meNameIn" type="text" maxlength="24" autocomplete="off"/>
+  </div>
+  <div class="field">
+    <label for="meTagIn">A line about you (optional)</label>
+    <input id="meTagIn" type="text" placeholder="e.g. builder, dad, always up for coffee" maxlength="60" autocomplete="off"/>
+  </div>
+  <button class="primaryBtn" id="meSaveBtn">Save</button>
+</div>
+
+<!-- Link Picker -->
+<div class="modal-scrim" id="linkPickerScrim">
+  <div class="modalBox" id="linkPickerBox">
+    <h3>Link to someone<span class="closeX" id="linkPickerClose">✕</span></h3>
+    <div id="linkPickerStep1">
+      <div class="field"><input id="linkPickerSearch" type="text" placeholder="Search people…" autocomplete="off"/></div>
+      <div id="linkPickerList"></div>
+    </div>
+    <div id="linkPickerStep2" style="display:none">
+      <div class="detailToggle" id="linkStepBack" style="text-align:left;padding-left:0">← Back</div>
+      <div class="field">
+        <label id="relTypeLabel">How are you connected?</label>
+        <div class="chiprow" id="relTypeChips"></div>
+      </div>
+      <div class="field" id="relCustomField" style="display:none">
+        <label for="relCustomIn">What do you call it?</label>
+        <input id="relCustomIn" type="text" placeholder="e.g. College roommates, Co-founders" maxlength="40" autocomplete="off"/>
+      </div>
+      <div class="field" id="cascadeField" style="display:none">
+        <label style="display:flex;align-items:center;gap:9px;cursor:pointer" id="cascadeLabel">
+          <input type="checkbox" id="cascadeCheck" checked style="width:17px;height:17px;accent-color:var(--accent)"/>
+          <span id="cascadeText"></span>
+        </label>
+      </div>
+      <button class="primaryBtn" id="relConfirmBtn">Connect</button>
     </div>
   </div>
 </div>
 
+<!-- Add-to-Group Picker (from a person's detail sheet) -->
+<div class="modal-scrim" id="groupPickerScrim">
+  <div class="modalBox" id="groupPickerBox">
+    <h3>Add to a group<span class="closeX" id="groupPickerClose">✕</span></h3>
+    <div class="field" style="display:flex;gap:8px">
+      <input id="groupPickerNewName" type="text" placeholder="Name a new group…" maxlength="30" autocomplete="off" style="flex:1"/>
+      <button class="primaryBtn" id="groupPickerCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+    </div>
+    <div id="groupPickerList"></div>
+  </div>
+</div>
+
+<!-- Groups List (from menu) -->
+<div class="modal-scrim" id="groupsListScrim">
+  <div class="modalBox" id="groupsListBox">
+    <h3>Groups<span class="closeX" id="groupsListClose">✕</span></h3>
+    <div class="field" style="display:flex;gap:8px">
+      <input id="newGroupName" type="text" placeholder="e.g. Roosevelt High, Lake House Crew…" maxlength="30" autocomplete="off" style="flex:1"/>
+      <button class="primaryBtn" id="newGroupCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+    </div>
+    <div id="groupsListContent"></div>
+  </div>
+</div>
+
+<!-- Group Detail Sheet -->
+<div class="sheet-scrim" id="groupScrim"></div>
+<div class="sheet" id="groupSheet" role="dialog" aria-modal="true" aria-label="Group detail">
+  <div class="sheet-handle"></div>
+  <h2>Group<span class="closeX" id="groupClose">✕</span></h2>
+  <div class="field">
+    <label for="groupNameIn">Name</label>
+    <input id="groupNameIn" type="text" maxlength="30" autocomplete="off"/>
+  </div>
+  <div class="field">
+    <label for="groupParentSelect">Nested under</label>
+    <select id="groupParentSelect"></select>
+  </div>
+  <div class="sectionLabel">Members</div>
+  <div id="groupMembersList"></div>
+  <button class="ghostBtn" id="groupMemberAddBtn">＋ Add people</button>
+  <div class="sectionLabel">Sub-groups</div>
+  <div id="subGroupsList"></div>
+  <div class="field" style="display:flex;gap:8px">
+    <input id="newSubGroupName" type="text" placeholder="Name a sub-group…" maxlength="30" autocomplete="off" style="flex:1"/>
+    <button class="primaryBtn" id="newSubGroupCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+  </div>
+  <button class="dangerBtn" id="groupDeleteBtn">Delete this group</button>
+</div>
+
+<!-- Add-Member Picker (from a group's detail sheet) -->
+<div class="modal-scrim" id="groupMemberPickerScrim">
+  <div class="modalBox" id="groupMemberPickerBox">
+    <h3>Add people<span class="closeX" id="groupMemberPickerClose">✕</span></h3>
+    <div class="field" style="display:flex;gap:8px">
+      <input id="groupMemberNewName" type="text" placeholder="New name…" maxlength="30" autocomplete="off" style="flex:1"/>
+      <button class="primaryBtn" id="groupMemberNewCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+    </div>
+    <div class="sectionLabel" style="margin:4px 0 8px">Or add someone already on your map</div>
+    <div class="field"><input id="groupMemberPickerSearch" type="text" placeholder="Search people…" autocomplete="off"/></div>
+    <div id="groupMemberPickerList"></div>
+  </div>
+</div>
+
+<!-- Insights -->
+<div class="modal-scrim" id="insightsScrim">
+  <div class="modalBox" id="insightsBox">
+    <h3>Your Network<span class="closeX" id="insightsClose">✕</span></h3>
+    <div id="insightsContent"></div>
+  </div>
+</div>
+
+<!-- Menu / Settings -->
+<div class="modal-scrim" id="menuScrim">
+  <div class="modalBox" id="menuBox">
+    <h3>Menu<span class="closeX" id="menuClose">✕</span></h3>
+    <button class="ghostBtn" id="menuGroups" style="margin-top:0">◎ Groups</button>
+    <button class="ghostBtn" id="menuExport">⇩ Export / Backup</button>
+    <button class="ghostBtn" id="menuImport">⇧ Import backup</button>
+    <button class="ghostBtn" id="menuAbout">✦ About this map</button>
+    <button class="dangerBtn" id="menuClear">Clear all data</button>
+    <input type="file" id="importFile" accept="application/json"/>
+  </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal-scrim" id="exportScrim">
+  <div class="modalBox" id="exportBox">
+    <h3>Export your people<span class="closeX" id="exportClose">✕</span></h3>
+    <div class="tabRow">
+      <div class="tab on" data-tab="backup">Full backup (JSON)</div>
+      <div class="tab" data-tab="text">Plain list</div>
+    </div>
+    <div class="tabPane on" id="tabBackup">
+      <p style="font-size:12.5px;color:var(--text2);margin-bottom:10px;line-height:1.5">A complete backup of your map — people, categories, closeness, notes and connections. Keep this safe; it never leaves your phone unless you export it.</p>
+      <div class="row2">
+        <button id="downloadBackup">⇩ Download file</button>
+        <button class="primary" id="copyBackup">Copy to clipboard</button>
+      </div>
+    </div>
+    <div class="tabPane" id="tabText">
+      <pre id="exportText"></pre>
+      <div class="row2">
+        <button class="primary" id="copyExport" style="flex:1">Copy list</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal-scrim" id="aboutScrim">
+  <div class="modalBox" id="aboutBox">
+    <h3>About this map<span class="closeX" id="aboutClose">✕</span></h3>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">You sit at the center. Everyone you add orbits you — <b style="color:var(--text)">color</b> shows how you know them, and <b style="color:var(--text)">distance</b> shows how close you are, from your Inner Circle out to Acquaintances.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">The rings echo anthropologist Robin Dunbar's research on the layered structure of human social groups — roughly 5 intimate confidants, 15 close friends, 50 real friendships, and about 150 relationships we can meaningfully maintain at once.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">Drag anyone to reposition them. Tap to open their profile. Link two people who know each other — mark partners and parent/child ties and the family tree draws itself, kids branching down from the couple that raised them.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:12px">Name a group for anything that clusters people — a school, a hometown, a team — and it becomes its own small orbit. Groups can nest inside other groups too, so a class can live under its school.</p>
+    <p style="font-size:13.5px;color:var(--text2);line-height:1.65;margin-bottom:4px">Someone doesn't have to be connected straight to you, either — mark them as connected through someone else, and they'll show up as a small satellite of that person instead. Everything stays on this device.</p>
+  </div>
+</div>
+
+<div id="installBanner">
+  <div class="txt"><b>Add Constellation to your Home Screen</b>Tap the Share icon, then "Add to Home Screen" for the full app experience.</div>
+  <div class="close" id="installBannerClose">✕</div>
+</div>
+
+<div id="toast"></div>
+
 <script>
+const SVGNS='http://www.w3.org/2000/svg';
+
 // ── STARS ──────────────────────────────────────────────────────
 const starsEl=document.getElementById('stars');
-for(let i=0;i<60;i++){
+for(let i=0;i<70;i++){
   const s=document.createElement('div');s.className='star';
   const sz=Math.random()*2+1;
   s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;opacity:${Math.random()*.2+.05}`;
   starsEl.appendChild(s);
 }
 
-// ── STATE ──────────────────────────────────────────────────────
+// ── CONSTANTS ──────────────────────────────────────────────────
 const CATS={
-  family:{fill:'#2a1510',stroke:'#D85A30',text:'#f0a080'},
-  friends:{fill:'#0e1a2a',stroke:'#378ADD',text:'#85B7EB'},
-  work:{fill:'#0a1f18',stroke:'#1D9E75',text:'#5DCAA5'},
-  neighbors:{fill:'#1a1a18',stroke:'#888780',text:'#B4B2A9'},
-  church:{fill:'#240d17',stroke:'#D4537E',text:'#ED93B1'},
-  golf:{fill:'#131f08',stroke:'#639922',text:'#97C459'},
-  other:{fill:'#201408',stroke:'#BA7517',text:'#EF9F27'}
+  family:{fill:'#2a1510',stroke:'#D85A30',text:'#f0a080',label:'Family'},
+  friends:{fill:'#0e1a2a',stroke:'#378ADD',text:'#85B7EB',label:'Friends'},
+  work:{fill:'#0a1f18',stroke:'#1D9E75',text:'#5DCAA5',label:'Work / School'},
+  neighbors:{fill:'#1a1a18',stroke:'#888780',text:'#B4B2A9',label:'Neighbors'},
+  church:{fill:'#240d17',stroke:'#D4537E',text:'#ED93B1',label:'Church / Community'},
+  golf:{fill:'#131f08',stroke:'#639922',text:'#97C459',label:'Golf / Sports'},
+  other:{fill:'#201408',stroke:'#BA7517',text:'#EF9F27',label:'Other'}
 };
-const LABELS={family:'Family',friends:'Friends',work:'Work / School',neighbors:'Neighbors',church:'Church / Comm',golf:'Golf / Sports',other:'Other'};
+const CAT_ORDER=Object.keys(CATS);
 
-let nodes=[];
+const RINGS=[
+  {n:1,label:'Inner Circle',hint:'Who you’d call at 2am',r:88,size:27,target:5},
+  {n:2,label:'Close Friends',hint:'Deep, regular bonds',r:142,size:24,target:15},
+  {n:3,label:'Friends',hint:'Real, if less frequent',r:196,size:21,target:50},
+  {n:4,label:'Extended Network',hint:'Warm but occasional',r:250,size:18,target:150},
+  {n:5,label:'Acquaintances',hint:'You know each other',r:308,size:15,target:1500}
+];
+
+const REL_TYPES=[
+  {n:'partner',label:'Partners'},
+  {n:'parentOf',label:'Their parent'},
+  {n:'childOf',label:'Their child'},
+  {n:'sibling',label:'Siblings'},
+  {n:'custom',label:'Custom'}
+];
+const GROUP_COLORS=['#5EC8D8','#C9A66B','#8E7CC3','#6FCF97','#E0A458','#4FA8E0','#D87BB0'];
+const GROUP_HUB_R=270;
+
+// ── STATE ──────────────────────────────────────────────────────
+let me={name:'You',tagline:''};
+let people=[];
+let links=[];
+let groups=[];
+let groupLinks=[];
 let nextId=1;
-let vx=0,vy=0,vs=1;
-let selectedNode=null;
+let nextLinkId=1;
+let nextGroupId=1;
+let nextGroupLinkId=1;
+let peopleById=new Map();
+let groupsById=new Map();
 
-// ── STORAGE ────────────────────────────────────────────────────
-function save(){localStorage.setItem('mm_nodes',JSON.stringify(nodes));localStorage.setItem('mm_id',nextId);}
+let vx=0,vy=0,vs=1;
+let filterCats=new Set();
+let filterText='';
+
+const nodeEls=new Map();
+const hubEdgeEls=new Map();
+const linkEdgeEls=new Map();
+const groupNodeEls=new Map();
+const groupThreadEls=new Map();
+
+// ── STORAGE / MIGRATION ───────────────────────────────────────
+function save(){
+  localStorage.setItem('cst_me',JSON.stringify(me));
+  localStorage.setItem('cst_people',JSON.stringify(people));
+  localStorage.setItem('cst_links',JSON.stringify(links));
+  localStorage.setItem('cst_groups',JSON.stringify(groups));
+  localStorage.setItem('cst_groupLinks',JSON.stringify(groupLinks));
+  localStorage.setItem('cst_nextId',nextId);
+  localStorage.setItem('cst_nextLinkId',nextLinkId);
+  localStorage.setItem('cst_nextGroupId',nextGroupId);
+  localStorage.setItem('cst_nextGroupLinkId',nextGroupLinkId);
+  localStorage.setItem('cst_version','3');
+}
+
 function load(){
   try{
-    const d=localStorage.getItem('mm_nodes');
-    if(d){nodes=JSON.parse(d);nextId=parseInt(localStorage.getItem('mm_id')||'1');}
-  }catch(e){}
-}
-
-// ── CANVAS ─────────────────────────────────────────────────────
-const svg=document.getElementById('canvas');
-const edgesG=document.getElementById('edges');
-const nodesG=document.getElementById('nodes');
-
-function centerPt(){
-  const r=svg.getBoundingClientRect();
-  return{x:(r.width/2-vx)/vs,y:(r.height/2-vy)/vs};
-}
-
-function applyT(){
-  const t=`translate(${vx},${vy}) scale(${vs})`;
-  edgesG.setAttribute('transform',t);
-  nodesG.setAttribute('transform',t);
-}
-
-function spawnPos(total){
-  const c=centerPt();
-  if(total===0)return{x:c.x+140,y:c.y};
-  const angle=(total/Math.max(total,1))*Math.PI*2*(total%2===0?1:-1)+(total*2.4);
-  const r=Math.min(100+total*14,220);
-  return{x:c.x+Math.cos(angle)*r,y:c.y+Math.sin(angle)*r};
-}
-
-function render(){
-  edgesG.innerHTML='';nodesG.innerHTML='';
-  const c=centerPt();
-
-  // Edges
-  nodes.forEach(n=>{
-    const l=document.createElementNS('http://www.w3.org/2000/svg','line');
-    l.setAttribute('x1',c.x);l.setAttribute('y1',c.y);
-    l.setAttribute('x2',n.x);l.setAttribute('y2',n.y);
-    l.setAttribute('class','edge');
-    l.setAttribute('stroke',CATS[n.cat].stroke);
-    edgesG.appendChild(l);
-  });
-
-  // Center node
-  const cg=document.createElementNS('http://www.w3.org/2000/svg','g');
-  const cc=document.createElementNS('http://www.w3.org/2000/svg','circle');
-  cc.setAttribute('cx',c.x);cc.setAttribute('cy',c.y);cc.setAttribute('r',32);
-  cc.setAttribute('fill','url(#centerGrad)');cc.setAttribute('stroke','#7f77dd');cc.setAttribute('stroke-width','2');
-  const ct=document.createElementNS('http://www.w3.org/2000/svg','text');
-  ct.setAttribute('x',c.x);ct.setAttribute('y',c.y);
-  ct.setAttribute('text-anchor','middle');ct.setAttribute('dominant-baseline','central');
-  ct.setAttribute('fill','#fff');ct.setAttribute('font-size','13');ct.setAttribute('font-weight','600');
-  ct.setAttribute('font-family','DM Sans,sans-serif');ct.textContent='Jimmy';
-  cg.appendChild(cc);cg.appendChild(ct);nodesG.appendChild(cg);
-
-  // Person nodes
-  nodes.forEach(n=>{
-    const cat=CATS[n.cat];
-    const g=document.createElementNS('http://www.w3.org/2000/svg','g');
-    g.setAttribute('class','node-group');g.setAttribute('data-id',n.id);
-
-    const circ=document.createElementNS('http://www.w3.org/2000/svg','circle');
-    circ.setAttribute('cx',n.x);circ.setAttribute('cy',n.y);circ.setAttribute('r',24);
-    circ.setAttribute('fill',cat.fill);circ.setAttribute('stroke',cat.stroke);circ.setAttribute('stroke-width','1.5');
-    g.appendChild(circ);
-
-    const words=n.name.split(' ');
-    if(words.length>1&&n.name.length>9){
-      addText(g,n.x,n.y-7,words[0],cat.text,10);
-      addText(g,n.x,n.y+7,words.slice(1).join(' '),cat.text,10);
-    } else {
-      addText(g,n.x,n.y,n.name,cat.text,11);
+    const v=localStorage.getItem('cst_version');
+    if(v==='2'||v==='3'){
+      me=JSON.parse(localStorage.getItem('cst_me')||'{"name":"You","tagline":""}');
+      people=JSON.parse(localStorage.getItem('cst_people')||'[]');
+      links=JSON.parse(localStorage.getItem('cst_links')||'[]');
+      groups=JSON.parse(localStorage.getItem('cst_groups')||'[]');
+      groupLinks=JSON.parse(localStorage.getItem('cst_groupLinks')||'[]');
+      nextId=parseInt(localStorage.getItem('cst_nextId')||'1');
+      nextLinkId=parseInt(localStorage.getItem('cst_nextLinkId')||'1');
+      nextGroupId=parseInt(localStorage.getItem('cst_nextGroupId')||'1');
+      nextGroupLinkId=parseInt(localStorage.getItem('cst_nextGroupLinkId')||'1');
+      return;
     }
-
-    // Touch & mouse events
-    let longPressTimer=null;
-    let moved=false;
-    let touchStartPos=null;
-    let isDragging=false;
-
-    g.addEventListener('touchstart',e=>{
-      e.stopPropagation();moved=false;isDragging=false;
-      const t=e.touches[0];
-      touchStartPos={x:t.clientX,y:t.clientY};
-      longPressTimer=setTimeout(()=>{
-        if(!moved){showCtx(n,touchStartPos.x,touchStartPos.y);}
-      },500);
-    },{passive:true});
-
-    g.addEventListener('touchmove',e=>{
-      e.stopPropagation();
-      const t=e.touches[0];
-      const dx=t.clientX-touchStartPos.x,dy=t.clientY-touchStartPos.y;
-      if(Math.abs(dx)>6||Math.abs(dy)>6){
-        moved=true;isDragging=true;clearTimeout(longPressTimer);
-        const svgR=svg.getBoundingClientRect();
-        n.x=(t.clientX-svgR.left-vx)/vs;
-        n.y=(t.clientY-svgR.top-vy)/vs;
-        render();
-      }
-    },{passive:true});
-
-    g.addEventListener('touchend',e=>{
-      e.stopPropagation();clearTimeout(longPressTimer);
-      if(!moved&&!isDragging){save();}
-      else if(isDragging){save();}
-    });
-
-    // Mouse
-    let mouseDragging=false;
-    let mouseStart=null;
-    g.addEventListener('mousedown',e=>{
-      e.stopPropagation();mouseDragging=false;mouseStart={x:e.clientX,y:e.clientY};
-      const onMove=ev=>{
-        const dx=ev.clientX-mouseStart.x,dy=ev.clientY-mouseStart.y;
-        if(Math.abs(dx)>4||Math.abs(dy)>4){
-          mouseDragging=true;
-          const svgR=svg.getBoundingClientRect();
-          n.x=(ev.clientX-svgR.left-vx)/vs;
-          n.y=(ev.clientY-svgR.top-vy)/vs;
-          render();
-        }
-      };
-      const onUp=ev=>{
-        window.removeEventListener('mousemove',onMove);
-        window.removeEventListener('mouseup',onUp);
-        if(mouseDragging)save();
-      };
-      window.addEventListener('mousemove',onMove);
-      window.addEventListener('mouseup',onUp);
-    });
-
-    g.addEventListener('contextmenu',e=>{e.preventDefault();showCtx(n,e.clientX,e.clientY);});
-
-    nodesG.appendChild(g);
-  });
-
-  applyT();
-  document.getElementById('countBadge').textContent=nodes.length+' '+(nodes.length===1?'person':'people');
+    // migrate legacy "mm_nodes" single-hub format
+    const legacy=localStorage.getItem('mm_nodes');
+    if(legacy){
+      const old=JSON.parse(legacy);
+      me={name:'Jimmy',tagline:''};
+      people=old.map(n=>({
+        id:n.id,name:n.name,cat:CATS[n.cat]?n.cat:'other',ring:3,
+        x:n.x||0,y:n.y||0,manual:true,
+        note:'',howMet:'',tags:[],lastContact:'',
+        createdAt:Date.now()
+      }));
+      nextId=parseInt(localStorage.getItem('mm_id')||String(people.length+1));
+      links=[];nextLinkId=1;groups=[];groupLinks=[];nextGroupId=1;nextGroupLinkId=1;
+      save();
+    }
+  }catch(e){/* start fresh */}
 }
 
-function addText(g,x,y,txt,fill,size){
-  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
-  t.setAttribute('x',x);t.setAttribute('y',y);
-  t.setAttribute('text-anchor','middle');t.setAttribute('dominant-baseline','central');
-  t.setAttribute('fill',fill);t.setAttribute('font-size',size);
-  t.setAttribute('font-weight','500');t.setAttribute('font-family','DM Sans,sans-serif');
-  t.textContent=txt;g.appendChild(t);
+function rebuildIndex(){
+  peopleById=new Map(people.map(p=>[p.id,p]));
+  groupsById=new Map(groups.map(g=>[g.id,g]));
+}
+
+// ── LAYOUT ─────────────────────────────────────────────────────
+function hash01(id){ const x=Math.sin(id*999.111)*10000; return x-Math.floor(x); }
+
+function layoutAuto(){
+  const byCat={}; CAT_ORDER.forEach(c=>byCat[c]=[]);
+  const ordered=[...people].sort((a,b)=>(a.createdAt-b.createdAt)||(a.id-b.id));
+  ordered.forEach(p=>{ if(!p.manual && !p.indirect && byCat[p.cat]) byCat[p.cat].push(p); });
+  const sectorWidth=360/CAT_ORDER.length;
+  CAT_ORDER.forEach((cat,ci)=>{
+    const arr=byCat[cat];
+    const start=-90+ci*sectorWidth;
+    arr.forEach((p,idx)=>{
+      let angleDeg;
+      if(arr.length<=1) angleDeg=start+sectorWidth/2;
+      else angleDeg=start+sectorWidth*0.1+(idx/(arr.length-1))*sectorWidth*0.8;
+      const ring=RINGS[(p.ring||3)-1];
+      const jitter=(hash01(p.id)-0.5)*16;
+      const rad=ring.r+jitter;
+      const a=angleDeg*Math.PI/180;
+      p.x=Math.cos(a)*rad;
+      p.y=Math.sin(a)*rad;
+    });
+  });
+}
+
+function layoutGroupsAuto(){
+  // Only top-level groups orbit you directly — nested sub-groups are
+  // positioned by layoutSubGroupsAuto, as satellites of their parent.
+  const auto=groups.filter(g=>!g.manual&&!g.parentGroupId).sort((a,b)=>(a.createdAt-b.createdAt)||(a.id-b.id));
+  const n=auto.length;
+  auto.forEach((g,i)=>{
+    const angle=(-90+(360/Math.max(n,1))*i)*Math.PI/180;
+    g.x=Math.cos(angle)*GROUP_HUB_R;
+    g.y=Math.sin(angle)*GROUP_HUB_R;
+  });
+}
+
+function layoutSubGroupsAuto(){
+  const resolved=new Map();
+  groups.forEach(g=>{ if(!g.parentGroupId||g.manual) resolved.set(g.id,{x:g.x,y:g.y}); });
+  let remaining=groups.filter(g=>g.parentGroupId&&!g.manual);
+  const satCount=new Map();
+  let iterations=0;
+  while(remaining.length&&iterations<6){
+    iterations++;
+    const stillRemaining=[];
+    remaining.forEach(g=>{
+      const apos=resolved.get(g.parentGroupId);
+      if(apos){
+        const idx=satCount.get(g.parentGroupId)||0; satCount.set(g.parentGroupId,idx+1);
+        const angle=(idx*81+hash01(g.id*13)*360)*Math.PI/180;
+        const rOff=90+(idx%3)*20;
+        g.x=apos.x+Math.cos(angle)*rOff;
+        g.y=apos.y+Math.sin(angle)*rOff;
+        resolved.set(g.id,{x:g.x,y:g.y});
+      } else stillRemaining.push(g);
+    });
+    remaining=stillRemaining;
+  }
+  // orphaned (parent deleted, or a cycle) — fall back to the normal ring
+  remaining.forEach((g,i)=>{
+    const angle=(hash01(g.id)*360)*Math.PI/180;
+    g.x=Math.cos(angle)*GROUP_HUB_R;g.y=Math.sin(angle)*GROUP_HUB_R;
+  });
+}
+
+// People who aren't known to you directly have no ring/sector — they're placed as
+// satellites of whoever DOES connect them to your world, not around you.
+function layoutIndirectAuto(){
+  const resolved=new Map();
+  people.forEach(p=>{ if(!p.indirect||p.manual) resolved.set(p.id,{x:p.x,y:p.y}); });
+  let remaining=people.filter(p=>p.indirect&&!p.manual);
+  const satCount=new Map();
+  let iterations=0;
+  while(remaining.length&&iterations<6){
+    iterations++;
+    const stillRemaining=[];
+    remaining.forEach(p=>{
+      const link=links.find(l=>(l.a===p.id&&resolved.has(l.b))||(l.b===p.id&&resolved.has(l.a)));
+      if(link){
+        const anchorId=link.a===p.id?link.b:link.a;
+        const apos=resolved.get(anchorId);
+        const idx=satCount.get(anchorId)||0; satCount.set(anchorId,idx+1);
+        const angle=(idx*67+hash01(p.id)*360)*Math.PI/180;
+        const rOff=56+(idx%3)*15;
+        p.x=apos.x+Math.cos(angle)*rOff;
+        p.y=apos.y+Math.sin(angle)*rOff;
+        resolved.set(p.id,{x:p.x,y:p.y});
+      } else stillRemaining.push(p);
+    });
+    remaining=stillRemaining;
+  }
+  remaining.forEach(p=>{
+    const angle=hash01(p.id)*360*Math.PI/180;
+    p.x=Math.cos(angle)*90;p.y=Math.sin(angle)*90;
+  });
+}
+
+// ── SVG HELPERS ────────────────────────────────────────────────
+function svgEl(tag,attrs){
+  const e=document.createElementNS(SVGNS,tag);
+  for(const k in attrs)e.setAttribute(k,attrs[k]);
+  return e;
+}
+
+// ── STATIC LAYERS (built once) ────────────────────────────────
+const world=document.getElementById('world');
+const ringsG=document.getElementById('ringsG');
+const linksG=document.getElementById('linksG');
+const hubG=document.getElementById('hubG');
+const nodesG=document.getElementById('nodesG');
+const centerG=document.getElementById('centerG');
+const groupThreadsG=document.getElementById('groupThreadsG');
+const groupNodesG=document.getElementById('groupNodesG');
+const svg=document.getElementById('canvas');
+
+function buildRings(){
+  ringsG.innerHTML='';
+  const maxR=RINGS[RINGS.length-1].r+34;
+  CAT_ORDER.forEach((cat,ci)=>{
+    const ang=(-90+ci*(360/CAT_ORDER.length))*Math.PI/180;
+    ringsG.appendChild(svgEl('line',{x1:0,y1:0,x2:Math.cos(ang)*maxR,y2:Math.sin(ang)*maxR,class:'sector-line'}));
+  });
+  RINGS.forEach(rg=>{
+    ringsG.appendChild(svgEl('circle',{cx:0,cy:0,r:rg.r,class:'ring-circle'}));
+    const t=svgEl('text',{x:0,y:-rg.r-8,class:'ring-label','text-anchor':'middle'});
+    t.textContent=rg.label;
+    ringsG.appendChild(t);
+  });
+}
+
+function buildCenter(){
+  centerG.innerHTML='';
+  const halo=svgEl('circle',{cx:0,cy:0,r:70,fill:'#7f77dd',opacity:.32,class:'center-halo'});
+  const core=svgEl('circle',{cx:0,cy:0,r:44,fill:'url(#centerGrad)',stroke:'#e9e5ff','stroke-width':2,'stroke-opacity':.55});
+  centerG.appendChild(halo);centerG.appendChild(core);
+  updateCenterLabel();
+  centerG.style.touchAction='none';
+  centerG.addEventListener('pointerdown',e=>{
+    e.stopPropagation();
+    centerG.setPointerCapture(e.pointerId);
+    const onUp=ev=>{
+      centerG.releasePointerCapture(e.pointerId);
+      centerG.removeEventListener('pointerup',onUp);
+      centerG.removeEventListener('pointercancel',onUp);
+      openMeSheet();
+    };
+    centerG.addEventListener('pointerup',onUp);
+    centerG.addEventListener('pointercancel',onUp);
+  });
+}
+
+function updateCenterLabel(){
+  Array.from(centerG.querySelectorAll('text')).forEach(t=>t.remove());
+  const name=me.name||'You';
+  const short=name.length>10;
+  const t=svgEl('text',{x:0,y:short?-4:0,'text-anchor':'middle','dominant-baseline':'central',fill:'#fff','font-size':13,'font-weight':700,'font-family':"'DM Sans',sans-serif"});
+  t.textContent=short?name.slice(0,10):name;
+  centerG.appendChild(t);
+  if(me.tagline){
+    const t2=svgEl('text',{x:0,y:short?12:16,'text-anchor':'middle','dominant-baseline':'central',fill:'#e2ddff','font-size':8.5,opacity:.8,'font-family':"'DM Sans',sans-serif"});
+    let tag=me.tagline; if(tag.length>16)tag=tag.slice(0,15)+'…';
+    t2.textContent=tag;
+    centerG.appendChild(t2);
+  }
+}
+
+buildRings();buildCenter();
+
+function applyT(){ world.setAttribute('transform',`translate(${vx},${vy}) scale(${vs})`); }
+
+// ── FILTER MATCHING ────────────────────────────────────────────
+function matchesFilter(p){
+  if(filterCats.size && !filterCats.has(p.cat)) return false;
+  if(filterText){
+    const q=filterText.toLowerCase();
+    const hay=[p.name,p.note,p.howMet,(p.tags||[]).join(' ')].join(' ').toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+// ── NODE RENDERING ─────────────────────────────────────────────
+function initials(name){
+  const parts=name.trim().split(/\s+/);
+  if(parts.length===1) return parts[0].slice(0,2).toUpperCase();
+  return (parts[0][0]+parts[parts.length-1][0]).toUpperCase();
+}
+
+function createNodeEl(p){
+  const g=svgEl('g',{class:'node-group','data-id':p.id});
+  const circ=svgEl('circle',{class:'node-circle'});
+  g.appendChild(circ);
+  const t1=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-weight':500,'font-family':"'DM Sans',sans-serif"});
+  const t2=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-weight':500,'font-family':"'DM Sans',sans-serif"});
+  g.appendChild(t1);g.appendChild(t2);
+  attachNodeEvents(g,p);
+  return {g,circ,t1,t2};
+}
+
+const INDIRECT_SIZE=14;
+
+function updateNodeEl(el,p){
+  const cat=CATS[p.cat]||CATS.other;
+  const size=p.indirect?INDIRECT_SIZE:RINGS[(p.ring||3)-1].size;
+  el.circ.setAttribute('cx',p.x);el.circ.setAttribute('cy',p.y);el.circ.setAttribute('r',size);
+  el.circ.setAttribute('fill',cat.fill);el.circ.setAttribute('stroke',cat.stroke);el.circ.setAttribute('stroke-width',1.6);
+  el.circ.setAttribute('stroke-dasharray',p.indirect?'2 2.5':'none');
+
+  const small=size<20;
+  const words=p.name.split(' ');
+  el.t1.setAttribute('fill',cat.text);el.t2.setAttribute('fill',cat.text);
+  el.t1.setAttribute('font-size',small?9.5:11);el.t2.setAttribute('font-size',small?9.5:11);
+  if(!small && words.length>1 && p.name.length>9){
+    el.t1.textContent=words[0];el.t1.setAttribute('x',p.x);el.t1.setAttribute('y',p.y-7);
+    el.t2.textContent=words.slice(1).join(' ');el.t2.setAttribute('x',p.x);el.t2.setAttribute('y',p.y+7);
+  } else {
+    const label=small?initials(p.name):(p.name.length>11?p.name.slice(0,10)+'…':p.name);
+    el.t1.textContent=label;el.t1.setAttribute('x',p.x);el.t1.setAttribute('y',p.y);
+    el.t2.textContent='';el.t2.setAttribute('x',p.x);el.t2.setAttribute('y',p.y);
+  }
+  el.g.classList.toggle('dimmed',!matchesFilter(p));
+}
+
+function syncNodes(){
+  const seen=new Set();
+  people.forEach(p=>{
+    seen.add(p.id);
+    let el=nodeEls.get(p.id);
+    if(!el){
+      el=createNodeEl(p);
+      nodeEls.set(p.id,el);
+      nodesG.appendChild(el.g);
+      el.g.classList.add('enter');
+      el.g.addEventListener('animationend',()=>el.g.classList.remove('enter'),{once:true});
+    }
+    updateNodeEl(el,p);
+  });
+  [...nodeEls.keys()].forEach(id=>{
+    if(!seen.has(id)){ nodeEls.get(id).g.remove(); nodeEls.delete(id); }
+  });
+}
+
+// ── GROUP NODES ────────────────────────────────────────────────
+function createGroupEl(g){
+  const gg=svgEl('g',{class:'group-node-group','data-gid':g.id});
+  const circ=svgEl('circle',{class:'group-circle',r:30});
+  gg.appendChild(circ);
+  const t1=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-weight':600,'font-family':"'DM Sans',sans-serif"});
+  const t2=svgEl('text',{'text-anchor':'middle','dominant-baseline':'central','font-family':"'DM Mono',monospace"});
+  gg.appendChild(t1);gg.appendChild(t2);
+  attachGroupNodeEvents(gg,g);
+  return {g:gg,circ,t1,t2};
+}
+
+function updateGroupEl(el,g){
+  const color=g.color||GROUP_COLORS[0];
+  const nested=!!g.parentGroupId;
+  const r=nested?23:30;
+  el.circ.setAttribute('cx',g.x);el.circ.setAttribute('cy',g.y);el.circ.setAttribute('r',r);
+  el.circ.setAttribute('fill','#14141c');el.circ.setAttribute('stroke',color);el.circ.setAttribute('stroke-width',nested?1.6:2);
+  const members=groupLinks.filter(gl=>gl.groupId===g.id).length;
+  const name=g.name.length>12?g.name.slice(0,11)+'…':g.name;
+  el.t1.textContent=name;el.t1.setAttribute('x',g.x);el.t1.setAttribute('y',g.y-6);el.t1.setAttribute('fill',color);el.t1.setAttribute('font-size',nested?9.5:10.5);
+  el.t2.textContent=members+(members===1?' person':' people');el.t2.setAttribute('x',g.x);el.t2.setAttribute('y',g.y+9);el.t2.setAttribute('fill','#8888a0');el.t2.setAttribute('font-size',8);
+  const dim=filterCats.size||filterText ? !groupMatchesFilter(g) : false;
+  el.g.classList.toggle('dimmed',dim);
+}
+
+function groupMatchesFilter(g){
+  if(!filterText && !filterCats.size) return true;
+  const memberIds=groupLinks.filter(gl=>gl.groupId===g.id).map(gl=>gl.personId);
+  return memberIds.some(pid=>{ const p=peopleById.get(pid); return p&&matchesFilter(p); });
+}
+
+function syncGroupNodes(){
+  const seen=new Set();
+  groups.forEach(g=>{
+    seen.add(g.id);
+    let el=groupNodeEls.get(g.id);
+    if(!el){
+      el=createGroupEl(g);
+      groupNodeEls.set(g.id,el);
+      groupNodesG.appendChild(el.g);
+      el.g.classList.add('enter');
+      el.g.addEventListener('animationend',()=>el.g.classList.remove('enter'),{once:true});
+    }
+    updateGroupEl(el,g);
+  });
+  [...groupNodeEls.keys()].forEach(id=>{
+    if(!seen.has(id)){ groupNodeEls.get(id).g.remove(); groupNodeEls.delete(id); }
+  });
+}
+
+function attachGroupNodeEvents(gg,g){
+  gg.style.touchAction='none';
+  gg.addEventListener('pointerdown',e=>{
+    e.stopPropagation();
+    gg.setPointerCapture(e.pointerId);
+    const sx=e.clientX,sy=e.clientY;
+    let dragging=false;
+    const onMove=ev=>{
+      const dx=ev.clientX-sx,dy=ev.clientY-sy;
+      if(!dragging&&Math.hypot(dx,dy)>6){ dragging=true; gg.classList.add('dragging'); haptic(8); }
+      if(dragging){
+        const r=svg.getBoundingClientRect();
+        g.x=(ev.clientX-r.left-vx)/vs;
+        g.y=(ev.clientY-r.top-vy)/vs;
+        g.manual=true;
+        const el=groupNodeEls.get(g.id);
+        if(el) updateGroupEl(el,g);
+        updateThreadsForGroup(g.id);
+      }
+    };
+    const onUp=ev=>{
+      gg.releasePointerCapture(e.pointerId);
+      gg.removeEventListener('pointermove',onMove);
+      gg.removeEventListener('pointerup',onUp);
+      gg.removeEventListener('pointercancel',onUp);
+      gg.classList.remove('dragging');
+      if(dragging){ save(); haptic(14); }
+      else { openGroupSheet(g.id); }
+    };
+    gg.addEventListener('pointermove',onMove);
+    gg.addEventListener('pointerup',onUp);
+    gg.addEventListener('pointercancel',onUp);
+  });
+}
+
+// ── EDGES ──────────────────────────────────────────────────────
+const RING_OPACITY={1:.55,2:.45,3:.35,4:.25,5:.16};
+const RING_WIDTH={1:2,2:1.7,3:1.4,4:1.1,5:.9};
+
+function syncHubEdges(){
+  const seen=new Set();
+  const groupedIds=new Set(groupLinks.map(gl=>gl.personId));
+  people.forEach(p=>{
+    // Someone you don't know directly has no line to you at all — they're only
+    // reachable through whoever connects you, via a person-to-person link.
+    if(p.indirect) return;
+    seen.add(p.id);
+    let l=hubEdgeEls.get(p.id);
+    if(!l){ l=svgEl('line',{class:'hub-edge',x1:0,y1:0}); hubG.appendChild(l); hubEdgeEls.set(p.id,l); }
+    const cat=CATS[p.cat]||CATS.other;
+    const ringN=p.ring||3;
+    l.setAttribute('x2',p.x);l.setAttribute('y2',p.y);
+    l.setAttribute('stroke',cat.stroke);
+    l.setAttribute('stroke-width',RING_WIDTH[ringN]);
+    // A person already threaded to you through a group doesn't need a second,
+    // direct line back to you too — that would just double up the connection.
+    l.setAttribute('opacity',groupedIds.has(p.id)?0:(matchesFilter(p)?RING_OPACITY[ringN]:0.04));
+  });
+  [...hubEdgeEls.keys()].forEach(id=>{ if(!seen.has(id)){ hubEdgeEls.get(id).remove(); hubEdgeEls.delete(id); } });
+}
+
+function linkPathD(a,b){
+  const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+  const dx=b.x-a.x,dy=b.y-a.y;
+  const len=Math.hypot(dx,dy)||1;
+  const nx=-dy/len,ny=dx/len;
+  const bow=Math.min(26,len*0.14);
+  const cx=mx+nx*bow,cy=my+ny*bow;
+  return `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`;
+}
+
+const REL_STYLE={
+  partner:{stroke:'var(--kin)',width:2.2,opacity:.55,dash:'none'},
+  descent:{stroke:'var(--kin)',width:1.6,opacity:.45,dash:'none'},
+  parent:{stroke:'var(--kin)',width:1.5,opacity:.4,dash:'none'},
+  sibling:{stroke:'var(--sibling)',width:1.2,opacity:.35,dash:'4 4'},
+  custom:{stroke:'#9c96e8',width:1.3,opacity:.4,dash:'none'}
+};
+
+function computeFamilyEdges(){
+  const partners=[],parents=[],siblings=[],customs=[];
+  links.forEach(lk=>{
+    const type=lk.type||'custom';
+    if(type==='partner') partners.push(lk);
+    else if(type==='parent') parents.push(lk);
+    else if(type==='sibling') siblings.push(lk);
+    else customs.push(lk);
+  });
+  const edges=[];
+  partners.forEach(lk=>{
+    const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
+    if(a&&b) edges.push({id:'p'+lk.id,kind:'partner',a,b});
+  });
+  const byChild={};
+  parents.forEach(lk=>{ (byChild[lk.b]=byChild[lk.b]||[]).push(lk); });
+  Object.keys(byChild).forEach(key=>{
+    const childId=Number(key),plinks=byChild[key];
+    const child=peopleById.get(childId); if(!child) return;
+    if(plinks.length===2){
+      const pa=plinks[0].a,pb=plinks[1].a;
+      const isPartnered=partners.some(pl=>(pl.a===pa&&pl.b===pb)||(pl.a===pb&&pl.b===pa));
+      if(isPartnered){
+        const a=peopleById.get(pa),b=peopleById.get(pb);
+        if(a&&b){
+          const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
+          edges.push({id:'union'+pa+'-'+pb+'-'+childId,kind:'descent',a:mid,b:child,filterA:a,filterB:b});
+        }
+        return;
+      }
+    }
+    plinks.forEach(l=>{
+      const parent=peopleById.get(l.a);
+      if(parent) edges.push({id:'par'+l.id,kind:'parent',a:parent,b:child});
+    });
+  });
+  siblings.forEach(lk=>{
+    const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
+    if(a&&b) edges.push({id:'sib'+lk.id,kind:'sibling',a,b});
+  });
+  customs.forEach(lk=>{
+    const a=peopleById.get(lk.a),b=peopleById.get(lk.b);
+    if(a&&b) edges.push({id:'cus'+lk.id,kind:'custom',a,b});
+  });
+  return edges;
+}
+
+function syncLinkEdges(){
+  const seen=new Set();
+  computeFamilyEdges().forEach(edge=>{
+    seen.add(edge.id);
+    let path=linkEdgeEls.get(edge.id);
+    if(!path){ path=svgEl('path',{class:'link-edge'}); linksG.appendChild(path); linkEdgeEls.set(edge.id,path); }
+    const style=REL_STYLE[edge.kind]||REL_STYLE.custom;
+    path.setAttribute('d',linkPathD(edge.a,edge.b));
+    path.setAttribute('stroke',style.stroke);
+    path.setAttribute('stroke-width',style.width);
+    path.setAttribute('stroke-dasharray',style.dash);
+    const fa=edge.filterA||edge.a,fb=edge.filterB||edge.b;
+    const visible=matchesFilter(fa)&&matchesFilter(fb);
+    path.setAttribute('opacity',visible?style.opacity:0.03);
+  });
+  [...linkEdgeEls.keys()].forEach(id=>{ if(!seen.has(id)){ linkEdgeEls.get(id).remove(); linkEdgeEls.delete(id); } });
+}
+
+function updateEdgesForNode(id){
+  const p=peopleById.get(id);
+  if(!p) return;
+  const hub=hubEdgeEls.get(id);
+  if(hub){ hub.setAttribute('x2',p.x); hub.setAttribute('y2',p.y); }
+  syncLinkEdges();
+  groupLinks.forEach(gl=>{ if(gl.personId===id) updateThreadsForGroup(gl.groupId); });
+}
+
+// ── GROUP THREADS (You ↔ group ↔ members) ──────────────────────
+function syncGroupThreads(){
+  const seen=new Set();
+  groups.forEach(g=>{
+    // A nested sub-group connects through its parent group, not straight to
+    // you — same idea as an indirect person connecting through their anchor.
+    const parent=g.parentGroupId?groupsById.get(g.parentGroupId):null;
+    const originKey=parent?('parent-'+g.id):('you-'+g.id);
+    seen.add(originKey);
+    let ol=groupThreadEls.get(originKey);
+    if(!ol){ ol=svgEl('line',{class:'group-thread'}); groupThreadsG.appendChild(ol); groupThreadEls.set(originKey,ol); }
+    const ox=parent?parent.x:0, oy=parent?parent.y:0;
+    ol.setAttribute('x1',ox);ol.setAttribute('y1',oy);
+    ol.setAttribute('x2',g.x);ol.setAttribute('y2',g.y);
+    ol.setAttribute('stroke',g.color||GROUP_COLORS[0]);
+    ol.setAttribute('opacity',groupMatchesFilter(g)?0.28:0.03);
+
+    groupLinks.filter(gl=>gl.groupId===g.id).forEach(gl=>{
+      const p=peopleById.get(gl.personId); if(!p) return;
+      const key='m-'+gl.id;
+      seen.add(key);
+      let ml=groupThreadEls.get(key);
+      if(!ml){ ml=svgEl('line',{class:'group-thread'}); groupThreadsG.appendChild(ml); groupThreadEls.set(key,ml); }
+      ml.setAttribute('x1',g.x);ml.setAttribute('y1',g.y);ml.setAttribute('x2',p.x);ml.setAttribute('y2',p.y);
+      ml.setAttribute('stroke',g.color||GROUP_COLORS[0]);
+      ml.setAttribute('opacity',matchesFilter(p)?0.32:0.03);
+    });
+  });
+  [...groupThreadEls.keys()].forEach(key=>{ if(!seen.has(key)){ groupThreadEls.get(key).remove(); groupThreadEls.delete(key); } });
+}
+
+function updateThreadsForGroup(groupId){
+  const g=groupsById.get(groupId); if(!g) return;
+  const parent=g.parentGroupId?groupsById.get(g.parentGroupId):null;
+  const originKey=parent?('parent-'+g.id):('you-'+g.id);
+  const ol=groupThreadEls.get(originKey);
+  if(ol){ ol.setAttribute('x2',g.x); ol.setAttribute('y2',g.y); }
+  groupLinks.filter(gl=>gl.groupId===groupId).forEach(gl=>{
+    const ml=groupThreadEls.get('m-'+gl.id);
+    const p=peopleById.get(gl.personId);
+    if(ml&&p){ ml.setAttribute('x1',g.x);ml.setAttribute('y1',g.y);ml.setAttribute('x2',p.x);ml.setAttribute('y2',p.y); }
+  });
+  // moving this group also moves the origin point for any of ITS sub-groups
+  groups.forEach(sub=>{ if(sub.parentGroupId===groupId) updateThreadsForGroup(sub.id); });
+}
+
+// ── FULL RENDER ────────────────────────────────────────────────
+function renderAll(){
+  rebuildIndex();
+  layoutAuto();
+  layoutGroupsAuto();
+  layoutSubGroupsAuto();
+  layoutIndirectAuto();
+  syncNodes();
+  syncGroupNodes();
+  syncHubEdges();
+  syncLinkEdges();
+  syncGroupThreads();
+  applyT();
+  updateBadge();
+  renderFilterChips();
+}
+
+function updateBadge(){
+  const direct=people.filter(p=>!p.indirect).length;
+  const indirect=people.length-direct;
+  document.getElementById('countBadge').innerHTML=`<b>${direct}</b> ${direct===1?'person':'people'} known`+(indirect?` <span style="opacity:.65">+${indirect} extended</span>`:'');
+  toggleOnboard();
+  maybeShowInstallBanner();
 }
 
 // ── PAN / ZOOM ─────────────────────────────────────────────────
-let panStart=null,panOrigin=null;
-let pinchStart=null,pinchOriginScale=1,pinchOriginV={x:0,y:0};
+let bgPan=null;
+let pinchStart=null,pinchOriginScale=1,pinchOriginV={x:0,y:0},pinchActive=false;
+
+svg.addEventListener('pointerdown',e=>{
+  closeAllPopovers();
+  if(pinchActive) return;
+  svg.setPointerCapture(e.pointerId);
+  bgPan={id:e.pointerId,sx:e.clientX,sy:e.clientY,ox:vx,oy:vy};
+});
+svg.addEventListener('pointermove',e=>{
+  if(!bgPan||e.pointerId!==bgPan.id) return;
+  vx=bgPan.ox+(e.clientX-bgPan.sx);
+  vy=bgPan.oy+(e.clientY-bgPan.sy);
+  applyT();
+});
+function endBgPan(e){ if(bgPan&&e.pointerId===bgPan.id) bgPan=null; }
+svg.addEventListener('pointerup',endBgPan);
+svg.addEventListener('pointercancel',endBgPan);
 
 svg.addEventListener('touchstart',e=>{
-  closeCtx();
   if(e.touches.length===2){
-    const t1=e.touches[0],t2=e.touches[1];
+    bgPan=null;
+    const [t1,t2]=e.touches;
     pinchStart=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
     pinchOriginScale=vs;pinchOriginV={x:vx,y:vy};
-    panStart=null;
-  } else if(e.touches.length===1){
-    panStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
-    panOrigin={x:vx,y:vy};
+    pinchActive=true;
   }
 },{passive:true});
-
 svg.addEventListener('touchmove',e=>{
   if(e.touches.length===2&&pinchStart){
-    const t1=e.touches[0],t2=e.touches[1];
+    const [t1,t2]=e.touches;
     const dist=Math.hypot(t2.clientX-t1.clientX,t2.clientY-t1.clientY);
-    const newScale=Math.max(.3,Math.min(4,pinchOriginScale*(dist/pinchStart)));
+    const newScale=Math.max(.35,Math.min(3.2,pinchOriginScale*(dist/pinchStart)));
     const mx=(t1.clientX+t2.clientX)/2,my=(t1.clientY+t2.clientY)/2;
     const r=svg.getBoundingClientRect();
     const cx=mx-r.left,cy=my-r.top;
     vx=cx-(cx-pinchOriginV.x)*(newScale/pinchOriginScale);
     vy=cy-(cy-pinchOriginV.y)*(newScale/pinchOriginScale);
     vs=newScale;applyT();
-  } else if(e.touches.length===1&&panStart){
-    vx=panOrigin.x+(e.touches[0].clientX-panStart.x);
-    vy=panOrigin.y+(e.touches[0].clientY-panStart.y);
-    applyT();
   }
 },{passive:true});
-
-svg.addEventListener('touchend',e=>{if(e.touches.length<2)pinchStart=null;},{passive:true});
-
-let mousePanStart=null,mousePanOrigin=null;
-svg.addEventListener('mousedown',e=>{
-  closeCtx();
-  mousePanStart={x:e.clientX,y:e.clientY};mousePanOrigin={x:vx,y:vy};
-  const onMove=ev=>{vx=mousePanOrigin.x+(ev.clientX-mousePanStart.x);vy=mousePanOrigin.y+(ev.clientY-mousePanStart.y);applyT();};
-  const onUp=()=>{window.removeEventListener('mousemove',onMove);window.removeEventListener('mouseup',onUp);};
-  window.addEventListener('mousemove',onMove);window.addEventListener('mouseup',onUp);
-});
+svg.addEventListener('touchend',e=>{ if(e.touches.length<2){pinchStart=null;pinchActive=false;} },{passive:true});
 
 svg.addEventListener('wheel',e=>{
   e.preventDefault();
   const r=svg.getBoundingClientRect();
   const mx=e.clientX-r.left,my=e.clientY-r.top;
   const delta=e.deltaY<0?1.1:.91;
-  const ns=Math.max(.3,Math.min(4,vs*delta));
+  const ns=Math.max(.35,Math.min(3.2,vs*delta));
   vx=mx-(mx-vx)*(ns/vs);vy=my-(my-vy)*(ns/vs);vs=ns;applyT();
 },{passive:false});
 
-// ── ADD PERSON ─────────────────────────────────────────────────
-function openPanel(){
-  document.getElementById('panel').classList.add('open');
-  setTimeout(()=>document.getElementById('nameIn').focus(),300);
+function recenter(){
+  const r=svg.getBoundingClientRect();
+  vx=r.width/2;vy=r.height/2;vs=1;applyT();
 }
-function closePanel(){document.getElementById('panel').classList.remove('open');}
 
-document.getElementById('panel').addEventListener('touchstart',e=>{
-  if(e.target===document.getElementById('panel-handle'))closePanel();
-},{passive:true});
+// Smoothly pan/zoom so a given world point (plus the center) is guaranteed visible —
+// used right after creating a group so its thread back to "You" is immediately seen.
+function revealWorldPoint(wx,wy){
+  const r=svg.getBoundingClientRect();
+  const margin=70;
+  const availW=(r.width-margin*2)/2,availH=(r.height-margin*2)/2;
+  const need=Math.max(Math.abs(wx),Math.abs(wy),90);
+  const fitScale=Math.min(availW/need,availH/need,1);
+  const targetScale=Math.max(0.4,Math.min(vs,fitScale));
+  vs=targetScale;
+  vx=r.width/2;vy=r.height/2;
+  world.style.transition='transform .6s cubic-bezier(.22,.9,.3,1)';
+  applyT();
+  setTimeout(()=>{ world.style.transition=''; },650);
+}
+
+// ── NODE INTERACTION (tap vs drag) ─────────────────────────────
+function haptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
+
+function attachNodeEvents(g,p){
+  g.style.touchAction='none';
+  g.addEventListener('pointerdown',e=>{
+    e.stopPropagation();
+    g.setPointerCapture(e.pointerId);
+    const sx=e.clientX,sy=e.clientY;
+    let dragging=false;
+    const onMove=ev=>{
+      const dx=ev.clientX-sx,dy=ev.clientY-sy;
+      if(!dragging&&Math.hypot(dx,dy)>6){ dragging=true; g.classList.add('dragging'); haptic(8); }
+      if(dragging){
+        const r=svg.getBoundingClientRect();
+        p.x=(ev.clientX-r.left-vx)/vs;
+        p.y=(ev.clientY-r.top-vy)/vs;
+        p.manual=true;
+        const el=nodeEls.get(p.id);
+        if(el) updateNodeEl(el,p);
+        updateEdgesForNode(p.id);
+      }
+    };
+    const onUp=ev=>{
+      g.releasePointerCapture(e.pointerId);
+      g.removeEventListener('pointermove',onMove);
+      g.removeEventListener('pointerup',onUp);
+      g.removeEventListener('pointercancel',onUp);
+      g.classList.remove('dragging');
+      if(dragging){ save(); haptic(14); }
+      else { openDetail(p.id); }
+    };
+    g.addEventListener('pointermove',onMove);
+    g.addEventListener('pointerup',onUp);
+    g.addEventListener('pointercancel',onUp);
+  });
+}
+
+// ── CHIP BUILDERS ──────────────────────────────────────────────
+function buildCatChips(container,selected,onPick){
+  container.innerHTML='';
+  CAT_ORDER.forEach(cat=>{
+    const c=CATS[cat];
+    const chip=document.createElement('div');
+    chip.className='chip'+(cat===selected?' on':'');
+    chip.style.borderColor=cat===selected?c.stroke:'';
+    chip.style.background=cat===selected?c.stroke:'';
+    chip.innerHTML=`<span class="dot" style="background:${c.stroke}"></span>${c.label}`;
+    chip.onclick=()=>onPick(cat);
+    container.appendChild(chip);
+  });
+}
+function buildRingChips(container,selected,onPick){
+  container.innerHTML='';
+  RINGS.forEach(r=>{
+    const chip=document.createElement('div');
+    chip.className='chip'+(r.n===selected?' on':'');
+    chip.textContent=r.label;
+    chip.title=r.hint;
+    chip.onclick=()=>onPick(r.n);
+    container.appendChild(chip);
+  });
+}
+
+// ── ADD PERSON ──────────────────────────────────────────────────
+let addCat='friends',addRing=3;
+
+function refreshAddChips(){
+  buildCatChips(document.getElementById('addCatChips'),addCat,c=>{addCat=c;refreshAddChips();});
+  buildRingChips(document.getElementById('addRingChips'),addRing,r=>{addRing=r;refreshAddChips();});
+}
+refreshAddChips();
+
+function populateAnchorSelect(selectEl,excludeId){
+  selectEl.innerHTML='';
+  people.filter(p=>p.id!==excludeId).forEach(p=>{
+    const opt=document.createElement('option');
+    opt.value=p.id;opt.textContent=p.name;
+    selectEl.appendChild(opt);
+  });
+}
+
+function openAddPanel(){
+  closeAllPopovers();
+  const indirectField=document.getElementById('addIndirectField');
+  const check=document.getElementById('addIndirectCheck');
+  check.checked=false;
+  document.getElementById('addRingField').style.display='block';
+  document.getElementById('addAnchorField').style.display='none';
+  if(people.length>0){
+    indirectField.style.display='block';
+    populateAnchorSelect(document.getElementById('addAnchorSelect'),null);
+  } else {
+    indirectField.style.display='none';
+  }
+  document.getElementById('addScrim').classList.add('open');
+  document.getElementById('panel').classList.add('open');
+  setTimeout(()=>document.getElementById('nameIn').focus(),260);
+}
+function closeAddPanel(){
+  document.getElementById('addScrim').classList.remove('open');
+  document.getElementById('panel').classList.remove('open');
+}
+document.getElementById('addScrim').addEventListener('click',closeAddPanel);
+document.getElementById('addClose').addEventListener('click',closeAddPanel);
+document.getElementById('addMoreToggle').addEventListener('click',()=>{
+  document.getElementById('addMoreFields').classList.toggle('open');
+});
+document.getElementById('addIndirectCheck').addEventListener('change',e=>{
+  const on=e.target.checked;
+  document.getElementById('addRingField').style.display=on?'none':'block';
+  document.getElementById('addAnchorField').style.display=on?'block':'none';
+});
 
 document.getElementById('addBtn').addEventListener('click',()=>{
   const name=document.getElementById('nameIn').value.trim();
-  if(!name)return;
-  const cat=document.getElementById('catSel').value;
-  const pos=spawnPos(nodes.length);
-  nodes.push({id:nextId++,name,cat,x:pos.x,y:pos.y});
-  document.getElementById('nameIn').value='';
-  save();render();
-});
-
-document.getElementById('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('addBtn').click();});
-
-// Click outside panel closes it
-document.addEventListener('click',e=>{
-  const panel=document.getElementById('panel');
-  if(panel.classList.contains('open')&&!panel.contains(e.target)&&e.target.id!=='menuBtn'){closePanel();}
-});
-
-// ── CONTEXT MENU ───────────────────────────────────────────────
-let ctxNode=null;
-function showCtx(n,cx,cy){
-  ctxNode=n;
-  const menu=document.getElementById('ctx');
-  menu.style.display='block';
-  const vw=window.innerWidth,vh=window.innerHeight;
-  const mw=160,mh=160;
-  menu.style.left=Math.min(cx,vw-mw-8)+'px';
-  menu.style.top=Math.min(cy,vh-mh-8)+'px';
-}
-function closeCtx(){document.getElementById('ctx').style.display='none';ctxNode=null;}
-document.addEventListener('click',e=>{if(!document.getElementById('ctx').contains(e.target))closeCtx();});
-
-document.getElementById('ctx-edit').addEventListener('click',()=>{
-  if(!ctxNode)return;
-  const newName=prompt('New name:',ctxNode.name);
-  if(newName&&newName.trim()){ctxNode.name=newName.trim();save();render();}
-  closeCtx();
-});
-
-document.getElementById('ctx-cat').addEventListener('click',()=>{
-  if(!ctxNode)return;
-  const cats=Object.keys(CATS);
-  const cur=cats.indexOf(ctxNode.cat);
-  ctxNode.cat=cats[(cur+1)%cats.length];
-  save();render();closeCtx();
-});
-
-document.getElementById('ctx-export').addEventListener('click',()=>{
-  closeCtx();openExport();
-});
-
-document.getElementById('ctx-delete').addEventListener('click',()=>{
-  if(!ctxNode)return;
-  if(confirm(`Remove "${ctxNode.name}"?`)){
-    nodes=nodes.filter(n=>n.id!==ctxNode.id);save();render();
+  if(!name) return;
+  const indirect=document.getElementById('addIndirectCheck').checked;
+  let anchorId=null;
+  if(indirect){
+    anchorId=parseInt(document.getElementById('addAnchorSelect').value);
+    if(!anchorId) return;
   }
-  closeCtx();
+  const howMet=document.getElementById('addHowMet').value.trim();
+  const note=document.getElementById('addNote').value.trim();
+  const tagsRaw=document.getElementById('addTags').value.trim();
+  const tags=tagsRaw?tagsRaw.split(',').map(t=>t.trim()).filter(Boolean):[];
+  const p={
+    id:nextId++,name,cat:addCat,ring:indirect?null:addRing,x:0,y:0,manual:false,
+    indirect,note,howMet,tags,lastContact:'',createdAt:Date.now()
+  };
+  people.push(p);
+  if(indirect) links.push({id:nextLinkId++,type:'custom',a:p.id,b:anchorId});
+  document.getElementById('nameIn').value='';
+  document.getElementById('addHowMet').value='';
+  document.getElementById('addNote').value='';
+  document.getElementById('addTags').value='';
+  document.getElementById('addMoreFields').classList.remove('open');
+  save();renderAll();closeAddPanel();
+  toast(indirect?`${name} added, connected through ${peopleById.get(anchorId)?.name||'someone'}`:`${name} added to your map`);
+  haptic(16);
+});
+document.getElementById('nameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('addBtn').click(); });
+
+// ── DETAIL SHEET ────────────────────────────────────────────────
+let detailId=null;
+function openDetail(id){
+  closeAllPopovers();
+  const p=peopleById.get(id);
+  if(!p) return;
+  detailId=id;
+  const cat=CATS[p.cat]||CATS.other;
+  document.getElementById('detailAvatar').textContent=initials(p.name);
+  document.getElementById('detailAvatar').style.background=cat.fill;
+  document.getElementById('detailAvatar').style.color=cat.text;
+  document.getElementById('detailAvatar').style.borderColor=cat.stroke;
+  document.getElementById('detailName').value=p.name;
+  document.getElementById('detailMeta').textContent=`Added ${new Date(p.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'})}`;
+  buildCatChips(document.getElementById('detailCatChips'),p.cat,c=>{
+    p.cat=c;p.manual=false;save();renderAll();openDetail(id);
+  });
+  if(p.indirect){
+    document.getElementById('detailRingField').style.display='none';
+    document.getElementById('detailIndirectNote').style.display='block';
+  } else {
+    document.getElementById('detailRingField').style.display='block';
+    document.getElementById('detailIndirectNote').style.display='none';
+    buildRingChips(document.getElementById('detailRingChips'),p.ring||3,r=>{
+      p.ring=r;p.manual=false;save();renderAll();openDetail(id);
+    });
+  }
+  document.getElementById('detailHowMet').value=p.howMet||'';
+  document.getElementById('detailNote').value=p.note||'';
+  document.getElementById('detailLastContact').value=p.lastContact||'';
+  renderTags(p);
+  renderLinksList(p);
+  renderPersonGroups(p);
+  document.getElementById('resetPosBtn').style.display=p.manual?'block':'none';
+
+  document.getElementById('detailScrim').classList.add('open');
+  document.getElementById('detailSheet').classList.add('open');
+}
+function closeDetail(){
+  if(detailId!=null) commitDetailFields();
+  document.getElementById('detailScrim').classList.remove('open');
+  document.getElementById('detailSheet').classList.remove('open');
+  detailId=null;
+}
+function commitDetailFields(){
+  const p=peopleById.get(detailId);
+  if(!p) return;
+  const newName=document.getElementById('detailName').value.trim();
+  if(newName) p.name=newName;
+  p.howMet=document.getElementById('detailHowMet').value.trim();
+  p.note=document.getElementById('detailNote').value.trim();
+  p.lastContact=document.getElementById('detailLastContact').value;
+  save();renderAll();
+}
+document.getElementById('detailScrim').addEventListener('click',closeDetail);
+document.getElementById('detailClose').addEventListener('click',closeDetail);
+['detailHowMet','detailNote','detailLastContact'].forEach(id=>{
+  document.getElementById(id).addEventListener('blur',commitDetailFields);
+});
+document.getElementById('detailName').addEventListener('blur',commitDetailFields);
+document.getElementById('detailName').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('detailName').blur(); });
+
+function renderTags(p){
+  const wrap=document.getElementById('tagsList');
+  wrap.innerHTML='';
+  (p.tags||[]).forEach((tag,i)=>{
+    const chip=document.createElement('div');
+    chip.className='tagChip';
+    chip.innerHTML=`${tag}<span class="x">✕</span>`;
+    chip.querySelector('.x').onclick=()=>{ p.tags.splice(i,1); save(); renderTags(p); };
+    wrap.appendChild(chip);
+  });
+}
+document.getElementById('detailTagIn').addEventListener('keydown',e=>{
+  if(e.key==='Enter'||e.key===','){
+    e.preventDefault();
+    const p=peopleById.get(detailId); if(!p) return;
+    const val=document.getElementById('detailTagIn').value.trim().replace(/,$/,'');
+    if(val){ p.tags=p.tags||[]; p.tags.push(val); save(); renderTags(p); }
+    document.getElementById('detailTagIn').value='';
+  }
+});
+
+function relLabelFor(l,p){
+  const type=l.type||'custom';
+  if(type==='partner') return 'Partner — ';
+  if(type==='sibling') return 'Sibling — ';
+  if(type==='parent') return (l.a===p.id?'Parent of ':'Child of ')+'';
+  if(l.label) return l.label+' — ';
+  return '';
+}
+
+function renderLinksList(p){
+  const wrap=document.getElementById('linksList');
+  wrap.innerHTML='';
+  const myLinks=links.filter(l=>l.a===p.id||l.b===p.id);
+  if(!myLinks.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3)">No connections linked yet.</div>';
+    return;
+  }
+  myLinks.forEach(l=>{
+    const otherId=l.a===p.id?l.b:l.a;
+    const other=peopleById.get(otherId);
+    if(!other) return;
+    const chip=document.createElement('div');
+    chip.className='linkChip';
+    const prefix=relLabelFor(l,p);
+    chip.innerHTML=`<span>${prefix?`<span style="color:var(--text3)">${escapeHtml(prefix)}</span>`:''}${escapeHtml(other.name)}</span><span class="x">✕</span>`;
+    chip.querySelector('.x').onclick=(ev)=>{ ev.stopPropagation(); links=links.filter(x=>x.id!==l.id); save(); renderAll(); renderLinksList(p); };
+    chip.addEventListener('click',()=>openDetail(otherId));
+    wrap.appendChild(chip);
+  });
+}
+
+document.getElementById('resetPosBtn').addEventListener('click',()=>{
+  const p=peopleById.get(detailId); if(!p) return;
+  p.manual=false; save(); renderAll(); openDetail(detailId);
+  toast('Position reset');
+});
+
+document.getElementById('makeDirectBtn').addEventListener('click',()=>{
+  const p=peopleById.get(detailId); if(!p) return;
+  p.indirect=false; p.ring=3; p.manual=false;
+  save();renderAll();openDetail(detailId);
+  toast(`${p.name} is now a direct connection`);haptic(14);
+});
+
+document.getElementById('detailDelete').addEventListener('click',()=>{
+  const p=peopleById.get(detailId); if(!p) return;
+  if(confirm(`Remove ${p.name} from your map?`)){
+    people=people.filter(x=>x.id!==p.id);
+    links=links.filter(l=>l.a!==p.id&&l.b!==p.id);
+    groupLinks=groupLinks.filter(gl=>gl.personId!==p.id);
+    save();renderAll();closeDetail();
+    toast(`${p.name} removed`);haptic(20);
+  }
+});
+
+// ── LINK PICKER (step 1: pick person, step 2: relationship type) ─
+let pendingLinkTarget=null;
+let pendingRelType='partner';
+
+document.getElementById('linkAddBtn').addEventListener('click',()=>{
+  document.getElementById('linkPickerSearch').value='';
+  renderLinkPicker('');
+  showLinkStep(1);
+  document.getElementById('linkPickerScrim').classList.add('open');
+});
+document.getElementById('linkPickerClose').addEventListener('click',()=>document.getElementById('linkPickerScrim').classList.remove('open'));
+document.getElementById('linkPickerScrim').addEventListener('click',e=>{ if(e.target.id==='linkPickerScrim') document.getElementById('linkPickerScrim').classList.remove('open'); });
+document.getElementById('linkPickerSearch').addEventListener('input',e=>renderLinkPicker(e.target.value));
+document.getElementById('linkStepBack').addEventListener('click',()=>showLinkStep(1));
+
+function showLinkStep(n){
+  document.getElementById('linkPickerStep1').style.display=n===1?'block':'none';
+  document.getElementById('linkPickerStep2').style.display=n===2?'block':'none';
+}
+
+function renderLinkPicker(q){
+  const list=document.getElementById('linkPickerList');
+  list.innerHTML='';
+  const query=q.trim().toLowerCase();
+  const existingIds=new Set(links.filter(l=>l.a===detailId||l.b===detailId).map(l=>l.a===detailId?l.b:l.a));
+  const candidates=people.filter(p=>p.id!==detailId && !existingIds.has(p.id) && (!query||p.name.toLowerCase().includes(query)));
+  if(!candidates.length){ list.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No matches.</div>'; return; }
+  candidates.forEach(p=>{
+    const cat=CATS[p.cat]||CATS.other;
+    const row=document.createElement('div');
+    row.className='pickRow';
+    row.innerHTML=`<div class="pickAvatar" style="background:${cat.fill};color:${cat.text};border:1.5px solid ${cat.stroke}">${initials(p.name)}</div>
+      <div><div class="pickName">${escapeHtml(p.name)}</div><div class="pickSub">${cat.label}</div></div>`;
+    row.onclick=()=>{
+      pendingLinkTarget=p.id;
+      pendingRelType='partner';
+      document.getElementById('relCustomIn').value='';
+      renderRelStep();
+      showLinkStep(2);
+    };
+    list.appendChild(row);
+  });
+}
+function escapeHtml(s){ return (s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function findPartnerOf(personId){
+  const l=links.find(x=>x.type==='partner'&&(x.a===personId||x.b===personId));
+  if(!l) return null;
+  return l.a===personId?l.b:l.a;
+}
+function hasParentLink(parentId,childId){
+  return links.some(x=>x.type==='parent'&&x.a===parentId&&x.b===childId);
+}
+
+function renderRelStep(){
+  const target=peopleById.get(pendingLinkTarget);
+  if(!target) return;
+  document.getElementById('relTypeLabel').textContent=`How are you connected to ${target.name}?`;
+  const chips=document.getElementById('relTypeChips');
+  chips.innerHTML='';
+  REL_TYPES.forEach(rt=>{
+    const chip=document.createElement('div');
+    chip.className='chip'+(rt.n===pendingRelType?' on':'');
+    chip.textContent=rt.label;
+    chip.onclick=()=>{ pendingRelType=rt.n; renderRelStep(); };
+    chips.appendChild(chip);
+  });
+  document.getElementById('relCustomField').style.display=pendingRelType==='custom'?'block':'none';
+
+  const cascadeField=document.getElementById('cascadeField');
+  if(pendingRelType==='parentOf'||pendingRelType==='childOf'){
+    const parentId=pendingRelType==='parentOf'?detailId:pendingLinkTarget;
+    const childId=pendingRelType==='parentOf'?pendingLinkTarget:detailId;
+    const partnerId=findPartnerOf(parentId);
+    const partner=partnerId?peopleById.get(partnerId):null;
+    const child=peopleById.get(childId);
+    if(partner && child && !hasParentLink(partnerId,childId)){
+      document.getElementById('cascadeText').textContent=`Also connect ${partner.name} as ${child.name}'s parent`;
+      document.getElementById('cascadeCheck').checked=true;
+      cascadeField.style.display='block';
+    } else {
+      cascadeField.style.display='none';
+    }
+  } else {
+    cascadeField.style.display='none';
+  }
+}
+
+document.getElementById('relConfirmBtn').addEventListener('click',()=>{
+  if(pendingLinkTarget==null) return;
+  const target=pendingLinkTarget;
+  let newLink=null;
+  if(pendingRelType==='partner') newLink={type:'partner',a:detailId,b:target};
+  else if(pendingRelType==='parentOf') newLink={type:'parent',a:detailId,b:target};
+  else if(pendingRelType==='childOf') newLink={type:'parent',a:target,b:detailId};
+  else if(pendingRelType==='sibling') newLink={type:'sibling',a:detailId,b:target};
+  else newLink={type:'custom',a:detailId,b:target,label:document.getElementById('relCustomIn').value.trim()};
+  newLink.id=nextLinkId++;
+  links.push(newLink);
+
+  if((pendingRelType==='parentOf'||pendingRelType==='childOf') && document.getElementById('cascadeField').style.display!=='none' && document.getElementById('cascadeCheck').checked){
+    const parentId=pendingRelType==='parentOf'?detailId:target;
+    const childId=pendingRelType==='parentOf'?target:detailId;
+    const partnerId=findPartnerOf(parentId);
+    if(partnerId) links.push({id:nextLinkId++,type:'parent',a:partnerId,b:childId});
+  }
+
+  save();renderAll();
+  document.getElementById('linkPickerScrim').classList.remove('open');
+  renderLinksList(peopleById.get(detailId));
+  toast('Connected');haptic(12);
+  pendingLinkTarget=null;
+});
+
+// ── PERSON ↔ GROUP (add-to-group picker, from person detail) ────
+function renderPersonGroups(p){
+  const wrap=document.getElementById('personGroupsList');
+  wrap.innerHTML='';
+  const myGroups=groupLinks.filter(gl=>gl.personId===p.id);
+  if(!myGroups.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3)">Not in any groups yet.</div>';
+    return;
+  }
+  myGroups.forEach(gl=>{
+    const g=groupsById.get(gl.groupId);
+    if(!g) return;
+    const chip=document.createElement('div');
+    chip.className='linkChip';
+    chip.innerHTML=`<span class="groupDot" style="background:${g.color}"></span>${escapeHtml(g.name)}<span class="x">✕</span>`;
+    chip.querySelector('.x').onclick=(ev)=>{ ev.stopPropagation(); groupLinks=groupLinks.filter(x=>x.id!==gl.id); save(); renderAll(); renderPersonGroups(p); };
+    chip.addEventListener('click',()=>{ document.getElementById('detailScrim').classList.remove('open'); document.getElementById('detailSheet').classList.remove('open'); openGroupSheet(g.id); });
+    wrap.appendChild(chip);
+  });
+}
+
+document.getElementById('groupAddBtn').addEventListener('click',()=>{
+  document.getElementById('groupPickerNewName').value='';
+  renderGroupPicker();
+  document.getElementById('groupPickerScrim').classList.add('open');
+});
+document.getElementById('groupPickerClose').addEventListener('click',()=>document.getElementById('groupPickerScrim').classList.remove('open'));
+document.getElementById('groupPickerScrim').addEventListener('click',e=>{ if(e.target.id==='groupPickerScrim') document.getElementById('groupPickerScrim').classList.remove('open'); });
+
+function renderGroupPicker(){
+  const list=document.getElementById('groupPickerList');
+  list.innerHTML='';
+  const existingIds=new Set(groupLinks.filter(gl=>gl.personId===detailId).map(gl=>gl.groupId));
+  const candidates=groups.filter(g=>!existingIds.has(g.id));
+  if(!candidates.length){ list.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No other groups yet — name one above.</div>'; return; }
+  candidates.forEach(g=>{
+    const row=document.createElement('div');
+    row.className='pickRow';
+    const count=groupLinks.filter(gl=>gl.groupId===g.id).length;
+    row.innerHTML=`<div class="pickAvatar" style="background:#14141c;color:${g.color};border:1.5px solid ${g.color}">◎</div>
+      <div><div class="pickName">${escapeHtml(g.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
+    row.onclick=()=>{
+      groupLinks.push({id:nextGroupLinkId++,personId:detailId,groupId:g.id});
+      save();renderAll();
+      document.getElementById('groupPickerScrim').classList.remove('open');
+      renderPersonGroups(peopleById.get(detailId));
+      toast(`Added to ${g.name}`);haptic(12);
+    };
+    list.appendChild(row);
+  });
+}
+document.getElementById('groupPickerCreate').addEventListener('click',()=>{
+  const name=document.getElementById('groupPickerNewName').value.trim();
+  if(!name) return;
+  const g={id:nextGroupId++,name,color:GROUP_COLORS[(nextGroupId-2)%GROUP_COLORS.length],x:0,y:0,manual:false,createdAt:Date.now()};
+  groups.push(g);
+  groupLinks.push({id:nextGroupLinkId++,personId:detailId,groupId:g.id});
+  save();renderAll();
+  revealWorldPoint(g.x,g.y);
+  document.getElementById('groupPickerScrim').classList.remove('open');
+  renderPersonGroups(peopleById.get(detailId));
+  toast(`Created ${name} — see the line back to you on the map`);haptic(16);
+});
+
+// ── GROUP DETAIL SHEET ───────────────────────────────────────────
+let groupSheetId=null;
+function descendantGroupIds(id){
+  const out=new Set();
+  const stack=[id];
+  while(stack.length){
+    const cur=stack.pop();
+    groups.forEach(g=>{ if(g.parentGroupId===cur && !out.has(g.id)){ out.add(g.id); stack.push(g.id); } });
+  }
+  return out;
+}
+
+function populateParentSelect(g){
+  const sel=document.getElementById('groupParentSelect');
+  sel.innerHTML='';
+  const top=document.createElement('option');
+  top.value='';top.textContent='— Top level (connects straight to you)';
+  sel.appendChild(top);
+  const excluded=descendantGroupIds(g.id);
+  excluded.add(g.id);
+  groups.filter(o=>!excluded.has(o.id)).forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o.id;opt.textContent=o.name;
+    sel.appendChild(opt);
+  });
+  sel.value=g.parentGroupId||'';
+}
+
+function renderSubGroups(g){
+  const wrap=document.getElementById('subGroupsList');
+  wrap.innerHTML='';
+  const subs=groups.filter(o=>o.parentGroupId===g.id);
+  if(!subs.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3)">No sub-groups yet.</div>';
+    return;
+  }
+  subs.forEach(sub=>{
+    const count=groupLinks.filter(gl=>gl.groupId===sub.id).length;
+    const row=document.createElement('div');
+    row.className='pickRow';
+    row.innerHTML=`<div class="pickAvatar" style="background:#14141c;color:${sub.color};border:1.5px solid ${sub.color}">◎</div>
+      <div><div class="pickName">${escapeHtml(sub.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
+    row.onclick=()=>openGroupSheet(sub.id);
+    wrap.appendChild(row);
+  });
+}
+
+function openGroupSheet(id){
+  closeAllPopovers();
+  const g=groupsById.get(id);
+  if(!g) return;
+  groupSheetId=id;
+  document.getElementById('groupNameIn').value=g.name;
+  populateParentSelect(g);
+  renderGroupMembers(g);
+  renderSubGroups(g);
+  document.getElementById('newSubGroupName').value='';
+  document.getElementById('groupScrim').classList.add('open');
+  document.getElementById('groupSheet').classList.add('open');
+  revealWorldPoint(g.x,g.y);
+}
+document.getElementById('groupParentSelect').addEventListener('change',e=>{
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  const val=e.target.value;
+  g.parentGroupId=val?parseInt(val):null;
+  g.manual=false;
+  save();renderAll();
+  revealWorldPoint(g.x,g.y);
+  toast(val?`Nested under ${groupsById.get(g.parentGroupId).name}`:'Moved to top level');
+});
+document.getElementById('newSubGroupCreate').addEventListener('click',()=>{
+  const name=document.getElementById('newSubGroupName').value.trim();
+  if(!name||groupSheetId==null) return;
+  const sub={id:nextGroupId++,name,color:GROUP_COLORS[(nextGroupId-2)%GROUP_COLORS.length],x:0,y:0,manual:false,parentGroupId:groupSheetId,createdAt:Date.now()};
+  groups.push(sub);
+  save();renderAll();
+  document.getElementById('newSubGroupName').value='';
+  renderSubGroups(groupsById.get(groupSheetId));
+  revealWorldPoint(sub.x,sub.y);
+  toast(`Created ${name}`);haptic(16);
+});
+function closeGroupSheet(){
+  if(groupSheetId!=null) commitGroupName();
+  document.getElementById('groupScrim').classList.remove('open');
+  document.getElementById('groupSheet').classList.remove('open');
+  groupSheetId=null;
+}
+function commitGroupName(){
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  const n=document.getElementById('groupNameIn').value.trim();
+  if(n) g.name=n;
+  save();renderAll();
+}
+document.getElementById('groupScrim').addEventListener('click',closeGroupSheet);
+document.getElementById('groupClose').addEventListener('click',closeGroupSheet);
+document.getElementById('groupNameIn').addEventListener('blur',commitGroupName);
+document.getElementById('groupNameIn').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('groupNameIn').blur(); });
+
+function renderGroupMembers(g){
+  const wrap=document.getElementById('groupMembersList');
+  wrap.innerHTML='';
+  const members=groupLinks.filter(gl=>gl.groupId===g.id);
+  if(!members.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3)">Nobody added yet.</div>';
+    return;
+  }
+  members.forEach(gl=>{
+    const p=peopleById.get(gl.personId);
+    if(!p) return;
+    const chip=document.createElement('div');
+    chip.className='linkChip';
+    chip.innerHTML=`${escapeHtml(p.name)}<span class="x">✕</span>`;
+    chip.querySelector('.x').onclick=(ev)=>{ ev.stopPropagation(); groupLinks=groupLinks.filter(x=>x.id!==gl.id); save(); renderAll(); renderGroupMembers(g); };
+    chip.addEventListener('click',()=>{ closeGroupSheet(); openDetail(p.id); });
+    wrap.appendChild(chip);
+  });
+}
+
+document.getElementById('groupMemberAddBtn').addEventListener('click',()=>{
+  document.getElementById('groupMemberPickerSearch').value='';
+  document.getElementById('groupMemberNewName').value='';
+  renderGroupMemberPicker('');
+  document.getElementById('groupMemberPickerScrim').classList.add('open');
+});
+document.getElementById('groupMemberPickerClose').addEventListener('click',()=>document.getElementById('groupMemberPickerScrim').classList.remove('open'));
+document.getElementById('groupMemberPickerScrim').addEventListener('click',e=>{ if(e.target.id==='groupMemberPickerScrim') document.getElementById('groupMemberPickerScrim').classList.remove('open'); });
+document.getElementById('groupMemberPickerSearch').addEventListener('input',e=>renderGroupMemberPicker(e.target.value));
+
+document.getElementById('groupMemberNewCreate').addEventListener('click',()=>{
+  const name=document.getElementById('groupMemberNewName').value.trim();
+  if(!name) return;
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  const p={
+    id:nextId++,name,cat:'other',ring:3,x:0,y:0,manual:false,
+    note:'',howMet:'',tags:[],lastContact:'',createdAt:Date.now()
+  };
+  people.push(p);
+  groupLinks.push({id:nextGroupLinkId++,personId:p.id,groupId:groupSheetId});
+  save();renderAll();
+  document.getElementById('groupMemberNewName').value='';
+  document.getElementById('groupMemberPickerScrim').classList.remove('open');
+  toast(`${name} added to ${g.name}`);haptic(16);
+  closeGroupSheet();
+  openDetail(p.id);
+});
+document.getElementById('groupMemberNewName').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('groupMemberNewCreate').click(); });
+
+function renderGroupMemberPicker(q){
+  const list=document.getElementById('groupMemberPickerList');
+  list.innerHTML='';
+  const query=q.trim().toLowerCase();
+  const existingIds=new Set(groupLinks.filter(gl=>gl.groupId===groupSheetId).map(gl=>gl.personId));
+  const candidates=people.filter(p=>!existingIds.has(p.id)&&(!query||p.name.toLowerCase().includes(query)));
+  if(!candidates.length){ list.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No matches.</div>'; return; }
+  candidates.forEach(p=>{
+    const cat=CATS[p.cat]||CATS.other;
+    const row=document.createElement('div');
+    row.className='pickRow';
+    row.innerHTML=`<div class="pickAvatar" style="background:${cat.fill};color:${cat.text};border:1.5px solid ${cat.stroke}">${initials(p.name)}</div>
+      <div><div class="pickName">${escapeHtml(p.name)}</div><div class="pickSub">${cat.label}</div></div>`;
+    row.onclick=()=>{
+      groupLinks.push({id:nextGroupLinkId++,personId:p.id,groupId:groupSheetId});
+      save();renderAll();
+      renderGroupMemberPicker(document.getElementById('groupMemberPickerSearch').value);
+      renderGroupMembers(groupsById.get(groupSheetId));
+      toast(`${p.name} added`);haptic(12);
+    };
+    list.appendChild(row);
+  });
+}
+
+document.getElementById('groupDeleteBtn').addEventListener('click',()=>{
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  const subCount=groups.filter(x=>x.parentGroupId===g.id).length;
+  const msg=subCount?`Delete "${g.name}"? This removes the group and un-nests its ${subCount} sub-group${subCount===1?'':'s'} back to top level. People in it stay on your map.`:`Delete "${g.name}"? This removes the group but not the people in it.`;
+  if(confirm(msg)){
+    groups.forEach(x=>{ if(x.parentGroupId===g.id) x.parentGroupId=null; });
+    groups=groups.filter(x=>x.id!==g.id);
+    groupLinks=groupLinks.filter(x=>x.groupId!==g.id);
+    save();renderAll();
+    document.getElementById('groupScrim').classList.remove('open');
+    document.getElementById('groupSheet').classList.remove('open');
+    groupSheetId=null;
+    toast('Group deleted');haptic(20);
+  }
+});
+
+// ── GROUPS LIST (from menu) ──────────────────────────────────────
+document.getElementById('menuGroups').addEventListener('click',()=>{
+  document.getElementById('menuScrim').classList.remove('open');
+  document.getElementById('newGroupName').value='';
+  renderGroupsList();
+  document.getElementById('groupsListScrim').classList.add('open');
+});
+document.getElementById('groupsListClose').addEventListener('click',()=>document.getElementById('groupsListScrim').classList.remove('open'));
+document.getElementById('groupsListScrim').addEventListener('click',e=>{ if(e.target.id==='groupsListScrim') document.getElementById('groupsListScrim').classList.remove('open'); });
+
+function renderGroupsList(){
+  const wrap=document.getElementById('groupsListContent');
+  wrap.innerHTML='';
+  if(!groups.length){
+    wrap.innerHTML='<div style="font-size:12.5px;color:var(--text3);padding:16px 4px">No groups yet — name a school, a hometown, a team, anything that clusters people together.</div>';
+    return;
+  }
+  const addRow=(g,depth)=>{
+    const count=groupLinks.filter(gl=>gl.groupId===g.id).length;
+    const row=document.createElement('div');
+    row.className='pickRow';
+    row.style.paddingLeft=(4+depth*22)+'px';
+    row.innerHTML=`<div class="pickAvatar" style="background:#14141c;color:${g.color};border:1.5px solid ${g.color}">◎</div>
+      <div><div class="pickName">${depth?'↳ ':''}${escapeHtml(g.name)}</div><div class="pickSub">${count} ${count===1?'person':'people'}</div></div>`;
+    row.onclick=()=>{ document.getElementById('groupsListScrim').classList.remove('open'); openGroupSheet(g.id); };
+    wrap.appendChild(row);
+    groups.filter(o=>o.parentGroupId===g.id).forEach(child=>addRow(child,depth+1));
+  };
+  groups.filter(g=>!g.parentGroupId).forEach(g=>addRow(g,0));
+  // orphans (parent missing/deleted, defensive) still show at top level
+  groups.filter(g=>g.parentGroupId&&!groupsById.has(g.parentGroupId)).forEach(g=>addRow(g,0));
+}
+document.getElementById('newGroupCreate').addEventListener('click',()=>{
+  const name=document.getElementById('newGroupName').value.trim();
+  if(!name) return;
+  const g={id:nextGroupId++,name,color:GROUP_COLORS[(nextGroupId-2)%GROUP_COLORS.length],x:0,y:0,manual:false,createdAt:Date.now()};
+  groups.push(g);
+  save();renderAll();
+  revealWorldPoint(g.x,g.y);
+  document.getElementById('newGroupName').value='';
+  renderGroupsList();
+  toast(`Created ${name} — see the line back to you on the map`);haptic(16);
+});
+
+// ── ME SHEET ──────────────────────────────────────────────────
+function openMeSheet(){
+  closeAllPopovers();
+  document.getElementById('meNameIn').value=me.name||'';
+  document.getElementById('meTagIn').value=me.tagline||'';
+  document.getElementById('meScrim').classList.add('open');
+  document.getElementById('meSheet').classList.add('open');
+  setTimeout(()=>document.getElementById('meNameIn').focus(),260);
+}
+function closeMeSheet(){
+  document.getElementById('meScrim').classList.remove('open');
+  document.getElementById('meSheet').classList.remove('open');
+}
+document.getElementById('meScrim').addEventListener('click',closeMeSheet);
+document.getElementById('meClose').addEventListener('click',closeMeSheet);
+document.getElementById('meSaveBtn').addEventListener('click',()=>{
+  const n=document.getElementById('meNameIn').value.trim();
+  me.name=n||'You';
+  me.tagline=document.getElementById('meTagIn').value.trim();
+  save();updateCenterLabel();closeMeSheet();
+  toast('Saved');
+});
+
+// ── SEARCH / FILTER ─────────────────────────────────────────────
+const searchToggle=document.getElementById('searchToggle');
+searchToggle.addEventListener('click',()=>{
+  const bar=document.getElementById('searchbar');
+  const willOpen=!bar.classList.contains('open');
+  bar.classList.toggle('open');
+  searchToggle.classList.toggle('active',willOpen);
+  if(willOpen) setTimeout(()=>document.getElementById('searchIn').focus(),260);
+  else { filterText='';document.getElementById('searchIn').value='';applyFilterOnly(); }
+});
+document.getElementById('searchIn').addEventListener('input',e=>{ filterText=e.target.value; applyFilterOnly(); });
+
+function renderFilterChips(){
+  const wrap=document.getElementById('filterChips');
+  const counts={}; CAT_ORDER.forEach(c=>counts[c]=0);
+  people.forEach(p=>counts[p.cat]=(counts[p.cat]||0)+1);
+  wrap.innerHTML='';
+  CAT_ORDER.forEach(cat=>{
+    if(!counts[cat]) return;
+    const c=CATS[cat];
+    const chip=document.createElement('div');
+    chip.className='chip'+(filterCats.has(cat)?' on':'');
+    chip.innerHTML=`<span class="dot" style="background:${c.stroke}"></span>${c.label} (${counts[cat]})`;
+    chip.onclick=()=>{
+      if(filterCats.has(cat)) filterCats.delete(cat); else filterCats.add(cat);
+      renderFilterChips();applyFilterOnly();
+    };
+    wrap.appendChild(chip);
+  });
+}
+function applyFilterOnly(){
+  people.forEach(p=>{ const el=nodeEls.get(p.id); if(el) el.g.classList.toggle('dimmed',!matchesFilter(p)); });
+  groups.forEach(g=>{ const el=groupNodeEls.get(g.id); if(el) el.g.classList.toggle('dimmed',!groupMatchesFilter(g)); });
+  syncHubEdges();syncLinkEdges();syncGroupThreads();
+}
+
+// ── INSIGHTS ─────────────────────────────────────────────────────
+function computeInsights(){
+  // Insights are about people YOU know — friends-of-friends who aren't
+  // directly connected to you don't count toward your own totals.
+  const direct=people.filter(p=>!p.indirect);
+  const total=direct.length;
+  const indirectCount=people.length-direct.length;
+  const byRing=[0,0,0,0,0];
+  const byCat={}; CAT_ORDER.forEach(c=>byCat[c]=0);
+  direct.forEach(p=>{ byRing[(p.ring||3)-1]++; byCat[p.cat]=(byCat[p.cat]||0)+1; });
+  const linkCountById={};
+  links.forEach(lk=>{ linkCountById[lk.a]=(linkCountById[lk.a]||0)+1; linkCountById[lk.b]=(linkCountById[lk.b]||0)+1; });
+  let mostConnected=null,mostConnectedCount=0;
+  Object.entries(linkCountById).forEach(([id,c])=>{ if(c>mostConnectedCount){mostConnectedCount=c;mostConnected=peopleById.get(Number(id));} });
+  const distinctCats=Object.values(byCat).filter(v=>v>0).length;
+  const months=[];
+  const now=new Date();
+  for(let i=5;i>=0;i--){
+    const d=new Date(now.getFullYear(),now.getMonth()-i,1);
+    months.push({key:d.getFullYear()+'-'+d.getMonth(),label:d.toLocaleString(undefined,{month:'short'}),count:0});
+  }
+  direct.forEach(p=>{
+    const d=new Date(p.createdAt);
+    const key=d.getFullYear()+'-'+d.getMonth();
+    const m=months.find(mm=>mm.key===key);
+    if(m)m.count++;
+  });
+  let oldest=null;
+  direct.forEach(p=>{ if(!oldest||p.createdAt<oldest.createdAt) oldest=p; });
+  const familyTies=links.filter(l=>l.type==='partner'||l.type==='parent'||l.type==='sibling').length;
+  return {total,indirectCount,byRing,byCat,mostConnected,mostConnectedCount,distinctCats,months,totalLinks:links.length,oldest,familyTies,groupCount:groups.length};
+}
+
+function buildDonut(byCat,total){
+  const cx=60,cy=60,r=44,sw=15;
+  if(!total) return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#2e2e3e" stroke-width="${sw}"/>`;
+  let angle=-90,paths='';
+  CAT_ORDER.forEach(cat=>{
+    const v=byCat[cat]||0; if(!v) return;
+    const sweep=(v/total)*360;
+    const large=sweep>180?1:0;
+    const a0=angle*Math.PI/180,a1=(angle+sweep-1)*Math.PI/180;
+    const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0);
+    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    paths+=`<path d="M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}" fill="none" stroke="${CATS[cat].stroke}" stroke-width="${sw}" stroke-linecap="round"/>`;
+    angle+=sweep;
+  });
+  return paths;
+}
+
+function renderInsights(){
+  const ins=computeInsights();
+  const el=document.getElementById('insightsContent');
+  const dunbarPct=Math.min(100,(ins.total/150)*100);
+
+  let html='';
+  html+=`<div class="bigStat"><div class="num">${ins.total}</div><div class="lbl">${ins.total===1?'person':'people'} in your world${ins.total===0?' — start mapping.':''}${ins.indirectCount?` <span style="opacity:.7">+ ${ins.indirectCount} you know through others</span>`:''}</div></div>`;
+
+  html+=`<div class="insCard"><h4>Against Dunbar's Number</h4>
+    <div style="font-size:12.5px;color:var(--text2);line-height:1.5">Anthropologist Robin Dunbar's research puts the cap on relationships we can meaningfully maintain at around <b style="color:var(--text)">150</b>. You've mapped <b style="color:var(--purple-light)">${ins.total}</b> — that's ${dunbarPct.toFixed(0)}% of it.</div>
+    <div class="dunbarTrack">
+      <div class="dunbarFill" style="width:${dunbarPct}%"></div>
+      ${[5,15,50,150].map(t=>`<div class="dunbarTick" style="left:${Math.min(100,t/150*100)}%"><span>${t}</span></div>`).join('')}
+    </div>
+  </div>`;
+
+  html+=`<div class="insCard"><h4>Your Circles</h4>`;
+  RINGS.forEach((r,i)=>{
+    const c=ins.byRing[i];
+    const pct=Math.min(100,(c/Math.max(r.target,1))*100*3);
+    html+=`<div class="ringBarRow"><div class="rname">${r.label}</div><div class="ringBarTrack"><div class="ringBarFill" style="width:${Math.max(pct,c?4:0)}%"></div></div><div class="rcount">${c}</div></div>`;
+  });
+  html+=`</div>`;
+
+  html+=`<div class="insCard"><h4>By Relationship</h4><div id="donutWrap">
+    <svg width="120" height="120" viewBox="0 0 120 120">${buildDonut(ins.byCat,ins.total)}</svg>
+    <div id="donutLegend">${CAT_ORDER.filter(c=>ins.byCat[c]).map(c=>`<div class="legRow"><span class="dot" style="background:${CATS[c].stroke}"></span>${CATS[c].label}<b>${ins.byCat[c]}</b></div>`).join('')||'<div style="color:var(--text3);font-size:12.5px">Nothing mapped yet.</div>'}</div>
+  </div></div>`;
+
+  html+=`<div class="insCard"><h4>Growth, Last 6 Months</h4><div id="sparkRow">
+    ${(()=>{ const max=Math.max(1,...ins.months.map(m=>m.count)); return ins.months.map(m=>`<div class="sparkBar"><div class="bar" style="height:${Math.max(4,(m.count/max)*100)}%"></div><div class="m">${m.label}</div></div>`).join(''); })()}
+  </div></div>`;
+
+  html+=`<div class="insCard"><h4>The Shape of It</h4>
+    <div class="insRow"><div class="k">Connections between people</div><div class="v">${ins.totalLinks}</div></div>
+    <div class="insRow"><div class="k">Family &amp; kinship ties</div><div class="v">${ins.familyTies}</div></div>
+    <div class="insRow"><div class="k">Groups you've named</div><div class="v">${ins.groupCount}</div></div>
+    <div class="insRow"><div class="k">Kinds of relationships</div><div class="v">${ins.distinctCats} / ${CAT_ORDER.length}</div></div>
+    <div class="insRow"><div class="k">Most connected person</div><div class="v">${ins.mostConnected?escapeHtml(ins.mostConnected.name):'—'}</div></div>
+    ${ins.oldest?`<div class="insRow"><div class="k">Mapping since</div><div class="v">${new Date(ins.oldest.createdAt).toLocaleDateString(undefined,{month:'short',year:'numeric'})}</div></div>`:''}
+  </div>`;
+
+  el.innerHTML=html;
+}
+function openInsights(){ closeAllPopovers(); renderInsights(); document.getElementById('insightsScrim').classList.add('open'); }
+document.getElementById('insightsClose').addEventListener('click',()=>document.getElementById('insightsScrim').classList.remove('open'));
+document.getElementById('insightsScrim').addEventListener('click',e=>{ if(e.target.id==='insightsScrim') document.getElementById('insightsScrim').classList.remove('open'); });
+
+// ── MENU ─────────────────────────────────────────────────────────
+document.getElementById('menuToggle').addEventListener('click',()=>{
+  closeAllPopovers();
+  document.getElementById('menuScrim').classList.add('open');
+});
+document.getElementById('menuClose').addEventListener('click',()=>document.getElementById('menuScrim').classList.remove('open'));
+document.getElementById('menuScrim').addEventListener('click',e=>{ if(e.target.id==='menuScrim') document.getElementById('menuScrim').classList.remove('open'); });
+
+document.getElementById('menuExport').addEventListener('click',()=>{
+  document.getElementById('menuScrim').classList.remove('open');
+  openExport();
+});
+document.getElementById('menuAbout').addEventListener('click',()=>{
+  document.getElementById('menuScrim').classList.remove('open');
+  document.getElementById('aboutScrim').classList.add('open');
+});
+document.getElementById('aboutClose').addEventListener('click',()=>document.getElementById('aboutScrim').classList.remove('open'));
+document.getElementById('aboutScrim').addEventListener('click',e=>{ if(e.target.id==='aboutScrim') document.getElementById('aboutScrim').classList.remove('open'); });
+
+document.getElementById('menuImport').addEventListener('click',()=>{
+  document.getElementById('menuScrim').classList.remove('open');
+  document.getElementById('importFile').click();
+});
+document.getElementById('importFile').addEventListener('change',e=>{
+  const file=e.target.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(!Array.isArray(data.people)) throw new Error('bad file');
+      if(!confirm(`Import ${data.people.length} people? This will replace your current map.`)) return;
+      me=data.me||{name:'You',tagline:''};
+      people=data.people;
+      links=Array.isArray(data.links)?data.links:[];
+      groups=Array.isArray(data.groups)?data.groups:[];
+      groupLinks=Array.isArray(data.groupLinks)?data.groupLinks:[];
+      nextId=Math.max(1,...people.map(p=>p.id||0))+1;
+      nextLinkId=Math.max(1,...links.map(l=>l.id||0),0)+1;
+      nextGroupId=Math.max(1,...groups.map(g=>g.id||0),0)+1;
+      nextGroupLinkId=Math.max(1,...groupLinks.map(gl=>gl.id||0),0)+1;
+      save();renderAll();updateCenterLabel();
+      toast('Backup imported');
+    }catch(err){ alert('Could not read that file — is it a Constellation backup?'); }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+});
+
+document.getElementById('menuClear').addEventListener('click',()=>{
+  document.getElementById('menuScrim').classList.remove('open');
+  if(confirm('Erase everyone from your map? This cannot be undone.')){
+    people=[];links=[];groups=[];groupLinks=[];nextId=1;nextLinkId=1;nextGroupId=1;nextGroupLinkId=1;
+    save();renderAll();
+    toast('Map cleared');
+  }
 });
 
 // ── EXPORT ─────────────────────────────────────────────────────
 function openExport(){
-  const grouped={};
-  nodes.forEach(n=>{if(!grouped[n.cat])grouped[n.cat]=[];grouped[n.cat].push(n.name);});
-  const lines=[];
-  Object.entries(grouped).forEach(([cat,names])=>{
-    lines.push(LABELS[cat]+':');
-    names.forEach(n=>lines.push('  • '+n));lines.push('');
+  buildTextExport();
+  document.getElementById('exportScrim').classList.add('open');
+}
+document.getElementById('exportClose').addEventListener('click',()=>document.getElementById('exportScrim').classList.remove('open'));
+document.getElementById('exportScrim').addEventListener('click',e=>{ if(e.target.id==='exportScrim') document.getElementById('exportScrim').classList.remove('open'); });
+
+document.querySelectorAll('.tabRow .tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    document.querySelectorAll('.tabRow .tab').forEach(t=>t.classList.remove('on'));
+    document.querySelectorAll('.tabPane').forEach(p=>p.classList.remove('on'));
+    tab.classList.add('on');
+    document.getElementById('tab'+(tab.dataset.tab==='backup'?'Backup':'Text')).classList.add('on');
   });
-  if(lines.length===0)lines.push('No people added yet.');
-  document.getElementById('exportText').textContent=lines.join('\n').trim();
-  document.getElementById('exportModal').classList.add('open');
-}
-function closeExport(){document.getElementById('exportModal').classList.remove('open');}
-function copyExport(){
-  navigator.clipboard.writeText(document.getElementById('exportText').textContent)
-    .then(()=>alert('Copied to clipboard!'))
-    .catch(()=>alert('Select the text above and copy manually.'));
-}
-document.getElementById('exportModal').addEventListener('click',e=>{
-  if(e.target===document.getElementById('exportModal'))closeExport();
 });
 
+function buildTextExport(){
+  const grouped={};
+  people.filter(p=>!p.indirect).forEach(p=>{ (grouped[p.cat]=grouped[p.cat]||[]).push(p); });
+  const lines=[];
+  CAT_ORDER.forEach(cat=>{
+    if(!grouped[cat]) return;
+    lines.push(CATS[cat].label+':');
+    grouped[cat].forEach(p=>{
+      const ring=RINGS[(p.ring||3)-1].label;
+      lines.push(`  • ${p.name} (${ring})${p.howMet?' — '+p.howMet:''}`);
+    });
+    lines.push('');
+  });
+  const indirect=people.filter(p=>p.indirect);
+  if(indirect.length){
+    lines.push('People you know through others:');
+    indirect.forEach(p=>{
+      const link=links.find(l=>l.a===p.id||l.b===p.id);
+      const anchor=link?peopleById.get(link.a===p.id?link.b:link.a):null;
+      lines.push(`  • ${p.name}${anchor?' — via '+anchor.name:''}`);
+    });
+    lines.push('');
+  }
+  if(!lines.length) lines.push('No people added yet.');
+  document.getElementById('exportText').textContent=lines.join('\n').trim();
+}
+document.getElementById('copyExport').addEventListener('click',()=>{
+  navigator.clipboard.writeText(document.getElementById('exportText').textContent)
+    .then(()=>toast('Copied to clipboard'))
+    .catch(()=>alert('Select the text above and copy manually.'));
+});
+
+function backupJSON(){ return JSON.stringify({me,people,links,groups,groupLinks,exportedAt:new Date().toISOString(),version:3},null,2); }
+document.getElementById('downloadBackup').addEventListener('click',()=>{
+  const blob=new Blob([backupJSON()],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`constellation-backup-${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  toast('Backup downloaded');
+});
+document.getElementById('copyBackup').addEventListener('click',()=>{
+  navigator.clipboard.writeText(backupJSON())
+    .then(()=>toast('Backup copied to clipboard'))
+    .catch(()=>alert('Could not copy — try Download instead.'));
+});
+
+// ── ONBOARDING ────────────────────────────────────────────────
+function toggleOnboard(){
+  const el=document.getElementById('onboard');
+  if(people.length>0) el.classList.add('hidden');
+}
+document.getElementById('onboardCta').addEventListener('click',()=>{
+  document.getElementById('onboard').classList.add('hidden');
+  openAddPanel();
+});
+
+// ── IOS INSTALL BANNER ──────────────────────────────────────────
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+function isStandalone(){ return window.navigator.standalone===true || window.matchMedia('(display-mode: standalone)').matches; }
+function maybeShowInstallBanner(){
+  const banner=document.getElementById('installBanner');
+  if(isIOS() && !isStandalone() && people.length>0 && !localStorage.getItem('cst_installDismissed')){
+    banner.classList.add('show');
+  } else {
+    banner.classList.remove('show');
+  }
+}
+document.getElementById('installBannerClose').addEventListener('click',()=>{
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('cst_installDismissed','1');
+});
+
+// ── TOAST ─────────────────────────────────────────────────────
+let toastTimer=null;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── CLOSE HELPERS ────────────────────────────────────────────────
+function closeAllPopovers(){
+  document.getElementById('addScrim').classList.remove('open');
+  document.getElementById('panel').classList.remove('open');
+  document.getElementById('menuScrim').classList.remove('open');
+  document.getElementById('linkPickerScrim').classList.remove('open');
+  document.getElementById('groupPickerScrim').classList.remove('open');
+  document.getElementById('groupsListScrim').classList.remove('open');
+  document.getElementById('groupMemberPickerScrim').classList.remove('open');
+  const bar=document.getElementById('searchbar');
+  if(bar.classList.contains('open')){ /* keep search open across taps intentionally closed below */ }
+}
+
 // ── RESIZE ─────────────────────────────────────────────────────
-window.addEventListener('resize',()=>render());
+window.addEventListener('resize',()=>applyT());
+
+// ── SERVICE WORKER ──────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); });
+}
 
 // ── INIT ───────────────────────────────────────────────────────
-load();render();
-// Center the view on first load
-setTimeout(()=>{
-  const r=svg.getBoundingClientRect();
-  vx=r.width/2;vy=r.height/2;vs=1;applyT();render();
-},50);
+load();
+recenter();
+renderAll();
+updateCenterLabel();
+toggleOnboard();
+setTimeout(recenter,50);
 </script>
 </body>
 </html>
