@@ -114,29 +114,29 @@
   .center-halo{animation:halo 3.6s ease-in-out infinite}
   @keyframes halo{0%,100%{opacity:.28;r:70}50%{opacity:.42;r:78}}
 
-  /* LUNAR MOTION — gentle orbital drift, moons around planets around the sun */
-  @media (prefers-reduced-motion: no-preference){
-    @keyframes moonDrift{
-      0%{transform:translate(0,0)}
-      25%{transform:translate(4px,-3px)}
-      50%{transform:translate(-3px,4px)}
-      75%{transform:translate(-4px,-2px)}
-      100%{transform:translate(0,0)}
-    }
-    @keyframes planetDrift{
-      0%{transform:translate(0,0)}
-      25%{transform:translate(7px,-5px)}
-      50%{transform:translate(-5px,6px)}
-      75%{transform:translate(-6px,-4px)}
-      100%{transform:translate(0,0)}
-    }
-    .node-group{animation:moonDrift var(--odur,12s) ease-in-out var(--odelay,0s) infinite}
-    .node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),moonDrift var(--odur,12s) ease-in-out var(--odelay,0s) infinite}
-    .node-group.dragging{animation-play-state:paused}
-    .group-node-group{animation:planetDrift var(--odur,24s) ease-in-out var(--odelay,0s) infinite}
-    .group-node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),planetDrift var(--odur,24s) ease-in-out var(--odelay,0s) infinite}
-    .group-node-group.dragging{animation-play-state:paused}
+  /* LUNAR MOTION — orbital drift, moons around planets around the sun.
+     Deliberately unconditional (not gated on prefers-reduced-motion) — this
+     is a core, explicitly-requested part of the map, not decoration. */
+  @keyframes moonDrift{
+    0%{transform:translate(0,0) rotate(0deg)}
+    25%{transform:translate(9px,-7px) rotate(1deg)}
+    50%{transform:translate(-6px,9px) rotate(-1deg)}
+    75%{transform:translate(-9px,-5px) rotate(1deg)}
+    100%{transform:translate(0,0) rotate(0deg)}
   }
+  @keyframes planetDrift{
+    0%{transform:translate(0,0)}
+    25%{transform:translate(15px,-11px)}
+    50%{transform:translate(-11px,13px)}
+    75%{transform:translate(-13px,-9px)}
+    100%{transform:translate(0,0)}
+  }
+  .node-group{animation:moonDrift var(--odur,9s) ease-in-out var(--odelay,0s) infinite}
+  .node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),moonDrift var(--odur,9s) ease-in-out var(--odelay,0s) infinite}
+  .node-group.dragging{animation-play-state:paused}
+  .group-node-group{animation:planetDrift var(--odur,20s) ease-in-out var(--odelay,0s) infinite}
+  .group-node-group.enter{animation:nodePop .4s cubic-bezier(.34,1.56,.64,1),planetDrift var(--odur,20s) ease-in-out var(--odelay,0s) infinite}
+  .group-node-group.dragging{animation-play-state:paused}
 
   /* GROUPS (custom named hubs — school, hometown, etc.) */
   .group-node-group{cursor:pointer;transform-box:fill-box;transform-origin:center;touch-action:none}
@@ -530,6 +530,11 @@
 <div class="modal-scrim" id="groupMemberPickerScrim">
   <div class="modalBox" id="groupMemberPickerBox">
     <h3>Add people<span class="closeX" id="groupMemberPickerClose">✕</span></h3>
+    <div class="field" style="display:flex;gap:8px">
+      <input id="groupMemberNewName" type="text" placeholder="New name…" maxlength="30" autocomplete="off" style="flex:1"/>
+      <button class="primaryBtn" id="groupMemberNewCreate" style="width:auto;padding:0 16px;margin-top:0">Create</button>
+    </div>
+    <div class="sectionLabel" style="margin:4px 0 8px">Or add someone already on your map</div>
     <div class="field"><input id="groupMemberPickerSearch" type="text" placeholder="Search people…" autocomplete="off"/></div>
     <div id="groupMemberPickerList"></div>
   </div>
@@ -638,7 +643,7 @@ const REL_TYPES=[
   {n:'custom',label:'Custom'}
 ];
 const GROUP_COLORS=['#5EC8D8','#C9A66B','#8E7CC3','#6FCF97','#E0A458','#4FA8E0','#D87BB0'];
-const GROUP_HUB_R=380;
+const GROUP_HUB_R=270;
 
 // ── STATE ──────────────────────────────────────────────────────
 let me={name:'You',tagline:''};
@@ -1212,6 +1217,22 @@ function recenter(){
   vx=r.width/2;vy=r.height/2;vs=1;applyT();
 }
 
+// Smoothly pan/zoom so a given world point (plus the center) is guaranteed visible —
+// used right after creating a group so its thread back to "You" is immediately seen.
+function revealWorldPoint(wx,wy){
+  const r=svg.getBoundingClientRect();
+  const margin=70;
+  const availW=(r.width-margin*2)/2,availH=(r.height-margin*2)/2;
+  const need=Math.max(Math.abs(wx),Math.abs(wy),90);
+  const fitScale=Math.min(availW/need,availH/need,1);
+  const targetScale=Math.max(0.4,Math.min(vs,fitScale));
+  vs=targetScale;
+  vx=r.width/2;vy=r.height/2;
+  world.style.transition='transform .6s cubic-bezier(.22,.9,.3,1)';
+  applyT();
+  setTimeout(()=>{ world.style.transition=''; },650);
+}
+
 // ── NODE INTERACTION (tap vs drag) ─────────────────────────────
 function haptic(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(e){} }
 
@@ -1620,9 +1641,10 @@ document.getElementById('groupPickerCreate').addEventListener('click',()=>{
   groups.push(g);
   groupLinks.push({id:nextGroupLinkId++,personId:detailId,groupId:g.id});
   save();renderAll();
+  revealWorldPoint(g.x,g.y);
   document.getElementById('groupPickerScrim').classList.remove('open');
   renderPersonGroups(peopleById.get(detailId));
-  toast(`Created ${name}`);haptic(16);
+  toast(`Created ${name} — see the line back to you on the map`);haptic(16);
 });
 
 // ── GROUP DETAIL SHEET ───────────────────────────────────────────
@@ -1636,6 +1658,7 @@ function openGroupSheet(id){
   renderGroupMembers(g);
   document.getElementById('groupScrim').classList.add('open');
   document.getElementById('groupSheet').classList.add('open');
+  revealWorldPoint(g.x,g.y);
 }
 function closeGroupSheet(){
   if(groupSheetId!=null) commitGroupName();
@@ -1676,12 +1699,32 @@ function renderGroupMembers(g){
 
 document.getElementById('groupMemberAddBtn').addEventListener('click',()=>{
   document.getElementById('groupMemberPickerSearch').value='';
+  document.getElementById('groupMemberNewName').value='';
   renderGroupMemberPicker('');
   document.getElementById('groupMemberPickerScrim').classList.add('open');
 });
 document.getElementById('groupMemberPickerClose').addEventListener('click',()=>document.getElementById('groupMemberPickerScrim').classList.remove('open'));
 document.getElementById('groupMemberPickerScrim').addEventListener('click',e=>{ if(e.target.id==='groupMemberPickerScrim') document.getElementById('groupMemberPickerScrim').classList.remove('open'); });
 document.getElementById('groupMemberPickerSearch').addEventListener('input',e=>renderGroupMemberPicker(e.target.value));
+
+document.getElementById('groupMemberNewCreate').addEventListener('click',()=>{
+  const name=document.getElementById('groupMemberNewName').value.trim();
+  if(!name) return;
+  const g=groupsById.get(groupSheetId); if(!g) return;
+  const p={
+    id:nextId++,name,cat:'other',ring:3,x:0,y:0,manual:false,
+    note:'',howMet:'',tags:[],lastContact:'',createdAt:Date.now()
+  };
+  people.push(p);
+  groupLinks.push({id:nextGroupLinkId++,personId:p.id,groupId:groupSheetId});
+  save();renderAll();
+  document.getElementById('groupMemberNewName').value='';
+  document.getElementById('groupMemberPickerScrim').classList.remove('open');
+  toast(`${name} added to ${g.name}`);haptic(16);
+  closeGroupSheet();
+  openDetail(p.id);
+});
+document.getElementById('groupMemberNewName').addEventListener('keydown',e=>{ if(e.key==='Enter') document.getElementById('groupMemberNewCreate').click(); });
 
 function renderGroupMemberPicker(q){
   const list=document.getElementById('groupMemberPickerList');
@@ -1753,9 +1796,10 @@ document.getElementById('newGroupCreate').addEventListener('click',()=>{
   const g={id:nextGroupId++,name,color:GROUP_COLORS[(nextGroupId-2)%GROUP_COLORS.length],x:0,y:0,manual:false,createdAt:Date.now()};
   groups.push(g);
   save();renderAll();
+  revealWorldPoint(g.x,g.y);
   document.getElementById('newGroupName').value='';
   renderGroupsList();
-  toast(`Created ${name}`);haptic(16);
+  toast(`Created ${name} — see the line back to you on the map`);haptic(16);
 });
 
 // ── ME SHEET ──────────────────────────────────────────────────
