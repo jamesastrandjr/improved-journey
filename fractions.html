@@ -14,24 +14,31 @@
   }
   *{box-sizing:border-box}
   body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
-  header{padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+  header{padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;gap:16px;align-items:center;flex-wrap:wrap}
   h1{margin:0;font-size:20px}
   main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 340px}
   @media(max-width:860px){main{grid-template-columns:1fr}}
   .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
   .eq{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:22px}
   .frac{display:inline-flex;flex-direction:column;align-items:center;gap:2px}
-  .frac input{width:56px;font-size:20px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
-  .frac .bar{width:56px;height:3px;background:var(--text);border-radius:2px}
+  input[type=number]{font:inherit;text-align:center;padding:4px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
+  .frac input{width:60px;font-size:20px}
+  .frac .bar{width:60px;height:3px;background:var(--text);border-radius:2px}
   .frac.a input{border-color:var(--dividend)} .frac.c input{border-color:var(--divisor)}
-  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:center}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:center;align-items:center}
   button{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.tool[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
   button:disabled{opacity:.4;cursor:default}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .seg button{border:0;border-radius:0}
+  .seg button[aria-pressed=true]{background:var(--accent);color:#fff}
   label.chk{display:inline-flex;align-items:center;gap:6px;padding:8px 4px}
-  #stage{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;touch-action:none}
+  #open{display:none} #open input{width:52px}
+  #stage{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;touch-action:none;user-select:none;-webkit-user-select:none}
   .unit h3{margin:0 0 4px;font-size:13px;color:var(--text2);text-align:center;font-weight:600}
-  svg{display:block;max-width:100%;height:auto;touch-action:none;user-select:none}
+  .unit svg{display:block;max-width:100%;height:auto;width:240px}
+  .break{flex-basis:100%;height:0}
   .legend{display:flex;gap:14px;justify-content:center;font-size:14px;margin-top:10px;flex-wrap:wrap}
   .sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
   h2{margin:0 0 8px;font-size:16px}
@@ -39,12 +46,21 @@
   .big{font-size:20px;font-weight:700}
   .ok{color:#1a9a55;font-weight:700} .bad{color:#d4453a;font-weight:700}
   .muted{color:var(--text2);font-size:14px}
-  .ans{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
-  .ans input{width:56px;font-size:18px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
+  .ans{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .ans input{width:56px;font-size:18px}
+  #msg{min-height:22px;text-align:center;margin-top:8px;font-weight:600;color:var(--accent)}
+  .pop{animation:pop .9s ease-out}
+  @keyframes pop{0%{opacity:.1}100%{opacity:1}}
 </style>
 </head>
 <body>
-<header><h1>Fraction Division Grid</h1></header>
+<header>
+  <h1>Fraction Division Grid</h1>
+  <div class="seg" id="modeSeg">
+    <button id="mFixed" aria-pressed="true">Fixed grid</button>
+    <button id="mOpen" aria-pressed="false">Open-ended</button>
+  </div>
+</header>
 <main>
   <section>
     <div class="card">
@@ -53,11 +69,21 @@
         <span>÷</span>
         <span class="frac c"><input id="c" type="number" min="1" max="12" value="1"><span class="bar"></span><input id="d" type="number" min="1" max="12" value="2"></span>
       </div>
-      <div class="toolbar">
+      <div class="row" id="open">
+        <span>Grid per whole:</span><input id="gc" type="number" min="1" max="12" value="4" aria-label="columns"> columns ×
+        <input id="gr" type="number" min="1" max="12" value="2" aria-label="rows"> rows
+        <span style="width:12px"></span>
+        Dividend wholes <button id="aMinus">−</button><button id="aPlus">+</button>
+        Divisor wholes <button id="bMinus">−</button><button id="bPlus">+</button>
+      </div>
+      <div class="row" id="tools"></div>
+      <div class="row">
         <button id="auto">Auto-group</button>
+        <button id="animate" class="primary">▶ Animate</button>
         <button id="partial" disabled>Lock as partial group</button>
-        <button id="undo">Undo group</button>
-        <button id="clear">Clear</button>
+        <button id="undo">Undo</button>
+        <button id="clear">Clear groups</button>
+        <button id="reset">Reset</button>
         <label class="chk"><input type="checkbox" id="showDivisor" checked> Overlay divisor</label>
       </div>
     </div>
@@ -67,20 +93,24 @@
         <span><span class="sw" style="background:var(--dividend);opacity:.55"></span>dividend</span>
         <span><span class="sw" style="background:repeating-linear-gradient(0deg,var(--divisor) 0 3px,transparent 3px 6px)"></span>divisor (the size of one group)</span>
       </div>
-      <p class="muted" style="text-align:center;margin:10px 0 0">Tap or drag across blue cells to draw a group. A full group is the same number of cells as the divisor.</p>
+      <div id="msg"></div>
     </div>
   </section>
   <aside style="display:grid;gap:16px;align-content:start">
-    <div class="card"><h2>How it works</h2><ol class="steps" id="steps"></ol></div>
+    <div class="card"><h2 id="stepsTitle">How it works</h2><ol class="steps" id="steps"></ol><div id="reveal"></div></div>
+    <div class="card" id="modelCard" style="display:none"><h2>Does your model match?</h2><div id="model"></div></div>
     <div class="card">
       <h2>Your groups</h2>
       <div id="tally" class="big">0 groups</div>
       <div id="tallyNote" class="muted"></div>
-      <div class="ans">Answer: <input id="qn" type="number" min="0"> <b>/</b> <input id="qd" type="number" min="1"> <button class="primary" id="check">Check</button></div>
+      <div class="ans">Answer: <input id="qw" type="number" min="0" placeholder="whole"> <input id="qn" type="number" min="0" placeholder="top"> <b>/</b> <input id="qd" type="number" min="1" placeholder="bottom"> <button class="primary" id="check">Check</button></div>
+      <div class="muted">Whole number part is optional (for mixed numbers).</div>
       <div id="feedback" style="margin-top:8px"></div>
     </div>
   </aside>
 </main>
+<svg id="lassoSvg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10"><path id="lassoPath" fill="rgba(91,79,207,.12)" stroke="#5b4fcf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg width="0" height="0" style="position:absolute"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f08a24" stroke-width="2.5"/></pattern></defs></svg>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -90,150 +120,303 @@ const simp = (n,d)=>{const g=gcd(n,d)||1;return [n/g,d/g];};
 const fracStr = (n,d)=>{[n,d]=simp(n,d);return d===1?`${n}`:`${n}/${d}`;};
 const mixed = (n,d)=>{[n,d]=simp(n,d);const w=Math.floor(n/d),r=n%d;
   if(r===0)return `${w}`; return w? `${w} and ${r}/${d}` : `${r}/${d}`;};
+const clamp = (v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+const SIZE = 240;
 
-let S; // state: p = params, groups, sel
-function readParams(){
-  const g = id => Math.min(12, Math.max(1, parseInt($(id).value)||1));
+let S = {mode:'fixed', tool:'circle', anim:0, lastGroup:-1, shown:false};
+let animId = 0;
+
+function params(){
+  const g = id => clamp(parseInt($(id).value)||1,1,12);
   return {a:g('a'), b:g('b'), c:g('c'), d:g('d')};
 }
-function reset(){
-  const p = readParams();
-  const cells = p.b*p.d;
-  // dividend cells in order: dividend column j lives in unit floor(j/b), column j%b, all d rows
-  const divCells = [];
-  for(let j=0;j<p.a;j++){const u=Math.floor(j/p.b), x=j%p.b;
-    for(let y=0;y<p.d;y++) divCells.push(u*cells + y*p.b + x);}
-  S = {p, cells, n:p.c*p.b, divCells, set:new Set(divCells),
-       units:Math.ceil(p.a/p.b), groups:[], sel:[], groupOf:new Map()};
-  // divisor rows: global row r -> unit floor(r/d), row r%d, all b columns
-  S.divisorSet = new Set();
-  for(let r=0;r<p.c;r++){const u=Math.floor(r/p.d), y=r%p.d;
-    for(let x=0;x<p.b;x++) S.divisorSet.add(u*cells + y*p.b + x);}
-  S.divisorUnits = Math.ceil(p.c/p.d);
-  render(); updateSteps(); updateTally();
+
+// ---------- setup ----------
+function setup(resetGrid){
+  stopAnim();
+  const p = params();
+  if(S.mode==='open' && resetGrid!==true){ // keep the student's own grid
+    S.cols = clamp(parseInt($('gc').value)||1,1,12);
+    S.rows = clamp(parseInt($('gr').value)||1,1,12);
+  } else {
+    S.cols = p.b; S.rows = p.d;
+    $('gc').value = p.b; $('gr').value = p.d;
+  }
+  S.p = p; S.cells = S.cols*S.rows;
+  S.A = new Set(); S.B = new Set();
+  S.aUnits = Math.ceil(p.a/p.b); S.bUnits = Math.ceil(p.c/p.d);
+  if(S.mode==='fixed'){
+    for(let j=0;j<p.a;j++){const u=Math.floor(j/p.b), x=j%p.b;
+      for(let y=0;y<S.rows;y++) S.A.add(u*S.cells + y*S.cols + x);}
+    for(let r=0;r<p.c;r++){const u=Math.floor(r/p.d), y=r%p.d;
+      for(let x=0;x<S.cols;x++) S.B.add(u*S.cells + y*S.cols + x);}
+  }
+  S.shown = false;
+  clearGroups(); buildTools(); updateSteps();
+}
+function clearGroups(){
+  stopAnim();
+  S.groups=[]; S.groupOf=new Map(); S.sel=[]; S.lastGroup=-1;
+  setMsg(''); render(); updateTally(); updateModel();
+}
+const gn = ()=>S.B.size;
+// dividend cells in order: whole by whole, column by column
+function orderedA(){
+  const arr=[...S.A], cells=S.cells, cols=S.cols;
+  const key = id=>{const u=Math.floor(id/cells), r=id%cells; return [u, r%cols, Math.floor(r/cols)];};
+  return arr.sort((i,j)=>{const a=key(i),b=key(j);return a[0]-b[0]||a[1]-b[1]||a[2]-b[2];});
 }
 
-const SIZE = 220;
-function unitSVG(u, kind){ // kind: 'main' (dividend + interaction) or 'divisor'
-  const {b,d} = S.p, w=SIZE/b, h=SIZE/d, base=u*S.cells;
-  let s = `<svg viewBox="0 0 ${SIZE+2} ${SIZE+2}" width="${Math.min(SIZE+2, 300)}" data-unit="${u}"><g transform="translate(1,1)">`;
-  for(let y=0;y<d;y++) for(let x=0;x<b;x++){
-    const id = base + y*b + x;
-    let fill='transparent', op=1, extra='';
-    if(kind==='main'){
-      if(S.set.has(id)){
-        const gi = S.groupOf.get(id);
-        if(gi!==undefined){fill=COLORS[gi%COLORS.length];}
-        else if(S.sel.includes(id)){fill='#222';op=.35;}
-        else {fill='#4a7fe0';op=.5;}
-      }
-      s += `<rect data-id="${id}" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="${fill}" fill-opacity="${op}"/>`;
-      if($('showDivisor').checked && S.divisorSet.has(id)){
-        s += `<rect pointer-events="none" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="url(#hatch)"/>`;
-      }
-    } else if(S.divisorSet.has(id)){
-      s += `<rect x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="#f08a24" fill-opacity=".75"/>`;
-    }
+// ---------- tools ----------
+function buildTools(){
+  const list = S.mode==='open'
+    ? [['shadeA','Shade dividend'],['shadeB','Shade divisor'],['circle','Circle groups'],['paint','Paint groups']]
+    : [['circle','Circle groups'],['paint','Paint groups']];
+  if(!list.some(t=>t[0]===S.tool)) S.tool = list[0][0];
+  $('tools').innerHTML = list.map(([k,l])=>`<button class="tool" data-tool="${k}" aria-pressed="${S.tool===k}">${l}</button>`).join('');
+  $('tools').querySelectorAll('button').forEach(b=>b.onclick=()=>{S.tool=b.dataset.tool;buildTools();hint();});
+  hint();
+}
+function hint(){
+  const t={
+    circle:'Drag to draw a loop around cells. A loop that holds exactly one divisor-size group locks in.',
+    paint:'Tap or drag across blue cells to build a group, one cell at a time.',
+    shadeA:'Tap or drag on the first set of squares to shade the dividend.',
+    shadeB:'Tap or drag on the divisor squares to shade the divisor.'}[S.tool];
+  setMsg(t);
+}
+function setMsg(t){ $('msg').textContent=t; }
+
+// ---------- render ----------
+function unitSVG(u, kind){
+  const {cols,rows,cells} = S, w=SIZE/cols, h=SIZE/rows, base=u*cells;
+  let s = `<svg viewBox="0 0 ${SIZE+2} ${SIZE+2}" data-kind="${kind}"><g transform="translate(1,1)">`;
+  for(let y=0;y<rows;y++) for(let x=0;x<cols;x++){
+    const id = base + y*cols + x;
+    let fill='transparent', op=1, cls='';
+    if(kind==='A'){
+      const gi=S.groupOf.get(id);
+      if(gi!==undefined){fill=COLORS[gi%COLORS.length]; if(gi===S.lastGroup)cls='pop';}
+      else if(S.sel.includes(id) && S.A.has(id)){fill='#222';op=.35;}
+      else if(S.A.has(id)){fill='#4a7fe0';op=.5;}
+    } else if(S.B.has(id)){fill='#f08a24';op=.75;}
+    s += `<rect data-id="${id}" class="${cls}" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="${fill}" fill-opacity="${op}"/>`;
+    if(kind==='A' && $('showDivisor').checked && S.B.has(id))
+      s += `<rect pointer-events="none" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="url(#hatch)"/>`;
   }
-  // group labels
-  if(kind==='main') S.groups.forEach((g,gi)=>{
-    const first = g.cells.find(id=>Math.floor(id/S.cells)===u); if(first===undefined) return;
-    const r=first-base, x=r%b, y=Math.floor(r/b);
-    s += `<text pointer-events="none" x="${x*w+w/2}" y="${y*h+h/2}" text-anchor="middle" dominant-baseline="central" font-size="${Math.min(w,h)*.55}" font-weight="700" fill="#000" fill-opacity=".7">${g.cells.length===S.n? gi+1 : fracStr(g.cells.length,S.n)}</text>`;
+  if(kind==='A') S.groups.forEach((g,gi)=>{
+    const first = g.cells.find(id=>Math.floor(id/cells)===u); if(first===undefined) return;
+    const r=first-base, x=r%cols, y=Math.floor(r/cols);
+    s += `<text pointer-events="none" x="${x*w+w/2}" y="${y*h+h/2}" text-anchor="middle" dominant-baseline="central" font-size="${Math.min(w,h)*.55}" font-weight="700" fill="#000" fill-opacity=".7">${g.cells.length===gn()? gi+1 : fracStr(g.cells.length,gn())}</text>`;
   });
-  // grid lines
   s += `<g stroke="#8a90b0" stroke-width=".7" pointer-events="none">`;
-  for(let x=0;x<=b;x++) s+=`<line x1="${x*w}" y1="0" x2="${x*w}" y2="${SIZE}"/>`;
-  for(let y=0;y<=d;y++) s+=`<line x1="0" y1="${y*h}" x2="${SIZE}" y2="${y*h}"/>`;
+  for(let x=0;x<=cols;x++) s+=`<line x1="${x*w}" y1="0" x2="${x*w}" y2="${SIZE}"/>`;
+  for(let y=0;y<=rows;y++) s+=`<line x1="0" y1="${y*h}" x2="${SIZE}" y2="${y*h}"/>`;
   s += `</g><rect width="${SIZE}" height="${SIZE}" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none"/></g></svg>`;
   return s;
 }
 function render(){
-  const defs = `<svg width="0" height="0" style="position:absolute"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f08a24" stroke-width="2.5"/></pattern></defs></svg>`;
-  let html = defs;
-  const {a,b,c,d} = S.p;
-  for(let u=0;u<S.units;u++) html += `<div class="unit"><h3>${u===0?`Dividend ${a}/${b}`:'(next whole)'}</h3>${unitSVG(u,'main')}</div>`;
-  html += `<div style="width:100%;height:0"></div>`;
-  for(let u=0;u<S.divisorUnits;u++) html += `<div class="unit"><h3>${u===0?`Divisor ${c}/${d} = one group`:'(next whole)'}</h3>${unitSVG(u,'divisor')}</div>`;
+  const {a,b,c,d}=params();
+  let html='';
+  for(let u=0;u<S.aUnits;u++) html += `<div class="unit"><h3>${u===0?`Dividend ${a}/${b}`:'(next whole)'}</h3>${unitSVG(u,'A')}</div>`;
+  html += '<div class="break"></div>';
+  for(let u=0;u<S.bUnits;u++) html += `<div class="unit"><h3>${u===0?`Divisor ${c}/${d} = one group`:'(next whole)'}</h3>${unitSVG(u,'B')}</div>`;
   $('stage').innerHTML = html;
-  $('partial').disabled = !(S.sel.length>0 && S.sel.length<S.n);
+  $('partial').disabled = !(S.sel.length>0 && (!gn() || S.sel.length<gn()));
 }
 
-// ---- interaction (tap + drag painting) ----
-let painting=false, paintMode=true;
-function cellFromEvent(e){
-  const el = document.elementFromPoint(e.clientX,e.clientY);
-  return el && el.dataset && el.dataset.id!==undefined ? +el.dataset.id : null;
+// ---------- pointer interaction ----------
+let painting=false, paintOn=true, lasso=null;
+const cellEl = e=>{
+  const el=document.elementFromPoint(e.clientX,e.clientY);
+  if(!el||el.dataset.id===undefined) return null;
+  return {id:+el.dataset.id, kind:el.closest('svg').dataset.kind};
+};
+function shade(set,id,on){
+  if(on===set.has(id)) return;
+  on? set.add(id) : set.delete(id);
+  S.groups=[]; S.groupOf=new Map(); S.sel=[]; // model changed, old groups no longer valid
+  render(); updateTally(); updateModel();
 }
-function applyCell(id){
-  if(id===null || !S.set.has(id) || S.groupOf.has(id)) return;
-  const i = S.sel.indexOf(id);
-  if(paintMode && i<0) S.sel.push(id);
-  else if(!paintMode && i>=0) S.sel.splice(i,1);
-  else return;
-  if(S.sel.length===S.n) lockGroup();
-  else { render(); }
+function paintCell(c){
+  if(!c) return;
+  if(S.tool==='shadeA' && c.kind==='A') return shade(S.A,c.id,paintOn);
+  if(S.tool==='shadeB' && c.kind==='B') return shade(S.B,c.id,paintOn);
+  if(S.tool!=='paint' || c.kind!=='A') return;
+  if(!S.A.has(c.id) || S.groupOf.has(c.id)) return;
+  if(!gn()){ setMsg('Shade the divisor first so we know how big one group is.'); return; }
+  const i=S.sel.indexOf(c.id);
+  if(paintOn && i<0) S.sel.push(c.id); else if(!paintOn && i>=0) S.sel.splice(i,1); else return;
+  if(S.sel.length===gn()) lockGroup(); else render();
 }
 $('stage').addEventListener('pointerdown', e=>{
-  const id = cellFromEvent(e); if(id===null || !S.set.has(id) || S.groupOf.has(id)) return;
-  paintMode = !S.sel.includes(id); painting=true; applyCell(id);
+  stopAnim();
+  if(S.tool==='circle'){
+    if(!e.target.closest('svg[data-kind="A"]')) return;
+    lasso=[[e.clientX,e.clientY]]; drawLasso(); return;
+  }
+  const c=cellEl(e); if(!c) return;
+  if(S.tool==='shadeA') paintOn=!S.A.has(c.id);
+  else if(S.tool==='shadeB') paintOn=!S.B.has(c.id);
+  else paintOn=!S.sel.includes(c.id);
+  painting=true; paintCell(c);
 });
-$('stage').addEventListener('pointermove', e=>{ if(painting) applyCell(cellFromEvent(e)); });
-window.addEventListener('pointerup', ()=>painting=false);
-
+window.addEventListener('pointermove', e=>{
+  if(lasso){lasso.push([e.clientX,e.clientY]);drawLasso();}
+  else if(painting) paintCell(cellEl(e));
+});
+window.addEventListener('pointerup', ()=>{
+  painting=false;
+  if(lasso){const pts=lasso; lasso=null; $('lassoPath').setAttribute('d',''); finishLasso(pts);}
+});
+function drawLasso(){
+  $('lassoPath').setAttribute('d', 'M'+lasso.map(p=>p.join(',')).join(' L'));
+}
+function inside(pt,poly){
+  let ins=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const [xi,yi]=poly[i],[xj,yj]=poly[j];
+    if((yi>pt[1])!==(yj>pt[1]) && pt[0]<(xj-xi)*(pt[1]-yi)/(yj-yi)+xi) ins=!ins;
+  }
+  return ins;
+}
+function finishLasso(pts){
+  if(pts.length<8) return;
+  if(!gn()){ setMsg('Shade the divisor first so we know how big one group is.'); return; }
+  const hit=[];
+  $('stage').querySelectorAll('svg[data-kind="A"] rect[data-id]').forEach(r=>{
+    const id=+r.dataset.id; if(!S.A.has(id)||S.groupOf.has(id)) return;
+    const b=r.getBoundingClientRect();
+    if(inside([b.x+b.width/2,b.y+b.height/2],pts)) hit.push(id);
+  });
+  if(!hit.length) return;
+  const sel=new Set(S.sel); hit.forEach(id=>sel.add(id)); S.sel=[...sel];
+  if(S.sel.length>gn()){
+    setMsg(`That loop holds ${S.sel.length} cells, but one group is ${gn()}. Try a smaller loop.`);
+    S.sel=[]; render(); return;
+  }
+  if(S.sel.length===gn()) lockGroup();
+  else { setMsg(`${S.sel.length} of ${gn()} cells. Circle more, or lock this as a partial group.`); render(); }
+}
 function lockGroup(){
-  const gi = S.groups.length;
+  if(!S.sel.length) return;
+  const gi=S.groups.length;
   S.groups.push({cells:S.sel.slice()});
   S.sel.forEach(id=>S.groupOf.set(id,gi));
-  S.sel=[]; painting=false; render(); updateTally();
+  S.sel=[]; painting=false; setMsg('');
+  render(); updateTally();
 }
-$('partial').onclick = lockGroup;
-$('auto').onclick = ()=>{
-  const left = S.divCells.filter(id=>!S.groupOf.has(id) && !S.sel.includes(id));
-  S.sel.forEach(id=>S.groupOf.delete(id)); const pool = S.sel.concat(left); S.sel=[];
-  for(let i=0;i<pool.length;i+=S.n){
-    const gi=S.groups.length, chunk=pool.slice(i,i+S.n);
-    S.groups.push({cells:chunk}); chunk.forEach(id=>S.groupOf.set(id,gi));
-  }
-  render(); updateTally();
-};
-$('undo').onclick = ()=>{
-  if(S.sel.length){S.sel=[];}
-  else { const g=S.groups.pop(); if(g) g.cells.forEach(id=>S.groupOf.delete(id)); }
-  render(); updateTally();
-};
-$('clear').onclick = reset;
-$('showDivisor').onchange = render;
-['a','b','c','d'].forEach(id=>$(id).addEventListener('change',reset));
 
-// ---- explanation + tally ----
+// ---------- buttons ----------
+function chunks(){
+  const pool=orderedA().filter(id=>!S.groupOf.has(id)), n=gn(), out=[];
+  for(let i=0;i<pool.length;i+=n) out.push(pool.slice(i,i+n));
+  return out;
+}
+function addGroup(cells){
+  const gi=S.groups.length;
+  S.groups.push({cells}); cells.forEach(id=>S.groupOf.set(id,gi));
+  return gi;
+}
+$('auto').onclick=()=>{
+  stopAnim();
+  if(!gn()){setMsg('Shade the divisor first.');return;}
+  S.sel=[]; chunks().forEach(addGroup); render(); updateTally();
+};
+async function animate(){
+  if(S.anim){stopAnim();return;}
+  if(!gn()||!S.A.size){setMsg('Shade the dividend and divisor first.');return;}
+  const id=++animId; S.anim=id;
+  S.groups=[]; S.groupOf=new Map(); S.sel=[]; render(); updateTally();
+  $('animate').textContent='■ Stop';
+  const list=chunks(), n=gn();
+  for(const cells of list){
+    setMsg(`Looking for a group of ${n} cells...`);
+    await sleep(900); if(S.anim!==id) return;
+    const gi=addGroup(cells); S.lastGroup=gi;
+    setMsg(cells.length===n?`Group ${gi+1} fits!`:`Only ${cells.length} of ${n} cells are left: that's ${fracStr(cells.length,n)} of a group.`);
+    render(); updateTally(); setTimeout(()=>{S.lastGroup=-1;},50);
+  }
+  await sleep(500); if(S.anim!==id) return;
+  S.anim=0; $('animate').textContent='▶ Animate';
+  const tot=S.A.size; setMsg(`Done: ${tot} cells ÷ ${n} cells per group = ${mixed(tot,n)} groups.`);
+}
+function stopAnim(){ S.anim=0; animId++; $('animate').textContent='▶ Animate'; }
+$('animate').onclick=animate;
+$('partial').onclick=lockGroup;
+$('undo').onclick=()=>{
+  stopAnim();
+  if(S.sel.length) S.sel=[]; else {const g=S.groups.pop(); if(g) g.cells.forEach(id=>S.groupOf.delete(id));}
+  render(); updateTally();
+};
+$('clear').onclick=clearGroups;
+$('reset').onclick=()=>setup(true);
+$('showDivisor').onchange=render;
+['a','b','c','d'].forEach(id=>$(id).addEventListener('change',()=>setup(true)));
+['gc','gr'].forEach(id=>$(id).addEventListener('change',()=>setup(false)));
+function setMode(m){
+  S.mode=m;
+  $('mFixed').setAttribute('aria-pressed',m==='fixed'); $('mOpen').setAttribute('aria-pressed',m==='open');
+  $('open').style.display = m==='open'?'flex':'none';
+  S.tool = m==='open'?'shadeA':'circle';
+  setup(true);
+}
+$('mFixed').onclick=()=>setMode('fixed'); $('mOpen').onclick=()=>setMode('open');
+function wholes(key,delta){ S[key]=clamp(S[key]+delta,1,12); clearGroups(); }
+$('aPlus').onclick=()=>wholes('aUnits',1); $('aMinus').onclick=()=>wholes('aUnits',-1);
+$('bPlus').onclick=()=>wholes('bUnits',1); $('bMinus').onclick=()=>wholes('bUnits',-1);
+
+// ---------- side panels ----------
 function updateSteps(){
-  const {a,b,c,d}=S.p, exact=simp(a*d,b*c);
-  $('steps').innerHTML = `
+  const {a,b,c,d}=S.p;
+  if(S.mode==='open'){
+    $('stepsTitle').textContent='Your plan';
+    $('steps').innerHTML=`
+      <li>Choose a grid for one whole. Try columns and rows that both ${b} and ${d} divide into.</li>
+      <li>Shade <b>${a}/${b}</b> of a whole as the dividend (blue). Add wholes with + if it is bigger than 1.</li>
+      <li>Shade <b>${c}/${d}</b> as the divisor (orange). This is the size of one group.</li>
+      <li>Circle or animate groups of that size inside the dividend. How many groups fit?</li>`;
+    $('reveal').innerHTML='';
+    return;
+  }
+  $('stepsTitle').textContent='How it works';
+  $('steps').innerHTML=`
     <li>Cut each whole into <b>${b}</b> columns and <b>${d}</b> rows. That makes <b>${b*d}</b> equal cells, so both fractions are measured in the same size piece.</li>
     <li>Dividend ${a}/${b} = ${a} column${a>1?'s':''} × ${d} rows = <b style="color:var(--dividend)">${a*d} cells</b>.</li>
     <li>Divisor ${c}/${d} = ${c} row${c>1?'s':''} × ${b} columns = <b style="color:var(--divisor)">${c*b} cells</b>.</li>
-    <li>How many groups of ${c*b} fit in ${a*d}? That is ${a*d} ÷ ${c*b} = <b>${fracStr(a*d,b*c)}</b>${exact[1]>1?` (${mixed(a*d,b*c)})`:''}.</li>
-    <li class="muted">Shortcut: ${a}/${b} × ${d}/${c} = ${fracStr(a*d,b*c)}. Dividing by a fraction is the same as multiplying by its flip.</li>`;
+    <li>How many groups of ${c*b} fit in ${a*d}? Circle them and find out.</li>`
+    + (S.shown?`<li>${a*d} ÷ ${c*b} = <b>${fracStr(a*d,b*c)}</b>${simp(a*d,b*c)[1]>1?` (${mixed(a*d,b*c)})`:''}.</li>
+    <li class="muted">Shortcut: ${a}/${b} × ${d}/${c} = ${fracStr(a*d,b*c)}. Dividing by a fraction is the same as multiplying by its flip.</li>`:'');
+  $('reveal').innerHTML = S.shown?'':'<button id="showCalc">Show the calculation</button>';
+  if(!S.shown) $('showCalc').onclick=()=>{S.shown=true;updateSteps();};
+}
+function updateModel(){
+  $('modelCard').style.display = S.mode==='open'?'block':'none';
+  if(S.mode!=='open') return;
+  const {a,b,c,d}=S.p, A=S.A.size, B=S.B.size, cells=S.cells;
+  const line=(name,n,num,den)=>{
+    const ok = n>0 && n*den===num*cells;
+    return `<div>${name}: ${n} of ${cells} cells = ${n?fracStr(n,cells):'0'} of a whole ${ok?'<span class="ok">✓ matches '+num+'/'+den+'</span>':`<span class="bad">should be ${num}/${den}</span>`}</div>`;
+  };
+  $('model').innerHTML = line('Dividend',A,a,b)+line('Divisor',B,c,d);
 }
 function updateTally(){
-  const total = S.groups.reduce((s,g)=>s+g.cells.length,0), n=S.n;
-  const done = total===S.divCells.length;
-  $('tally').textContent = total? `${fracStr(total,n)}${total%n? ' ('+mixed(total,n)+')':''} group${total===n?'':'s'}` : '0 groups';
-  $('tallyNote').textContent = done
-    ? 'Every dividend cell is in a group.'
-    : `${S.divCells.length-total} cell${S.divCells.length-total===1?'':'s'} still ungrouped.`;
+  const total=S.groups.reduce((s,g)=>s+g.cells.length,0), n=gn(), A=S.A.size;
+  $('tally').textContent = total&&n ? `${fracStr(total,n)}${total%n?' ('+mixed(total,n)+')':''} group${total===n?'':'s'}` : '0 groups';
+  $('tallyNote').textContent = !A ? 'Shade the dividend to begin.' : total===A ? 'Every dividend cell is in a group.'
+    : `${A-total} cell${A-total===1?'':'s'} still ungrouped.`;
   $('feedback').innerHTML='';
 }
-$('check').onclick = ()=>{
-  const qn=parseInt($('qn').value), qd=parseInt($('qd').value)||1;
-  if(isNaN(qn)){ $('feedback').innerHTML='<span class="bad">Enter your answer first.</span>'; return; }
-  const {a,b,c,d}=S.p, [en,ed]=simp(a*d,b*c), [sn,sd]=simp(qn,qd);
+$('check').onclick=()=>{
+  const w=parseInt($('qw').value)||0, qn=parseInt($('qn').value), qd=parseInt($('qd').value)||1;
+  if(isNaN(qn)&&!w){ $('feedback').innerHTML='<span class="bad">Enter your answer first.</span>'; return; }
+  const {a,b,c,d}=S.p, [en,ed]=simp(a*d,b*c), [sn,sd]=simp(w*qd+(qn||0),qd);
   $('feedback').innerHTML = (sn===en&&sd===ed)
-    ? `<span class="ok">Correct! ${a}/${b} ÷ ${c}/${d} = ${fracStr(a*d,b*c)}</span>`
-    : `<span class="bad">Not yet.</span> <span class="muted">Try grouping the cells and count how many groups fit.</span>`;
+    ? `<span class="ok">Correct! ${a}/${b} ÷ ${c}/${d} = ${mixed(a*d,b*c)}</span>`
+    : `<span class="bad">Not yet.</span> <span class="muted">Group the cells and count how many groups fit.</span>`;
 };
-reset();
+setMode('fixed');
 </script>
 </body>
 </html>
