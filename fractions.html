@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Fraction Division Grid</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --surface:#fff; --border:#d9dcea; --text:#1f2233; --text2:#667;
+    --dividend:#4a7fe0; --divisor:#f08a24; --accent:#5b4fcf;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{--bg:#14151d; --surface:#1e2030; --border:#33364d; --text:#e8e9f4; --text2:#9a9cb5;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+  header{padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border)}
+  h1{margin:0;font-size:20px}
+  main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:16px;grid-template-columns:minmax(0,1fr) 340px}
+  @media(max-width:860px){main{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px}
+  .eq{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;font-size:22px}
+  .frac{display:inline-flex;flex-direction:column;align-items:center;gap:2px}
+  .frac input{width:56px;font-size:20px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
+  .frac .bar{width:56px;height:3px;background:var(--text);border-radius:2px}
+  .frac.a input{border-color:var(--dividend)} .frac.c input{border-color:var(--divisor)}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;justify-content:center}
+  button{font:inherit;padding:8px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.4;cursor:default}
+  label.chk{display:inline-flex;align-items:center;gap:6px;padding:8px 4px}
+  #stage{display:flex;flex-wrap:wrap;gap:18px;justify-content:center;align-items:flex-start;touch-action:none}
+  .unit h3{margin:0 0 4px;font-size:13px;color:var(--text2);text-align:center;font-weight:600}
+  svg{display:block;max-width:100%;height:auto;touch-action:none;user-select:none}
+  .legend{display:flex;gap:14px;justify-content:center;font-size:14px;margin-top:10px;flex-wrap:wrap}
+  .sw{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:5px}
+  h2{margin:0 0 8px;font-size:16px}
+  ol.steps{margin:0;padding-left:20px} ol.steps li{margin-bottom:8px}
+  .big{font-size:20px;font-weight:700}
+  .ok{color:#1a9a55;font-weight:700} .bad{color:#d4453a;font-weight:700}
+  .muted{color:var(--text2);font-size:14px}
+  .ans{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .ans input{width:56px;font-size:18px;text-align:center;padding:4px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text)}
+</style>
+</head>
+<body>
+<header><h1>Fraction Division Grid</h1></header>
+<main>
+  <section>
+    <div class="card">
+      <div class="eq">
+        <span class="frac a"><input id="a" type="number" min="1" max="12" value="3"><span class="bar"></span><input id="b" type="number" min="1" max="12" value="4"></span>
+        <span>÷</span>
+        <span class="frac c"><input id="c" type="number" min="1" max="12" value="1"><span class="bar"></span><input id="d" type="number" min="1" max="12" value="2"></span>
+      </div>
+      <div class="toolbar">
+        <button id="auto">Auto-group</button>
+        <button id="partial" disabled>Lock as partial group</button>
+        <button id="undo">Undo group</button>
+        <button id="clear">Clear</button>
+        <label class="chk"><input type="checkbox" id="showDivisor" checked> Overlay divisor</label>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div id="stage"></div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--dividend);opacity:.55"></span>dividend</span>
+        <span><span class="sw" style="background:repeating-linear-gradient(0deg,var(--divisor) 0 3px,transparent 3px 6px)"></span>divisor (the size of one group)</span>
+      </div>
+      <p class="muted" style="text-align:center;margin:10px 0 0">Tap or drag across blue cells to draw a group. A full group is the same number of cells as the divisor.</p>
+    </div>
+  </section>
+  <aside style="display:grid;gap:16px;align-content:start">
+    <div class="card"><h2>How it works</h2><ol class="steps" id="steps"></ol></div>
+    <div class="card">
+      <h2>Your groups</h2>
+      <div id="tally" class="big">0 groups</div>
+      <div id="tallyNote" class="muted"></div>
+      <div class="ans">Answer: <input id="qn" type="number" min="0"> <b>/</b> <input id="qd" type="number" min="1"> <button class="primary" id="check">Check</button></div>
+      <div id="feedback" style="margin-top:8px"></div>
+    </div>
+  </aside>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const COLORS = ['#e4572e','#17bebb','#ffc914','#76b041','#a05195','#ff7c43','#2f9e44','#d6336c'];
+const gcd = (x,y)=>y?gcd(y,x%y):Math.abs(x);
+const simp = (n,d)=>{const g=gcd(n,d)||1;return [n/g,d/g];};
+const fracStr = (n,d)=>{[n,d]=simp(n,d);return d===1?`${n}`:`${n}/${d}`;};
+const mixed = (n,d)=>{[n,d]=simp(n,d);const w=Math.floor(n/d),r=n%d;
+  if(r===0)return `${w}`; return w? `${w} and ${r}/${d}` : `${r}/${d}`;};
+
+let S; // state: p = params, groups, sel
+function readParams(){
+  const g = id => Math.min(12, Math.max(1, parseInt($(id).value)||1));
+  return {a:g('a'), b:g('b'), c:g('c'), d:g('d')};
+}
+function reset(){
+  const p = readParams();
+  const cells = p.b*p.d;
+  // dividend cells in order: dividend column j lives in unit floor(j/b), column j%b, all d rows
+  const divCells = [];
+  for(let j=0;j<p.a;j++){const u=Math.floor(j/p.b), x=j%p.b;
+    for(let y=0;y<p.d;y++) divCells.push(u*cells + y*p.b + x);}
+  S = {p, cells, n:p.c*p.b, divCells, set:new Set(divCells),
+       units:Math.ceil(p.a/p.b), groups:[], sel:[], groupOf:new Map()};
+  // divisor rows: global row r -> unit floor(r/d), row r%d, all b columns
+  S.divisorSet = new Set();
+  for(let r=0;r<p.c;r++){const u=Math.floor(r/p.d), y=r%p.d;
+    for(let x=0;x<p.b;x++) S.divisorSet.add(u*cells + y*p.b + x);}
+  S.divisorUnits = Math.ceil(p.c/p.d);
+  render(); updateSteps(); updateTally();
+}
+
+const SIZE = 220;
+function unitSVG(u, kind){ // kind: 'main' (dividend + interaction) or 'divisor'
+  const {b,d} = S.p, w=SIZE/b, h=SIZE/d, base=u*S.cells;
+  let s = `<svg viewBox="0 0 ${SIZE+2} ${SIZE+2}" width="${Math.min(SIZE+2, 300)}" data-unit="${u}"><g transform="translate(1,1)">`;
+  for(let y=0;y<d;y++) for(let x=0;x<b;x++){
+    const id = base + y*b + x;
+    let fill='transparent', op=1, extra='';
+    if(kind==='main'){
+      if(S.set.has(id)){
+        const gi = S.groupOf.get(id);
+        if(gi!==undefined){fill=COLORS[gi%COLORS.length];}
+        else if(S.sel.includes(id)){fill='#222';op=.35;}
+        else {fill='#4a7fe0';op=.5;}
+      }
+      s += `<rect data-id="${id}" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="${fill}" fill-opacity="${op}"/>`;
+      if($('showDivisor').checked && S.divisorSet.has(id)){
+        s += `<rect pointer-events="none" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="url(#hatch)"/>`;
+      }
+    } else if(S.divisorSet.has(id)){
+      s += `<rect x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="#f08a24" fill-opacity=".75"/>`;
+    }
+  }
+  // group labels
+  if(kind==='main') S.groups.forEach((g,gi)=>{
+    const first = g.cells.find(id=>Math.floor(id/S.cells)===u); if(first===undefined) return;
+    const r=first-base, x=r%b, y=Math.floor(r/b);
+    s += `<text pointer-events="none" x="${x*w+w/2}" y="${y*h+h/2}" text-anchor="middle" dominant-baseline="central" font-size="${Math.min(w,h)*.55}" font-weight="700" fill="#000" fill-opacity=".7">${g.cells.length===S.n? gi+1 : fracStr(g.cells.length,S.n)}</text>`;
+  });
+  // grid lines
+  s += `<g stroke="#8a90b0" stroke-width=".7" pointer-events="none">`;
+  for(let x=0;x<=b;x++) s+=`<line x1="${x*w}" y1="0" x2="${x*w}" y2="${SIZE}"/>`;
+  for(let y=0;y<=d;y++) s+=`<line x1="0" y1="${y*h}" x2="${SIZE}" y2="${y*h}"/>`;
+  s += `</g><rect width="${SIZE}" height="${SIZE}" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none"/></g></svg>`;
+  return s;
+}
+function render(){
+  const defs = `<svg width="0" height="0" style="position:absolute"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f08a24" stroke-width="2.5"/></pattern></defs></svg>`;
+  let html = defs;
+  const {a,b,c,d} = S.p;
+  for(let u=0;u<S.units;u++) html += `<div class="unit"><h3>${u===0?`Dividend ${a}/${b}`:'(next whole)'}</h3>${unitSVG(u,'main')}</div>`;
+  html += `<div style="width:100%;height:0"></div>`;
+  for(let u=0;u<S.divisorUnits;u++) html += `<div class="unit"><h3>${u===0?`Divisor ${c}/${d} = one group`:'(next whole)'}</h3>${unitSVG(u,'divisor')}</div>`;
+  $('stage').innerHTML = html;
+  $('partial').disabled = !(S.sel.length>0 && S.sel.length<S.n);
+}
+
+// ---- interaction (tap + drag painting) ----
+let painting=false, paintMode=true;
+function cellFromEvent(e){
+  const el = document.elementFromPoint(e.clientX,e.clientY);
+  return el && el.dataset && el.dataset.id!==undefined ? +el.dataset.id : null;
+}
+function applyCell(id){
+  if(id===null || !S.set.has(id) || S.groupOf.has(id)) return;
+  const i = S.sel.indexOf(id);
+  if(paintMode && i<0) S.sel.push(id);
+  else if(!paintMode && i>=0) S.sel.splice(i,1);
+  else return;
+  if(S.sel.length===S.n) lockGroup();
+  else { render(); }
+}
+$('stage').addEventListener('pointerdown', e=>{
+  const id = cellFromEvent(e); if(id===null || !S.set.has(id) || S.groupOf.has(id)) return;
+  paintMode = !S.sel.includes(id); painting=true; applyCell(id);
+});
+$('stage').addEventListener('pointermove', e=>{ if(painting) applyCell(cellFromEvent(e)); });
+window.addEventListener('pointerup', ()=>painting=false);
+
+function lockGroup(){
+  const gi = S.groups.length;
+  S.groups.push({cells:S.sel.slice()});
+  S.sel.forEach(id=>S.groupOf.set(id,gi));
+  S.sel=[]; painting=false; render(); updateTally();
+}
+$('partial').onclick = lockGroup;
+$('auto').onclick = ()=>{
+  const left = S.divCells.filter(id=>!S.groupOf.has(id) && !S.sel.includes(id));
+  S.sel.forEach(id=>S.groupOf.delete(id)); const pool = S.sel.concat(left); S.sel=[];
+  for(let i=0;i<pool.length;i+=S.n){
+    const gi=S.groups.length, chunk=pool.slice(i,i+S.n);
+    S.groups.push({cells:chunk}); chunk.forEach(id=>S.groupOf.set(id,gi));
+  }
+  render(); updateTally();
+};
+$('undo').onclick = ()=>{
+  if(S.sel.length){S.sel=[];}
+  else { const g=S.groups.pop(); if(g) g.cells.forEach(id=>S.groupOf.delete(id)); }
+  render(); updateTally();
+};
+$('clear').onclick = reset;
+$('showDivisor').onchange = render;
+['a','b','c','d'].forEach(id=>$(id).addEventListener('change',reset));
+
+// ---- explanation + tally ----
+function updateSteps(){
+  const {a,b,c,d}=S.p, exact=simp(a*d,b*c);
+  $('steps').innerHTML = `
+    <li>Cut each whole into <b>${b}</b> columns and <b>${d}</b> rows. That makes <b>${b*d}</b> equal cells, so both fractions are measured in the same size piece.</li>
+    <li>Dividend ${a}/${b} = ${a} column${a>1?'s':''} × ${d} rows = <b style="color:var(--dividend)">${a*d} cells</b>.</li>
+    <li>Divisor ${c}/${d} = ${c} row${c>1?'s':''} × ${b} columns = <b style="color:var(--divisor)">${c*b} cells</b>.</li>
+    <li>How many groups of ${c*b} fit in ${a*d}? That is ${a*d} ÷ ${c*b} = <b>${fracStr(a*d,b*c)}</b>${exact[1]>1?` (${mixed(a*d,b*c)})`:''}.</li>
+    <li class="muted">Shortcut: ${a}/${b} × ${d}/${c} = ${fracStr(a*d,b*c)}. Dividing by a fraction is the same as multiplying by its flip.</li>`;
+}
+function updateTally(){
+  const total = S.groups.reduce((s,g)=>s+g.cells.length,0), n=S.n;
+  const done = total===S.divCells.length;
+  $('tally').textContent = total? `${fracStr(total,n)}${total%n? ' ('+mixed(total,n)+')':''} group${total===n?'':'s'}` : '0 groups';
+  $('tallyNote').textContent = done
+    ? 'Every dividend cell is in a group.'
+    : `${S.divCells.length-total} cell${S.divCells.length-total===1?'':'s'} still ungrouped.`;
+  $('feedback').innerHTML='';
+}
+$('check').onclick = ()=>{
+  const qn=parseInt($('qn').value), qd=parseInt($('qd').value)||1;
+  if(isNaN(qn)){ $('feedback').innerHTML='<span class="bad">Enter your answer first.</span>'; return; }
+  const {a,b,c,d}=S.p, [en,ed]=simp(a*d,b*c), [sn,sd]=simp(qn,qd);
+  $('feedback').innerHTML = (sn===en&&sd===ed)
+    ? `<span class="ok">Correct! ${a}/${b} ÷ ${c}/${d} = ${fracStr(a*d,b*c)}</span>`
+    : `<span class="bad">Not yet.</span> <span class="muted">Try grouping the cells and count how many groups fit.</span>`;
+};
+reset();
+</script>
+</body>
+</html>
