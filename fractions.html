@@ -47,9 +47,27 @@
   .ok{color:#1a9a55;font-weight:700} .bad{color:#d4453a;font-weight:700}
   .muted{color:var(--text2);font-size:14px}
   .ans{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
-  .ans input{width:56px;font-size:18px}
+  .ans input{width:72px;font-size:18px}
   #msg{min-height:22px;text-align:center;margin-top:8px;font-weight:600;color:var(--accent)}
   .pop{animation:pop .9s ease-out}
+  .ol{fill:none;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+  .olA{stroke:#1e50c8;opacity:0} .olB{stroke:#d96a00;opacity:0}
+  .olg{stroke:#1b1b1b;stroke-width:2.5} .olhint{stroke:#1b1b1b;stroke-dasharray:7 5;animation:pulse 1s ease-in-out infinite}
+  .olhl{stroke:#fff;stroke-width:6;animation:pulse 1s ease-in-out infinite}
+  #stage.fA .olA,#stage.hA .olA,#stage.fB .olB,#stage.hB .olB{opacity:1;animation:pulse 1.1s ease-in-out infinite}
+  #stage.fA .unitB,#stage.fB .unitA{opacity:.35}
+  .unit{transition:opacity .25s}
+  @keyframes pulse{0%,100%{stroke-width:3}50%{stroke-width:8}}
+  #guide .dots{display:flex;gap:6px;margin-bottom:8px}
+  #guide .dot{width:10px;height:10px;border-radius:50%;background:var(--border)}
+  #guide .dot.on{background:var(--accent)} #guide .dot.done{background:#1a9a55}
+  #guide h2{font-size:17px}
+  #guide .q{margin-top:10px;padding:10px;border-radius:10px;background:var(--bg);border:1px solid var(--border)}
+  #guide .qrow{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap}
+  #guide input[type=text]{font:inherit;padding:6px 8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);width:150px}
+  #guide .nav{display:flex;justify-content:space-between;margin-top:12px}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .chip{padding:2px 10px;border-radius:14px;font-weight:700;color:#000;border:1px solid rgba(0,0,0,.25)}
   @keyframes pop{0%{opacity:.1}100%{opacity:1}}
 </style>
 </head>
@@ -84,25 +102,26 @@
         <button id="undo">Undo</button>
         <button id="clear">Clear groups</button>
         <button id="reset">Reset</button>
-        <label class="chk"><input type="checkbox" id="showDivisor" checked> Overlay divisor</label>
+        <label class="chk"><input type="checkbox" id="guideOn" checked> Guided prompts</label>
       </div>
     </div>
     <div class="card" style="margin-top:16px">
       <div id="stage"></div>
       <div class="legend">
-        <span><span class="sw" style="background:var(--dividend);opacity:.55"></span>dividend</span>
-        <span><span class="sw" style="background:repeating-linear-gradient(0deg,var(--divisor) 0 3px,transparent 3px 6px)"></span>divisor (the size of one group)</span>
+        <span><span class="sw" style="background:var(--dividend);opacity:.55"></span>dividend (what we have)</span>
+        <span><span class="sw" style="background:var(--divisor);opacity:.75"></span>divisor (size of one group)</span>
       </div>
       <div id="msg"></div>
     </div>
   </section>
   <aside style="display:grid;gap:16px;align-content:start">
+    <div class="card" id="guide"></div>
     <div class="card"><h2 id="stepsTitle">How it works</h2><ol class="steps" id="steps"></ol><div id="reveal"></div></div>
     <div class="card" id="modelCard" style="display:none"><h2>Does your model match?</h2><div id="model"></div></div>
     <div class="card">
       <h2>Your groups</h2>
       <div id="tally" class="big">0 groups</div>
-      <div id="tallyNote" class="muted"></div>
+      <div id="tallyNote" class="muted"></div><div id="chips" class="chips"></div>
       <div class="ans">Answer: <input id="qw" type="number" min="0" placeholder="whole"> <input id="qn" type="number" min="0" placeholder="top"> <b>/</b> <input id="qd" type="number" min="1" placeholder="bottom"> <button class="primary" id="check">Check</button></div>
       <div class="muted">Whole number part is optional (for mixed numbers).</div>
       <div id="feedback" style="margin-top:8px"></div>
@@ -110,7 +129,6 @@
   </aside>
 </main>
 <svg id="lassoSvg" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10"><path id="lassoPath" fill="rgba(91,79,207,.12)" stroke="#5b4fcf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
-<svg width="0" height="0" style="position:absolute"><defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="6" stroke="#f08a24" stroke-width="2.5"/></pattern></defs></svg>
 
 <script>
 const $ = id => document.getElementById(id);
@@ -124,7 +142,7 @@ const clamp = (v,lo,hi)=>Math.min(hi,Math.max(lo,v));
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 const SIZE = 240;
 
-let S = {mode:'fixed', tool:'circle', anim:0, lastGroup:-1, shown:false};
+let S = {mode:'fixed', tool:'circle', anim:0, lastGroup:-1, shown:false, step:0, solved:{}, hint:null, hl:-1};
 let animId = 0;
 
 function params(){
@@ -152,12 +170,12 @@ function setup(resetGrid){
     for(let r=0;r<p.c;r++){const u=Math.floor(r/p.d), y=r%p.d;
       for(let x=0;x<S.cols;x++) S.B.add(u*S.cells + y*S.cols + x);}
   }
-  S.shown = false;
-  clearGroups(); buildTools(); updateSteps();
+  S.shown = false; S.step=0; S.solved={};
+  clearGroups(); buildTools(); updateSteps(); if(window.renderGuide) renderGuide();
 }
 function clearGroups(){
   stopAnim();
-  S.groups=[]; S.groupOf=new Map(); S.sel=[]; S.lastGroup=-1;
+  S.groups=[]; S.groupOf=new Map(); S.sel=[]; S.lastGroup=-1; S.hint=null; S.hl=-1;
   setMsg(''); render(); updateTally(); updateModel();
 }
 const gn = ()=>S.B.size;
@@ -189,6 +207,19 @@ function hint(){
 function setMsg(t){ $('msg').textContent=t; }
 
 // ---------- render ----------
+// SVG path tracing the outer edge of a set of cells within one whole
+function outline(set,u){
+  const {cols,rows,cells}=S, w=SIZE/cols, h=SIZE/rows; let d='';
+  for(const id of set){
+    if(Math.floor(id/cells)!==u) continue;
+    const r=id%cells, x=r%cols, y=Math.floor(r/cols), has=(i)=>set.has(u*cells+i);
+    if(x===0||!has(r-1)) d+=`M${x*w} ${y*h}V${(y+1)*h}`;
+    if(x===cols-1||!has(r+1)) d+=`M${(x+1)*w} ${y*h}V${(y+1)*h}`;
+    if(y===0||!has(r-cols)) d+=`M${x*w} ${y*h}H${(x+1)*w}`;
+    if(y===rows-1||!has(r+cols)) d+=`M${x*w} ${(y+1)*h}H${(x+1)*w}`;
+  }
+  return d;
+}
 function unitSVG(u, kind){
   const {cols,rows,cells} = S, w=SIZE/cols, h=SIZE/rows, base=u*cells;
   let s = `<svg viewBox="0 0 ${SIZE+2} ${SIZE+2}" data-kind="${kind}"><g transform="translate(1,1)">`;
@@ -202,8 +233,6 @@ function unitSVG(u, kind){
       else if(S.A.has(id)){fill='#4a7fe0';op=.5;}
     } else if(S.B.has(id)){fill='#f08a24';op=.75;}
     s += `<rect data-id="${id}" class="${cls}" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="${fill}" fill-opacity="${op}"/>`;
-    if(kind==='A' && $('showDivisor').checked && S.B.has(id))
-      s += `<rect pointer-events="none" x="${x*w}" y="${y*h}" width="${w}" height="${h}" fill="url(#hatch)"/>`;
   }
   if(kind==='A') S.groups.forEach((g,gi)=>{
     const first = g.cells.find(id=>Math.floor(id/cells)===u); if(first===undefined) return;
@@ -213,15 +242,22 @@ function unitSVG(u, kind){
   s += `<g stroke="#8a90b0" stroke-width=".7" pointer-events="none">`;
   for(let x=0;x<=cols;x++) s+=`<line x1="${x*w}" y1="0" x2="${x*w}" y2="${SIZE}"/>`;
   for(let y=0;y<=rows;y++) s+=`<line x1="0" y1="${y*h}" x2="${SIZE}" y2="${y*h}"/>`;
-  s += `</g><rect width="${SIZE}" height="${SIZE}" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none"/></g></svg>`;
+  const set = kind==='A'?S.A:S.B, cls = kind==='A'?'olA':'olB';
+  s += `</g>`;
+  s += `<path class="ol ${cls}" stroke-width="3" d="${outline(set,u)}"/>`;
+  if(kind==='A'){
+    S.groups.forEach((g,gi)=>{ s += `<path class="ol ${gi===S.hl?'olhl':'olg'}" d="${outline(new Set(g.cells),u)}"/>`; });
+    if(S.hint) s += `<path class="ol olhint" d="${outline(new Set(S.hint),u)}"/>`;
+  }
+  s += `<rect width="${SIZE}" height="${SIZE}" fill="none" stroke="currentColor" stroke-width="2" pointer-events="none"/></g></svg>`;
   return s;
 }
 function render(){
   const {a,b,c,d}=params();
   let html='';
-  for(let u=0;u<S.aUnits;u++) html += `<div class="unit"><h3>${u===0?`Dividend ${a}/${b}`:'(next whole)'}</h3>${unitSVG(u,'A')}</div>`;
+  for(let u=0;u<S.aUnits;u++) html += `<div class="unit unitA"><h3>${u===0?`Dividend ${a}/${b}`:'(next whole)'}</h3>${unitSVG(u,'A')}</div>`;
   html += '<div class="break"></div>';
-  for(let u=0;u<S.bUnits;u++) html += `<div class="unit"><h3>${u===0?`Divisor ${c}/${d} = one group`:'(next whole)'}</h3>${unitSVG(u,'B')}</div>`;
+  for(let u=0;u<S.bUnits;u++) html += `<div class="unit unitB"><h3>${u===0?`Divisor ${c}/${d} = one group`:'(next whole)'}</h3>${unitSVG(u,'B')}</div>`;
   $('stage').innerHTML = html;
   $('partial').disabled = !(S.sel.length>0 && (!gn() || S.sel.length<gn()));
 }
@@ -301,6 +337,7 @@ function finishLasso(pts){
 }
 function lockGroup(){
   if(!S.sel.length) return;
+  S.hint=null;
   const gi=S.groups.length;
   S.groups.push({cells:S.sel.slice()});
   S.sel.forEach(id=>S.groupOf.set(id,gi));
@@ -316,7 +353,7 @@ function chunks(){
 }
 function addGroup(cells){
   const gi=S.groups.length;
-  S.groups.push({cells}); cells.forEach(id=>S.groupOf.set(id,gi));
+  S.groups.push({cells}); cells.forEach(id=>S.groupOf.set(id,gi)); S.hint=null;
   return gi;
 }
 $('auto').onclick=()=>{
@@ -352,7 +389,6 @@ $('undo').onclick=()=>{
 };
 $('clear').onclick=clearGroups;
 $('reset').onclick=()=>setup(true);
-$('showDivisor').onchange=render;
 ['a','b','c','d'].forEach(id=>$(id).addEventListener('change',()=>setup(true)));
 ['gc','gr'].forEach(id=>$(id).addEventListener('change',()=>setup(false)));
 function setMode(m){
@@ -394,12 +430,15 @@ function updateSteps(){
 function updateModel(){
   $('modelCard').style.display = S.mode==='open'?'block':'none';
   if(S.mode!=='open') return;
+  const gs=$('gstat'); if(gs) gs.innerHTML = modelLine(S.step===0?'A':'B');
   const {a,b,c,d}=S.p, A=S.A.size, B=S.B.size, cells=S.cells;
-  const line=(name,n,num,den)=>{
-    const ok = n>0 && n*den===num*cells;
-    return `<div>${name}: ${n} of ${cells} cells = ${n?fracStr(n,cells):'0'} of a whole ${ok?'<span class="ok">✓ matches '+num+'/'+den+'</span>':`<span class="bad">should be ${num}/${den}</span>`}</div>`;
-  };
-  $('model').innerHTML = line('Dividend',A,a,b)+line('Divisor',B,c,d);
+  $('model').innerHTML = modelLine('A')+modelLine('B');
+}
+function modelLine(which){
+  const {a,b,c,d}=S.p, cells=S.cells;
+  const [name,n,num,den] = which==='A'?['Dividend',S.A.size,a,b]:['Divisor',S.B.size,c,d];
+  const ok = n>0 && n*den===num*cells;
+  return `<div>${name}: ${n} of ${cells} cells = ${n?fracStr(n,cells):'0'} of a whole ${ok?'<span class="ok">✓ matches '+num+'/'+den+'</span>':`<span class="bad">should be ${num}/${den}</span>`}</div>`;
 }
 function updateTally(){
   const total=S.groups.reduce((s,g)=>s+g.cells.length,0), n=gn(), A=S.A.size;
@@ -407,6 +446,13 @@ function updateTally(){
   $('tallyNote').textContent = !A ? 'Shade the dividend to begin.' : total===A ? 'Every dividend cell is in a group.'
     : `${A-total} cell${A-total===1?'':'s'} still ungrouped.`;
   $('feedback').innerHTML='';
+  $('chips').innerHTML = S.groups.map((g,gi)=>`<button class="chip" data-g="${gi}" style="background:${COLORS[gi%COLORS.length]}">${g.cells.length===n?gi+1:fracStr(g.cells.length,n)}</button>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(c=>{
+    const on=()=>{S.hl=+c.dataset.g;render();}, off=()=>{S.hl=-1;render();};
+    c.onmouseenter=on; c.onmouseleave=off; c.onfocus=on; c.onblur=off;
+  });
+  const gp=$('gprog'); if(gp){const full=S.groups.filter(g=>g.cells.length===n).length;
+    gp.textContent = `Full groups found so far: ${full}`;}
 }
 $('check').onclick=()=>{
   const w=parseInt($('qw').value)||0, qn=parseInt($('qn').value), qd=parseInt($('qd').value)||1;
@@ -416,6 +462,101 @@ $('check').onclick=()=>{
     ? `<span class="ok">Correct! ${a}/${b} ÷ ${c}/${d} = ${mixed(a*d,b*c)}</span>`
     : `<span class="bad">Not yet.</span> <span class="muted">Group the cells and count how many groups fit.</span>`;
 };
+
+// ---------- guided prompts ----------
+function parseFrac(t){
+  t=t.trim(); let m;
+  if((m=t.match(/^(\d+)$/))) return [+m[1],1];
+  if((m=t.match(/^(\d+)\s*\/\s*(\d+)$/))) return +m[2]?[+m[1],+m[2]]:null;
+  if((m=t.match(/^(\d+)\s+(\d+)\s*\/\s*(\d+)$/))) return +m[3]?[+m[1]*+m[3]+ +m[2],+m[3]]:null;
+  return null;
+}
+const sameFrac=(p,q)=>{const x=simp(...p),y=simp(...q);return x[0]===y[0]&&x[1]===y[1];};
+function guideSteps(){
+  const {a,b,c,d}=S.p, A=S.A.size, n=S.B.size, open=S.mode==='open', cells=S.cells, cols=S.cols, rows=S.rows;
+  const full = n?Math.floor(A/n):0, left = n?A%n:0;
+  const ready = A>0 && n>0;
+  return [
+    { focus:'A', title:`1. The dividend: ${a}/${b}`,
+      text: open
+        ? `The first number is the amount we <b>have</b>. Use <b>Shade dividend</b> to shade ${a}/${b} of one whole. When your shading is right, the glowing outline hugs your shape.<div id="gstat"></div>`
+        : `The first number is the amount we <b>have</b>. Each whole is cut into ${cols} columns and ${rows} rows (${cells} equal cells), and ${a}/${b} of a whole is shaded. The glowing outline shows the dividend.`,
+      q: open?null:{label:'How many cells are inside the glowing outline?', ans:()=>[A,1], wrong:`Count the cells inside the outline: ${a} column${a>1?'s':''}, with ${rows} cells in each column.`, why:`${a} × ${rows} = ${A} cells. That is how much we have.`} },
+    { focus:'B', title:`2. The divisor: ${c}/${d}`,
+      text: open
+        ? `The second number is the size of <b>one group</b>. Use <b>Shade divisor</b> to shade ${c}/${d} of a whole in the orange square.<div id="gstat"></div>`
+        : `The second number is the size of <b>one group</b>. The glowing orange shape is ${c}/${d}. Our question: how many pieces this size fit inside the dividend?`,
+      q: open?null:{label:'How many cells make up one group?', ans:()=>[n,1], wrong:`Count the cells inside the orange outline: ${c} row${c>1?'s':''}, with ${cols} cells in each row.`, why:`${c} × ${cols} = ${n} cells in one group.`} },
+    { focus:'AB', title:'3. Make a prediction',
+      text:`Before grouping, think about the sizes. The dividend and one group are both glowing.`,
+      choice:{label:'Is the dividend bigger or smaller than one group?', opts:['Bigger','Smaller','The same size'],
+        correct:()=>!ready?null:(A>n?0:A<n?1:2),
+        why:()=>A>n?`The dividend (${A} cells) is bigger than one group (${n} cells), so more than 1 group fits: the answer is greater than 1.`
+              :A<n?`The dividend (${A} cells) is smaller than one group (${n} cells), so less than 1 group fits: the answer is less than 1.`
+              :`They are the same size, so exactly 1 group fits.`} },
+    { focus:null, title:'4. Find the groups',
+      text:`Now find the groups! Use <b>Circle groups</b> to loop ${n||'one group of'} cells inside the dividend, or press <b>Show me where a group fits</b>. Each finished group lights up and gets a number. <div class="muted" id="gprog"></div>`,
+      hintBtn:true,
+      q:{label:'How many <i>full</i> groups fit?', ans:()=>[full,1], wrong:`Count the numbered groups that have exactly ${n} cells.`, why:`${full} full group${full===1?'':'s'}.`} },
+    { focus:null, title:'5. What is left over?',
+      text: left===0&&ready ? `Every cell landed in a full group, so nothing is left over.`
+        : `${left} cell${left===1?'':'s'} left over. But a whole group needs ${n} cells, so the leftover is only <i>part</i> of a group.`,
+      q: left===0?null:{label:'What fraction of a group is the leftover?', ans:()=>[left,n], wrong:`The leftover is ${left} cells out of the ${n} cells needed for a group. Write it as leftover over group size.`, why:`${left}/${n} of a group${simp(left,n)[1]!==n?` (simplified: ${fracStr(left,n)})`:''}.`} },
+    { focus:null, title:'6. Put it together',
+      text:`Add the full groups and the leftover part of a group. How many groups of ${c}/${d} fit inside ${a}/${b}?`,
+      q:{label:'The quotient (fraction or mixed number, like 1 1/2):', ans:()=>[a*d,b*c], wrong:`Add it up: ${full} full group${full===1?'':'s'}${left?` + ${left}/${n}`:''}.`,
+         why:`${a}/${b} ÷ ${c}/${d} = <b>${mixed(a*d,b*c)}</b>. Check with the shortcut: ${a}/${b} × ${d}/${c} = ${fracStr(a*d,b*c)}. Same answer!`} }
+  ];
+}
+function renderGuide(){
+  const on=$('guideOn').checked; $('guide').style.display=on?'block':'none';
+  const st=$('stage'), steps=guideSteps(), cur=steps[S.step];
+  const f = on?cur.focus:null;
+  st.classList.toggle('fA', f==='A'||f==='AB'); st.classList.toggle('fB', f==='B'||f==='AB');
+  if(!on) return;
+  const sol=S.solved[S.step];
+  let q='';
+  if(cur.q){
+    q=`<div class="q"><b>${cur.q.label}</b><div class="qrow"><input type="text" id="gq" placeholder="your answer" autocomplete="off" ${sol?'disabled value="✓"':''}><button id="gqb" ${sol?'disabled':''}>Check</button></div><div id="gqf">${sol?`<span class="ok">Yes!</span> ${typeof cur.q.why==="function"?cur.q.why():cur.q.why}`:''}</div></div>`;
+  } else if(cur.choice){
+    q=`<div class="q"><b>${cur.choice.label}</b><div class="qrow">${cur.choice.opts.map((o,i)=>`<button data-opt="${i}" ${sol?'disabled':''}>${o}</button>`).join('')}</div><div id="gqf">${sol?`<span class="ok">Yes!</span> ${cur.choice.why()}`:''}</div></div>`;
+  }
+  const hint = cur.hintBtn?`<div class="row" style="justify-content:flex-start"><button id="hintBtn">💡 Show me where a group fits</button></div>`:'';
+  $('guide').innerHTML = `<div class="dots">${steps.map((_,i)=>`<span class="dot ${i===S.step?'on':S.solved[i]?'done':''}"></span>`).join('')}</div>
+    <h2>${cur.title}</h2><div>${cur.text}</div>${hint}${q}
+    <div class="nav"><button id="gBack" ${S.step===0?'disabled':''}>← Back</button><button id="gNext" class="primary" ${S.step===steps.length-1?'disabled':''}>Next →</button></div>`;
+  $('gBack').onclick=()=>{S.step--;S.hint=null;render();renderGuide();updateTally();updateModel();};
+  $('gNext').onclick=()=>{S.step++;S.hint=null;render();renderGuide();updateTally();updateModel();};
+  const miss = ()=>!(S.A.size&&S.B.size)&&S.step>=2;
+  if(cur.q&&!sol){
+    const go=()=>{
+      if(miss()){$('gqf').innerHTML='<span class="bad">Shade both the dividend and the divisor first (steps 1 and 2).</span>';return;}
+      const g=parseFrac($('gq').value);
+      if(!g){$('gqf').innerHTML='<span class="bad">Type a number or a fraction like 1/2.</span>';return;}
+      if(sameFrac(g,cur.q.ans())){S.solved[S.step]=true;renderGuide();updateTally();updateModel();}
+      else $('gqf').innerHTML=`<span class="bad">Not quite.</span> ${cur.q.wrong}`;
+    };
+    $('gqb').onclick=go; $('gq').onkeydown=e=>{if(e.key==='Enter')go();};
+  }
+  if(cur.choice&&!sol) $('guide').querySelectorAll('[data-opt]').forEach(b=>b.onclick=()=>{
+    const ok=cur.choice.correct();
+    if(ok===null){$('gqf').innerHTML='<span class="bad">Shade both the dividend and the divisor first (steps 1 and 2).</span>';return;}
+    if(+b.dataset.opt===ok){S.solved[S.step]=true;renderGuide();updateTally();}
+    else $('gqf').innerHTML='<span class="bad">Look at the two glowing shapes again.</span> Which one covers more of the square?';
+  });
+  if(cur.hintBtn) $('hintBtn').onclick=()=>{
+    if(!gn()){setMsg('Shade the divisor first.');return;}
+    const next=chunks()[0]; if(!next){setMsg('Every cell is already in a group.');return;}
+    S.hint=next; render();
+    setMsg(next.length===gn()?'A group of this size fits here. Circle it yourself!':`Only ${next.length} cells remain, which is a partial group.`);
+  };
+  updateTally(); updateModel();
+}
+$('guideOn').onchange=renderGuide;
+[['.frac.a','hA'],['.frac.c','hB']].forEach(([sel,cls])=>{
+  const el=document.querySelector(sel), set=v=>()=>$('stage').classList.toggle(cls,v);
+  el.onmouseenter=set(true); el.onmouseleave=set(false); el.addEventListener('focusin',set(true)); el.addEventListener('focusout',set(false));
+});
 setMode('fixed');
 </script>
 </body>
