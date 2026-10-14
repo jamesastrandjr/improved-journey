@@ -6,14 +6,14 @@
   const TZ = Astro.TZ, REFRESH_MS = 10 * 60 * 1000;
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
+  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', tripLen: 6, checks: { date: '', done: {} }, speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('wsif.v1') || '{}'); } catch (e) {}
   const S = (G.S = Object.assign({ D: null, idx: 0, follow: true, rec: [], ev: [], rank: [], windows: [], days: [], playing: false, month: new Date().getMonth(), calDay: null, nextRefresh: Date.now() + REFRESH_MS }, JSON.parse(JSON.stringify(DEF)), saved));
   S.layers = Object.assign({}, DEF.layers, S.layers);
 
   function save() {
-    try { localStorage.setItem('wsif.v1', JSON.stringify({ boat: S.boat, method: S.method, hours: S.hours, setup: true, speed: S.speed, thr: S.thr, notify: S.notify, base: S.base, layers: S.layers, home: S.home, spot: S.spot, logs: S.logs, spots: S.spots, notified: S.notified.slice(-30) })); } catch (e) {}
+    try { localStorage.setItem('wsif.v1', JSON.stringify({ boat: S.boat, method: S.method, hours: S.hours, setup: true, tripLen: S.tripLen, checks: S.checks, speed: S.speed, thr: S.thr, notify: S.notify, base: S.base, layers: S.layers, home: S.home, spot: S.spot, logs: S.logs, spots: S.spots, notified: S.notified.slice(-30) })); } catch (e) {}
   }
 
   /* ---------- formatting ---------- */
@@ -209,6 +209,7 @@
     // now + cursor
     if (D.times[D.nowIdx].slice(0, 10) === day) { const h = (Date.now() - t0) / 3600000; g += `<line x1="${x(h)}" x2="${x(h)}" y1="52" y2="${WB}" stroke="#fff" stroke-opacity=".5" stroke-dasharray="2 3"/><text x="${x(h)}" y="${BASE + 11 + 0}" font-size="8" fill="#fff" opacity=".0">now</text>`; }
     if (S.idx >= i0 && S.idx < i0 + 24) { const hr = S.idx - i0; g += `<rect x="${x(hr)}" y="50" width="${HWID}" height="${WB - 50 + 2}" rx="6" fill="none" stroke="var(--vc)" stroke-width="2" style="filter:drop-shadow(0 0 5px var(--vc))"/>`; }
+    if (S.idx >= i0 && S.idx < i0 + 24) { const hr = S.idx - i0, len = Math.min(S.tripLen, 24 - hr); g += `<rect x="${x(hr)}" y="50" width="${len * HWID}" height="${WB - 50 + 2}" rx="6" fill="var(--vc)" opacity=".09"/><rect x="${x(hr)}" y="${BASE + 4}" width="${len * HWID}" height="4" rx="2" fill="var(--vc)" opacity=".8"/>`; }
     $('#strip').innerHTML = g;
     $('#stripLegend').innerHTML = `<span><i style="background:#ffd23f"></i>major solunar</span><span><i style="background:#c9b46a"></i>minor</span><span><i style="background:#5ff0b0"></i>wind</span><span><i style="background:#4fd1ff;opacity:.5"></i>waves</span><span style="margin-left:auto">⛔ ✕ = unsafe for your boat</span>`;
   }
@@ -231,10 +232,10 @@
     $('#windows').innerHTML = (S.windowsFallback ? `<div class="foot" style="padding:0 0 8px">Nothing reaches your prime threshold (${S.thr}) in the next 10 days — here are the best available windows.</div>` : '') +
       (S.windows.map((w) => {
         const pe = S.ev[w.peak], c = colorFor(pe), sMs = D.ms[w.s], eMs = D.ms[w.e] + 3600000;
-        return `<div class="win" style="--c:${c}" data-i="${w.peak}"><div class="p">${pe.score}</div><div class="w"><b>${fD(sMs, { weekday: 'long', month: 'short', day: 'numeric' })}</b><small>${fT(sMs)} – ${fT(eMs)} · ${Math.round(S.rec[w.peak].wind)} mph ${Model.compass(S.rec[w.peak].dir)} · ${S.rec[w.peak].wave.toFixed(1)} ft · ${rel(sMs)}</small></div><span style="color:var(--tx3)">→</span></div>`;
+        return `<div class="win" style="--c:${c}" data-i="${w.peak}"><div class="p">${pe.score}</div><div class="w"><b>${fD(sMs, { weekday: 'long', month: 'short', day: 'numeric' })}</b><small>${fT(sMs)} – ${fT(eMs)} · ${Math.round(S.rec[w.peak].wind)} mph ${Model.compass(S.rec[w.peak].dir)} · ${S.rec[w.peak].wave.toFixed(1)} ft · ${rel(sMs)}</small></div><button class="cal" data-ics="${w.peak}" title="Add to calendar">📅</button></div>`;
       }).join('') || '<div class="empty">No windows found.</div>') + `<div class="foot" style="padding:2px 0 0">Ranking uses your trip-hours setting: night hours count ${Math.round(Model.HOURS[S.hours].night * 100)}%.</div>`;
   }
-  $('#windows').addEventListener('click', (e) => { const w = e.target.closest('[data-i]'); if (w) selectIdx(+w.dataset.i, true); });
+  $('#windows').addEventListener('click', (e) => { const c = e.target.closest('[data-ics]'); if (c) { e.stopPropagation(); const w = S.windows.find((x) => x.peak === +c.dataset.ics); return windowIcs(w); } const w = e.target.closest('[data-i]'); if (w) selectIdx(+w.dataset.i, true); });
 
   function renderOutlook() {
     const D = S.D;
@@ -324,7 +325,7 @@
     const ms = D.ms[S.idx];
     $('#scrubTime').textContent = `${fD(ms, { weekday: 'short', month: 'short', day: 'numeric' })} · ${fT(ms)}`;
     $('#scrubRel').textContent = S.idx === D.nowIdx ? '● now' : rel(ms);
-    renderVerdict(); renderTiles(); renderFactors(); renderStrip();
+    renderVerdict(); renderTrip(); renderTiles(); renderFactors(); renderStrip(); renderClock();
     MapView.updateField();
     if (!light) { renderDayTabs(); renderOutlook(); }
     else { document.querySelectorAll('.dtab').forEach((b) => b.classList.toggle('on', b.dataset.d === curDay())); document.querySelectorAll('.oc').forEach((b) => b.classList.toggle('on', S.days.find((d) => d.best === +b.dataset.i && d.day === curDay()) !== undefined)); }
@@ -360,6 +361,7 @@
       else { const name = prompt('Name this spot:', 'Spot ' + (S.spots.length + 1)); if (name === null) return; S.spots.push({ lat: S.spot.lat, lon: S.spot.lon, name: name || 'Spot' }); toast('Spot saved ⭐'); }
       MapView.updateSpot(); MapView.updateCatches(); save(); renderLog();
     } else if (a === 'fit') MapView.fit();
+    else if (a === 'gps') MapView.locate((pos) => setSpot(pos, true, true));
   }
 
   function openModal(html) { $('#sheet').innerHTML = html; $('#modal').classList.add('show'); }
@@ -451,13 +453,13 @@
       const r = $('#scrubRange'); r.min = D.nowIdx; r.max = D.n - 1;
       const keep = prev ? D.times.indexOf(prev) : -1;
       S.idx = S.follow || keep < D.nowIdx ? D.nowIdx : keep;
-      recompute(); renderAll(); maybeNotify(); if (S.layers.radar) MapView.loadRadar();
+      recompute(); renderAll(); applyHash(); maybeNotify(); if (S.layers.radar) MapView.loadRadar();
       if (manual) toast(D.demo ? 'Still offline — showing demo data' : 'Fresh data loaded ✔');
     } catch (e) { console.error(e); toast('Update failed — ' + e.message); }
     loading = false; $('#refreshBtn').classList.remove('spin');
   }
   function renderAll() {
-    renderAlerts(); renderWindows(); renderSeason(); renderLog(); renderTime(false); MapView.updateCatches();
+    renderAlerts(); renderWindows(); renderSeason(); renderLog(); renderTime(false); renderChecklist(); MapView.updateCatches();
   }
   function updateLive() {
     const D = S.D, pill = $('#livePill'); if (!D) return;
@@ -491,9 +493,152 @@
     else if (k.toLowerCase() === 'r') refresh(true);
   });
 
+
+  /* ====================================================================
+     EXTRAS: trip planner, bite clock, best spot, checklist, share, calendar
+     ==================================================================== */
+  function tripStats(start, len) {
+    const D = S.D, n = Math.max(1, Math.min(len, D.n - start));
+    let sum = 0, peak = 0, maxW = 0, maxG = 0, unsafeAt = -1, cautionAt = -1, why = '';
+    for (let k = 0; k < n; k++) {
+      const i = start + k, ev = S.ev[i], r = S.rec[i];
+      sum += ev.score; peak = Math.max(peak, ev.score); maxW = Math.max(maxW, r.wave); maxG = Math.max(maxG, r.gust);
+      if (ev.level >= 2 && unsafeAt < 0) { unsafeAt = i; why = (ev.reasons.find((x) => x.lv === 2) || {}).msg || ''; }
+      if (ev.level >= 1 && cautionAt < 0) cautionAt = i;
+    }
+    const runMin = Math.round((S.dist / S.speed) * 60);
+    return { n, avg: Math.round(sum / n), peak, maxW, maxG, unsafeAt, cautionAt, why, runMin, endMs: D.ms[start + n - 1] + 3600000, returnBy: unsafeAt >= 0 ? D.ms[unsafeAt] - (runMin + 15) * 60000 : null };
+  }
+  function renderTrip() {
+    const D = S.D, st = tripStats(S.idx, S.tripLen), startMs = D.ms[S.idx], se = Astro.sunEvents(curDay());
+    let msg;
+    if (st.unsafeAt === S.idx) msg = ['bad', `⛔ <b>Unsafe at launch.</b> ${esc(st.why)}`];
+    else if (st.unsafeAt >= 0 && st.returnBy < startMs + 45 * 60000) msg = ['bad', `⛔ Conditions turn unsafe at ${fT(D.ms[st.unsafeAt])} — not worth the ${st.runMin}-minute run out.`];
+    else if (st.unsafeAt >= 0) msg = ['warn', `⏱ <b>Be docked by ${fT(st.returnBy)}.</b> ${esc(st.why)} at ${fT(D.ms[st.unsafeAt])} (${st.runMin} min run + 15 min buffer).`];
+    else if (st.cautionAt >= 0) msg = ['warn', `⚠️ Gets sporty around ${fT(D.ms[st.cautionAt])} — keep an eye on the sky.`];
+    else msg = ['ok', '✅ Clear for the whole trip.'];
+    const dark = se.sunset && st.endMs > se.sunset.getTime() + 1800000 && D.ms[S.idx] < se.sunset.getTime() ? ` 🌇 Sunset is ${fT(se.sunset)} — plan to run home in the dark or leave earlier.` : '';
+    $('#tripWhen').textContent = `${fT(startMs)} → ${fT(st.endMs)}`;
+    $('#trip').innerHTML = `<div class="chips">${[3, 4, 6, 8, 10].map((h) => `<button class="chip2 ${h === S.tripLen ? 'on' : ''}" data-len="${h}">${h} h</button>`).join('')}<button class="chip2" data-best="1">✨ Best start today</button></div>
+      <div class="tstats"><div><b style="color:${rampC(st.avg)}">${st.avg}</b><small>avg score</small></div><div><b style="color:${rampC(st.peak)}">${st.peak}</b><small>peak</small></div><div><b>${st.maxW.toFixed(1)}<small style="font-size:11px"> ft</small></b><small>max waves</small></div><div><b>${Math.round(st.maxG)}<small style="font-size:11px"> mph</small></b><small>max gusts</small></div></div>
+      <div class="tmsg ${msg[0]}">${msg[1]}${dark}</div>
+      <div class="row" style="gap:6px;margin-top:6px"><button class="mini" data-tcal="1">📅 Add trip to calendar</button><span class="foot" style="padding:0">Launch = the hour on the scrubber · ${S.dist.toFixed(1)} mi run</span></div>`;
+  }
+  $('#trip').addEventListener('click', (e) => {
+    const l = e.target.closest('[data-len]'), b = e.target.closest('[data-best]'), c = e.target.closest('[data-tcal]');
+    if (l) { S.tripLen = +l.dataset.len; save(); renderTrip(); renderStrip(); renderChecklist(); }
+    if (b) {
+      const d = S.days.find((x) => x.day === curDay()); if (!d) return;
+      let best = null;
+      d.idxs.forEach((i) => { const st = tripStats(i, S.tripLen); if (st.unsafeAt >= 0 && st.returnBy < D_ms(i) + 3600000) return; const sc = st.avg * (D_night(i)); if (!best || sc > best.sc) best = { i, sc }; });
+      if (best) { selectIdx(best.i, true); toast(`Best ${S.tripLen}-hour start today: ${fT(S.D.ms[best.i])}`); } else toast('No safe trip of that length today');
+    }
+    if (c) { const st = tripStats(S.idx, S.tripLen); ics(`🎣 Walleye trip (score ${st.avg})`, S.D.ms[S.idx], st.endMs, `Avg bite ${st.avg}, max waves ${st.maxW.toFixed(1)} ft, max gusts ${Math.round(st.maxG)} mph.${st.returnBy ? ' Be docked by ' + fT(st.returnBy) + '.' : ''}`); }
+  });
+  const D_ms = (i) => S.D.ms[i], D_night = (i) => (S.D.sunAlt[i] < -6 ? Model.HOURS[S.hours].night : 1);
+
+  /* ---- bite clock ---- */
+  function arc(cx, cy, r1, r2, a0, a1) {
+    const p = (r, a) => [cx + r * Math.sin((a * Math.PI) / 180), cy - r * Math.cos((a * Math.PI) / 180)];
+    const [x1, y1] = p(r2, a0), [x2, y2] = p(r2, a1), [x3, y3] = p(r1, a1), [x4, y4] = p(r1, a0);
+    return `M${x1.toFixed(1)} ${y1.toFixed(1)}A${r2} ${r2} 0 0 1 ${x2.toFixed(1)} ${y2.toFixed(1)}L${x3.toFixed(1)} ${y3.toFixed(1)}A${r1} ${r1} 0 0 0 ${x4.toFixed(1)} ${y4.toFixed(1)}Z`;
+  }
+  function renderClock() {
+    const D = S.D; if (!D) return;
+    const day = curDay(), i0 = D.times.findIndex((t) => t.slice(0, 10) === day), t0 = Astro.etToDate(day + 'T00:00').getTime(), cx = 130, cy = 130;
+    let g = '';
+    for (let hr = 0; hr < 24; hr++) {
+      const i = i0 + hr, ev = S.ev[i]; if (!ev) continue;
+      const a0 = hr * 15 + 1, a1 = hr * 15 + 14, sel = i === S.idx, past = i < D.nowIdx;
+      g += `<path d="${arc(cx, cy, 70 + (sel ? 0 : 4), 104 - (sel ? -4 : (1 - ev.score / 100) * 26), a0, a1)}" fill="${colorFor(ev)}" opacity="${past ? 0.3 : sel ? 1 : 0.85}" ${sel ? 'stroke="#fff" stroke-width="1.5"' : ''}/>`;
+    }
+    for (let q = 0; q < 96; q++) {
+      const al = Astro.sunAlt(new Date(t0 + q * 900000 + 450000)), c = al > 8 ? '#4aa8dc' : al > 0 ? '#e8a455' : al > -6 ? '#7a4a8a' : '#101a3a';
+      g += `<path d="${arc(cx, cy, 58, 65, q * 3.75, q * 3.75 + 3.75)}" fill="${c}"/>`;
+    }
+    [['12a', 0], ['6a', 90], ['12p', 180], ['6p', 270]].forEach(([t, a]) => { const x = cx + 120 * Math.sin((a * Math.PI) / 180), y = cy - 120 * Math.cos((a * Math.PI) / 180); g += `<text x="${x}" y="${y + 4}" font-size="11" fill="#8fa9b8" text-anchor="middle">${t}</text>`; });
+    const se = Astro.sunEvents(day);
+    [[se.sunrise, '🌅'], [se.sunset, '🌇']].forEach(([d, ic]) => { if (!d) return; const a = ((d - t0) / 3600000) * 15, x = cx + 49 * Math.sin((a * Math.PI) / 180), y = cy - 49 * Math.cos((a * Math.PI) / 180); g += `<text x="${x}" y="${y + 5}" font-size="13" text-anchor="middle">${ic}</text>`; });
+    if (D.times[D.nowIdx].slice(0, 10) === day) { const a = ((Date.now() - t0) / 3600000) * 15; g += `<line x1="${cx}" y1="${cy}" x2="${cx + 108 * Math.sin((a * Math.PI) / 180)}" y2="${cy - 108 * Math.cos((a * Math.PI) / 180)}" stroke="#fff" stroke-opacity=".4" stroke-dasharray="2 3"/>`; }
+    const ev = S.ev[S.idx];
+    g += `<text x="${cx}" y="${cy - 2}" font-family="Anton,Impact,sans-serif" font-size="40" text-anchor="middle" fill="${colorFor(ev)}">${ev.level >= 2 ? '✕' : ev.score}</text><text x="${cx}" y="${cy + 18}" font-size="12" fill="#cfe8f4" text-anchor="middle">${fT(D.ms[S.idx])}</text>`;
+    $('#biteClock').innerHTML = g;
+  }
+  $('#biteClock').addEventListener('click', (e) => {
+    const r = e.currentTarget.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    if (Math.hypot(dx, dy) < r.width * 0.2) return;
+    const deg = ((Math.atan2(dx, -dy) * 180) / Math.PI + 360) % 360, i0 = S.D.times.findIndex((t) => t.slice(0, 10) === curDay());
+    selectIdx(i0 + Math.floor(deg / 15), true, true);
+  });
+
+  /* ---- best spot finder ---- */
+  function bestSpot() {
+    const D = S.D, i = S.idx; let best = null;
+    const tryPt = (lat, lon, label) => {
+      if (lat < Data.shoreLat(lon) + 0.02) return;
+      const d = Data.miles(S.home, { lat, lon }), r = Data.hourRecord(D, i, { lat, lon }), ev = Model.evaluate(r, { boat: S.boat, method: S.method, distMi: d });
+      const val = ev.score - Math.max(0, d - 8) * 0.8 - (ev.level >= 1 ? 4 : 0); // gentle pull toward shorter runs
+      if (!best || val > best.val) best = { lat, lon, d, ev, val, label };
+    };
+    for (let lon = -81.2; lon <= -80.69; lon += 0.04) for (let k = 0; k < 10; k++) tryPt(Data.shoreLat(lon) + 0.04 + k * 0.03, lon);
+    S.spots.forEach((sp) => tryPt(sp.lat, sp.lon, sp.name));
+    if (!best) return toast('No spot found');
+    setSpot({ lat: best.lat, lng: best.lon }, true); MapView.flyTo(best.lat, best.lon);
+    toast(`🎯 ${best.label ? '⭐ ' + best.label : 'Best bite'}: ${best.ev.score} at ${best.d.toFixed(1)} mi ${Model.compass(Data.bearing(S.home, best))}`);
+  }
+  $('#bestSpotBtn').onclick = bestSpot;
+
+  /* ---- checklist ---- */
+  const CHECK = [
+    ['pfd', 'Life jackets on everyone (worn, not stowed)'], ['plan', 'Float plan shared: where, when you\'re back, who to call'], ['fuel', 'Fuel: ⅓ out, ⅓ back, ⅓ reserve'], ['vhf', 'VHF radio / charged phone in a dry bag'],
+    ['kill', 'Kill-switch lanyard clipped on'], ['gear', 'Throwable cushion, extinguisher, horn, anchor, first-aid'], ['lic', 'Fishing license + ODNR regs checked'], ['plug', 'Drain plug in'],
+    ['cold', 'Exposure layers / immersion protection', (r) => r.waterT < 55, (r) => `Water is ${r.waterT.toFixed(0)}°F — cold-water shock is the #1 risk`],
+    ['rain', 'Rain gear', (r) => r.pop >= 40 || r.precip > 0.02, (r) => `${Math.round(r.pop)}% rain chance`],
+    ['sun', 'Polarized glasses, sunscreen, hat', (r, t) => r.cloud < 50 && r.sunAlt > 10, () => 'Sunny out there'],
+    ['lights', 'Nav lights + headlamp', (r, t) => t.dark, () => 'Trip runs into twilight/dark'],
+    ['fog', 'GPS track + fog horn, run slow', (r) => r.vis < 5000, () => 'Reduced visibility'],
+    ['wind', 'Secure loose gear, check bilge pump', (r, t) => t.maxG > 17 || t.maxW > 2, (r, t) => `Gusts ${Math.round(t.maxG)} mph / waves ${t.maxW.toFixed(1)} ft`],
+    ['radar', 'Check radar & the NWS marine forecast right before leaving', (r) => r.code >= 80 || r.pop >= 50, () => 'Showers/storms in the mix'],
+  ];
+  function renderChecklist() {
+    if (!S.D || !S.rec[S.idx]) return;
+    const today = Astro.etDay(new Date()); if (S.checks.date !== today) S.checks = { date: today, done: {} };
+    const r = S.rec[S.idx], st = tripStats(S.idx, S.tripLen), se = Astro.sunEvents(curDay()), t = { maxG: st.maxG, maxW: st.maxW, dark: !!(se.sunset && st.endMs > se.sunset.getTime() - 1800000) || S.D.sunAlt[S.idx] < 0 };
+    const items = CHECK.filter((c) => !c[2] || c[2](r, t));
+    const done = items.filter((c) => S.checks.done[c[0]]).length;
+    $('#chkCount').textContent = `${done}/${items.length} ready`;
+    $('#checklist').innerHTML = items.map((c) => `<div class="chk ${S.checks.done[c[0]] ? 'done' : ''} ${c[2] ? 'cond' : ''}" data-k="${c[0]}"><i>✓</i><div><span>${c[1]}</span>${c[3] ? `<small>${esc(c[3](r, t))}</small>` : ''}</div></div>`).join('') + (done === items.length ? '<div class="ready">ALL SET — TIGHT LINES! 🎣</div>' : '');
+  }
+  $('#checklist').addEventListener('click', (e) => { const c = e.target.closest('[data-k]'); if (!c) return; S.checks.done[c.dataset.k] = !S.checks.done[c.dataset.k]; save(); renderChecklist(); });
+
+  /* ---- share / calendar ---- */
+  function shareUrl() { const u = new URL(location.href); u.hash = `t=${S.D.times[S.idx]}&lat=${S.spot.lat.toFixed(4)}&lon=${S.spot.lon.toFixed(4)}`; return u.toString(); }
+  $('#shareBtn').onclick = async () => {
+    const ev = S.ev[S.idx], r = S.rec[S.idx], v = Model.verdict(ev), D = S.D;
+    const text = `🎣 Lake Erie walleye · ${fD(D.ms[S.idx])} ${fT(D.ms[S.idx])}: ${v.title} (${ev.score}) — ${Math.round(r.wind)} mph ${Model.compass(r.dir)}, ${r.wave.toFixed(1)} ft, water ${r.waterT.toFixed(0)}°F`;
+    try { if (navigator.share) { await navigator.share({ title: 'Should I Fish?', text, url: shareUrl() }); return; } } catch (e) { if (e.name === 'AbortError') return; }
+    try { await navigator.clipboard.writeText(text + '\n' + shareUrl()); toast('Copied to clipboard 📋'); } catch (e) { prompt('Copy this link:', shareUrl()); }
+  };
+  function ics(title, startMs, endMs, desc) {
+    const f = (ms) => new Date(ms).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const txt = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//ShouldIFish//EN', 'BEGIN:VEVENT', `UID:${startMs}-${Date.now()}@shouldifish`, `DTSTAMP:${f(Date.now())}`, `DTSTART:${f(startMs)}`, `DTEND:${f(endMs)}`, `SUMMARY:${title}`, `DESCRIPTION:${desc.replace(/\n/g, '\\n')}`, 'BEGIN:VALARM', 'TRIGGER:-PT90M', 'ACTION:DISPLAY', 'DESCRIPTION:Walleye window soon', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/calendar' })); a.download = 'walleye-trip.ics'; a.click();
+    toast('Calendar file ready 📅');
+  }
+  function windowIcs(w) { if (!w) return toast('No window to add'); const D = S.D; ics(`🎣 Walleye window (peak ${S.ev[w.peak].score})`, D.ms[w.s], D.ms[w.e] + 3600000, `Peak ${S.ev[w.peak].score} · ${Math.round(S.rec[w.peak].wind)} mph ${Model.compass(S.rec[w.peak].dir)} · ${S.rec[w.peak].wave.toFixed(1)} ft`); }
+  $('#icsBtn').onclick = () => windowIcs(S.windows.slice().sort((a, b) => a.s - b.s).find((r) => r.e >= S.D.nowIdx));
+  function applyHash() {
+    if (!location.hash || S.hashDone) return; S.hashDone = true;
+    const h = new URLSearchParams(location.hash.slice(1)), t = h.get('t'), lat = +h.get('lat'), lon = +h.get('lon');
+    if (lat && lon && lat > 41 && lat < 43) { S.spot = { lat, lon }; recompute(); MapView.updateSpot(); }
+    if (t && S.D.times.includes(t)) { S.follow = false; S.idx = Math.max(S.D.nowIdx, S.D.times.indexOf(t)); }
+    renderAll();
+  }
+
   G.App = { setSpot, spotAction, save, refresh };
 
   /* ---------- boot ---------- */
+  if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
   MapView.init();
   window.addEventListener('resize', () => MapView.invalidate());
   refresh(false).then(() => { setInterval(updateLive, 1000); updateLive(); if (!saved.setup) { settingsModal(true); save(); } });

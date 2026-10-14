@@ -9,6 +9,9 @@ A zero-build, static web app. Open `walleye/index.html` (or serve the repo, e.g.
 - **By month & day:** year heat-grid + month calendar of typical walleye potential (water temp, light, moon); days inside the forecast use the real forecast.
 - **Safety first:** separate go/no-go gate by boat size (waves, gusts, thunder, fog, NWS advisories). Unsafe = "NOPE".
 - Map layers: Bite-map heat field, wind arrows, radar, run-rings with ETA, NOAA chart / satellite basemaps, catch log pins, saved spots, movable home port.
+- **Tailored to you:** boat size, fishing method (troll / jig / drift) and trip hours change the safety limits, wind/wave sweet spot, rankings and tips.
+- **Trip planner:** pick a trip length and get avg/peak score, max waves & gusts, a "be docked by" time before conditions turn, sunset warnings, a ✨ best-start finder and a calendar (.ics) export.
+- **Bite clock**, **🎯 best spot now** finder, **pre-launch safety checklist** that adapts to conditions, **share links** that restore the exact hour/spot, **GPS** "dot → me", and an **installable offline PWA**.
 - If the weather services are unreachable the app falls back to clearly-labelled **demo data**.
 
 The model (see `js/model.js`) blends water temp, light, wind/waves, pressure trend, wind direction, sky and solunar influence. It is a planning aid, not a marine forecast — always check the NWS marine forecast and wear a PFD.

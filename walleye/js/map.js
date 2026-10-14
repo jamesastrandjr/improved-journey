@@ -135,7 +135,7 @@
     const saved = S.spots.find((s) => Data.miles(s, S.spot) < 0.15);
     $('#spotCard').innerHTML = `<div class="t">📍 ${saved ? '⭐ ' + esc(saved.name) : 'Your fishing spot'}</div>
       <div class="m">${d.toFixed(1)} mi ${Model.compass(b)} of ${esc(S.home.name || 'port')} · ~${eta} min run · ${S.spot.lat.toFixed(4)}°, ${S.spot.lon.toFixed(4)}°</div>
-      <div class="acts"><button class="mini" data-a="save">${saved ? '★ Remove spot' : '☆ Save spot'}</button><button class="mini" data-a="home">⚓ Make home port</button><button class="mini" data-a="fit">⌖ Re-center</button></div>`;
+      <div class="acts"><button class="mini" data-a="save">${saved ? '★ Remove spot' : '☆ Save spot'}</button><button class="mini" data-a="home">⚓ Make home port</button><button class="mini" data-a="gps">📍 Dot → my GPS</button><button class="mini" data-a="fit">⌖ Re-center</button></div>`;
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -214,7 +214,19 @@
     G.App.spotAction(a.dataset.a);
   });
 
+  let meMarker;
+  function locate(cb) {
+    if (!navigator.geolocation) return alert('Geolocation not available');
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const ll = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (!meMarker) meMarker = L.marker(ll, { interactive: false, icon: L.divIcon({ className: '', iconSize: [18, 18], iconAnchor: [9, 9], html: '<div class="mebeacon"></div>' }) }).addTo(map);
+      else meMarker.setLatLng(ll);
+      S.me = ll; map.panTo(ll); if (cb) cb(ll);
+    }, () => alert('Could not get your location — check browser permission.'), { enableHighAccuracy: true, timeout: 10000 });
+  }
+
   G.MapView = {
+    locate,
     init, updateSpot, updateHome, updateField, updateCatches, ramp, rampCss, loadRadar,
     flyTo: (lat, lon) => map.panTo([lat, lon]),
     fit: () => map.fitBounds([[41.8, -81.25], [42.2, -80.65]]),

@@ -6,6 +6,9 @@
 <meta name="theme-color" content="#050e16"/>
 <title>Should I Fish? — Lake Erie Walleye</title>
 <meta name="description" content="Live walleye fishing forecast for Lake Erie's central basin out of Geneva-on-the-Lake, Ohio."/>
+<link rel="manifest" href="manifest.webmanifest"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎣%3C/text%3E%3C/svg%3E"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
@@ -57,9 +60,12 @@
         </div>
       </div>
       <div class="vwhy" id="vWhy"></div>
+      <div class="row" id="vActs" style="margin-top:10px;gap:6px;flex-wrap:wrap"><button class="mini" id="shareBtn">↗ Share</button><button class="mini" id="bestSpotBtn">🎯 Best spot now</button><button class="mini" id="icsBtn">📅 Add next window</button></div>
       <div class="tag2" id="vTip" style="margin-top:10px;border-radius:12px;line-height:1.45"></div>
       <div class="next" id="nextWin" style="display:none"></div>
     </section>
+
+    <section class="card"><h2>Trip planner <span class="r" id="tripWhen"></span></h2><div id="trip"></div></section>
 
     <section class="card"><h2>Conditions <span class="r" id="condWhen"></span></h2><div class="tiles" id="tiles"></div></section>
 
@@ -72,6 +78,8 @@
       <div class="legend" id="stripLegend"></div>
     </section>
 
+    <section class="card"><h2>Bite clock <span class="r">tap an hour</span></h2><div style="display:grid;place-items:center"><svg id="biteClock" viewBox="0 0 260 260" style="width:min(100%,310px);cursor:pointer"></svg></div></section>
+
     <section class="card"><h2>Best windows <span class="r">next 10 days</span></h2><div id="windows"></div></section>
 
     <section class="card"><h2>10-day outlook <span class="r">best hour each day</span></h2><div class="outlook" id="outlook"></div></section>
@@ -83,6 +91,8 @@
       <div class="cal" id="calendar"></div>
       <div class="detail" id="dayDetail"></div>
     </section>
+
+    <section class="card"><h2>Pre-launch checklist <span class="r" id="chkCount"></span></h2><div id="checklist"></div></section>
 
     <section class="card">
       <h2>Catch log <span class="r" id="logCount"></span></h2>
