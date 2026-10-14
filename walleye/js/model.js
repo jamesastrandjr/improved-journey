@@ -104,22 +104,28 @@
     return `Drift ~${T < 55 ? '0.8–1.2' : '1.0–1.6'} mph with ${T < 55 ? 'jig-and-crawler' : 'crawler harnesses'}; ${h.wind < 6 ? 'drift sock out for more speed.' : 'let the wind do the work.'}`;
   }
 
+  function fReports(h) {
+    const r = h.rep, sig = r.signal;
+    return { s: clamp(0.5 + 0.5 * sig), note: r.note };
+  }
+
   const FACTORS = [
-    { id: 'water', label: 'Water temp', w: 0.2, fn: fWater, arg: (h) => h.waterT, icon: '🌡️' },
-    { id: 'light', label: 'Light', w: 0.26, fn: fLight, icon: '🌅' },
-    { id: 'chop', label: 'Wind & waves', w: 0.18, fn: fChop, icon: '🌊' },
-    { id: 'pressure', label: 'Pressure', w: 0.14, fn: fPressure, icon: '📉' },
+    { id: 'water', label: 'Water temp', w: 0.18, fn: fWater, arg: (h) => h.waterT, icon: '🌡️' },
+    { id: 'light', label: 'Light', w: 0.24, fn: fLight, icon: '🌅' },
+    { id: 'chop', label: 'Wind & waves', w: 0.16, fn: fChop, icon: '🌊' },
+    { id: 'pressure', label: 'Pressure', w: 0.12, fn: fPressure, icon: '📉' },
     { id: 'dir', label: 'Wind direction', w: 0.06, fn: fDir, icon: '🧭' },
     { id: 'sky', label: 'Sky', w: 0.06, fn: fSky, icon: '☁️' },
-    { id: 'moon', label: 'Moon / solunar', w: 0.1, fn: fMoon, icon: '🌙' },
+    { id: 'moon', label: 'Moon / solunar', w: 0.08, fn: fMoon, icon: '🌙' },
+    { id: 'reports', label: 'Angler reports', w: 0.1, fn: fReports, icon: '📣', optional: true },
   ];
 
   /* h: merged hour record. opts: {boat, distMi, alerts} */
   function evaluate(h, opts = {}) {
     const boat = BOATS[opts.boat || 'mid'];
-    const factors = FACTORS.map((f) => { const r = f.fn(f.arg ? f.arg(h) : h, opts); return { id: f.id, label: f.label, icon: f.icon, w: f.w, s: r.s, note: r.note }; });
+    const factors = FACTORS.filter((f) => !f.optional || h.rep).map((f) => { const r = f.fn(f.arg ? f.arg(h) : h, opts); return { id: f.id, label: f.label, icon: f.icon, w: f.w, s: r.s, note: r.note }; });
     const waterS = factors[0].s;
-    const bite = Math.min(100, Math.round(Math.pow(factors.reduce((a, f) => a + f.s * f.w, 0), 1.55) * (0.45 + 0.55 * waterS) * 100));
+    const bite = Math.min(100, Math.round(Math.pow(factors.reduce((a, f) => a + f.s * f.w, 0) / factors.reduce((a, f) => a + f.w, 0), 1.55) * (0.45 + 0.55 * waterS) * 100));
 
     // ----- safety -----
     const reasons = [];

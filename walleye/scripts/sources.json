@@ -1,0 +1,12 @@
+{
+  "_note": "Edit freely. 'verify': true = I could not confirm this URL from my build sandbox - check it opens a report. Add RSS/Atom feeds of fishing blogs or guide services you like; always respect each site's terms.",
+  "reports": [
+    { "id": "odnr-erie", "name": "ODNR Division of Wildlife — Lake Erie report", "type": "html", "url": "https://ohiodnr.gov/buy-and-apply/hunting-fishing-boating/fishing-resources/lake-erie-fishing-reports", "verify": true, "enabled": true },
+    { "id": "example-rss", "name": "Example: a guide's blog feed", "type": "rss", "url": "https://example.com/feed/", "verify": true, "enabled": false }
+  ],
+  "buoys": [
+    { "id": "45005", "name": "West Lake Erie buoy" },
+    { "id": "45164", "name": "Cleveland (Lake Erie) buoy", "verify": true }
+  ],
+  "nws": { "office": "CLE", "product": "NSH" }
+}

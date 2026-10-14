@@ -17,3 +17,22 @@ A zero-build, static web app. Open `walleye/index.html` (or serve the repo, e.g.
 The model (see `js/model.js`) blends water temp, light, wind/waves, pressure trend, wind direction, sky and solunar influence. It is a planning aid, not a marine forecast — always check the NWS marine forecast and wear a PFD.
 
 Layout: `js/astro.js` (sun/moon), `js/model.js` (scoring), `js/data.js` (feeds + demo), `js/map.js` (Leaflet), `js/app.js` (UI). Leaflet is vendored in `vendor/leaflet`.
+
+## Reports & extra data (how it works)
+
+| Source | How it's used | Where it runs |
+|---|---|---|
+| **Fishing reports** (`scripts/sources.json`) | Text is read by `js/reports.js` → a "bite chatter" signal (−1…+1), plus depths / lures / areas mentioned. Blended (recency-weighted, ~4-day half-life) into the **Angler reports** factor (10% of the score) and shown in the *Reports & chatter* card with a link back to each source. | GitHub Action (server-side, no CORS) |
+| **Paste a report** | Paste text from any site, group or message — analyzed in your browser, kept in localStorage, fades over a few days. | Browser |
+| **Your catch log** | Recent trips count as (double-weighted) reports. | Browser |
+| **NDBC offshore buoys** | Real offshore water temp / waves / wind (used as the water-temp base when the harbor gauge is missing). | Action → `data/reports.json` |
+| **NWS nearshore marine forecast text** | Shown in the card (zone block that mentions Geneva/Ashtabula/Conneaut). | Browser, with the Action's copy as fallback |
+| **Multi-model wind** (GFS · ECMWF · ICON) | When the models disagree you get a "treat this hour loosely" confidence chip and a shaded range on the wind line. | Browser (Open-Meteo) |
+
+### Turn on the scheduled fetcher
+1. Merge this branch into your default branch (GitHub only runs scheduled workflows from the default branch).
+2. Repo → **Actions → Refresh walleye reports → Run workflow** once to test; afterwards it runs every 3 hours and commits `walleye/data/reports.json`.
+3. Open `walleye/scripts/sources.json`, **check each URL** (entries marked `verify` are unconfirmed), and add the RSS/Atom feeds or pages of the guides, tackle shops or agencies you trust. Keep it low-volume and respect each site's terms of use — the fetcher only stores short snippets and always links back to the original.
+4. In the app, **Source status** (in the reports card) shows which sources worked.
+
+`node walleye/scripts/test-reports.mjs` runs the offline unit tests (analyzer, RSS/HTML/NDBC/NWS parsers). Without the fetcher the app still works — paste reports manually.

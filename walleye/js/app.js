@@ -6,14 +6,14 @@
   const TZ = Astro.TZ, REFRESH_MS = 10 * 60 * 1000;
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', tripLen: 6, checks: { date: '', done: {} }, speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
+  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', tripLen: 6, pasted: [], checks: { date: '', done: {} }, speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('wsif.v1') || '{}'); } catch (e) {}
   const S = (G.S = Object.assign({ D: null, idx: 0, follow: true, rec: [], ev: [], rank: [], windows: [], days: [], playing: false, month: new Date().getMonth(), calDay: null, nextRefresh: Date.now() + REFRESH_MS }, JSON.parse(JSON.stringify(DEF)), saved));
   S.layers = Object.assign({}, DEF.layers, S.layers);
 
   function save() {
-    try { localStorage.setItem('wsif.v1', JSON.stringify({ boat: S.boat, method: S.method, hours: S.hours, setup: true, tripLen: S.tripLen, checks: S.checks, speed: S.speed, thr: S.thr, notify: S.notify, base: S.base, layers: S.layers, home: S.home, spot: S.spot, logs: S.logs, spots: S.spots, notified: S.notified.slice(-30) })); } catch (e) {}
+    try { localStorage.setItem('wsif.v1', JSON.stringify({ boat: S.boat, method: S.method, hours: S.hours, setup: true, tripLen: S.tripLen, pasted: S.pasted.slice(0, 20), checks: S.checks, speed: S.speed, thr: S.thr, notify: S.notify, base: S.base, layers: S.layers, home: S.home, spot: S.spot, logs: S.logs, spots: S.spots, notified: S.notified.slice(-30) })); } catch (e) {}
   }
 
   /* ---------- formatting ---------- */
@@ -35,8 +35,15 @@
   /* ====================================================================
      COMPUTE
      ==================================================================== */
+  function computeReports() {
+    const D = S.D, now = Date.now(); if (!D) return;
+    const logItems = S.logs.filter((c) => now - c.at < 21 * 864e5).map((c) => ({ t: c.at, weight: 2, analysis: { signal: c.n === 0 ? -0.6 : c.n < 3 ? 0.2 : c.n < 6 ? 0.6 : 0.9, walleye: true, depths: [], lures: [], areas: [] } }));
+    const items = [...D.reports.items.map((it) => ({ t: it.t, analysis: it.analysis, weight: it.sample ? 0.6 : 1 })), ...S.pasted.map((p) => ({ t: p.t, analysis: p.analysis, weight: 1.3 })), ...logItems];
+    D.repAgg = G.Reports.aggregate(items, now); D.repAgg.mine = logItems.length;
+  }
   function recompute() {
     const D = S.D; if (!D) return;
+    computeReports();
     S.dist = Data.miles(S.home, S.spot);
     S.rec = []; S.ev = []; S.rank = [];
     for (let i = 0; i < D.n; i++) {
@@ -97,11 +104,13 @@
     const tick = (t) => { const k = Math.min(1, (t - t0) / 500); $('#vNum').textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) numTween = requestAnimationFrame(tick); };
     numTween = requestAnimationFrame(tick);
 
+    const sp = D.spread[i]; let conf = '';
+    if (sp != null) { const mean = (D.wMin[i] + D.wMax[i]) / 2, rel = sp / Math.max(5, mean); conf = rel < 0.22 || sp < 2.5 ? `<span class="tag2 g">🎯 Models agree (±${Math.max(1, Math.round(sp / 2))} mph) — high confidence</span>` : rel < 0.5 ? `<span class="tag2">🎲 Models differ by ${Math.round(sp)} mph — medium confidence</span>` : `<span class="tag2 w">🤷 Models split ${Math.round(D.wMin[i])}–${Math.round(D.wMax[i])} mph — treat this hour loosely</span>`; }
     // chips
     const good = ev.factors.filter((f) => f.s >= 0.85).sort((a, b) => b.s * b.w - a.s * a.w).slice(0, 2), bad = ev.factors.filter((f) => f.s <= 0.55).sort((a, b) => (1 - b.s) * b.w - (1 - a.s) * a.w).slice(0, 2);
-    $('#vWhy').innerHTML = [...ev.reasons.sort((a, b) => b.lv - a.lv).slice(0, 2).map((r) => `<span class="tag2 ${r.lv >= 2 ? 'b' : 'w'}">${r.lv >= 2 ? '⛔' : '⚠️'} ${esc(r.msg)}</span>`), ...good.map((f) => `<span class="tag2 g">${f.icon} ${esc(f.note)}</span>`), ...bad.map((f) => `<span class="tag2 w">${f.icon} ${esc(f.note)}</span>`)].join('');
+    $('#vWhy').innerHTML = [conf, ...ev.reasons.sort((a, b) => b.lv - a.lv).slice(0, 2).map((r) => `<span class="tag2 ${r.lv >= 2 ? 'b' : 'w'}">${r.lv >= 2 ? '⛔' : '⚠️'} ${esc(r.msg)}</span>`), ...good.map((f) => `<span class="tag2 g">${f.icon} ${esc(f.note)}</span>`), ...bad.map((f) => `<span class="tag2 w">${f.icon} ${esc(f.note)}</span>`)].join('');
 
-    $('#vTip').innerHTML = `<b>${Model.METHODS[S.method].label.split(' (')[0]} · ${Model.BOATS[S.boat].label.split(' ·')[0]} boat</b> — ${esc(Model.tip(rec, S.method))}`;
+    $('#vTip').innerHTML = `<b>${Model.METHODS[S.method].label.split(' (')[0]} · ${Model.BOATS[S.boat].label.split(' ·')[0]} boat</b> — ${esc(Model.tip(rec, S.method))}${chatterTip()}`;
     // next window
     const nx = $('#nextWin'), w = S.windows.slice().sort((a, b) => a.s - b.s).find((r) => r.e >= D.nowIdx);
     if (w) {
@@ -202,6 +211,8 @@
     const WB = 232, WH = 46, wmax = Math.max(20, ...all.map((i) => S.rec[i].gust)), hmax = Math.max(4, ...all.map((i) => S.rec[i].wave));
     g += `<text x="${X0}" y="184" font-size="12" fill="#8fa9b8">WIND mph · WAVES ft</text>`;
     g += all.map((i, hr) => `<rect x="${(x(hr) + 5).toFixed(1)}" y="${(WB - (S.rec[i].wave / hmax) * WH).toFixed(1)}" width="${(HWID - 10).toFixed(1)}" height="${((S.rec[i].wave / hmax) * WH).toFixed(1)}" fill="#4fd1ff" opacity=".28"/>`).join('');
+    const bandPts = all.filter((i) => D.wMin[i] != null);
+    if (bandPts.length > 3) g += `<polygon fill="#5ff0b0" opacity=".16" points="${all.map((i, hr) => (D.wMax[i] == null ? '' : `${(x(hr) + HWID / 2).toFixed(1)},${(WB - (D.wMax[i] / wmax) * WH).toFixed(1)}`)).filter(Boolean).join(' ')} ${all.map((i, hr) => (D.wMin[i] == null ? '' : `${(x(hr) + HWID / 2).toFixed(1)},${(WB - (D.wMin[i] / wmax) * WH).toFixed(1)}`)).filter(Boolean).reverse().join(' ')}"/>`;
     g += `<polyline fill="none" stroke="#ffd23f" stroke-width="1.5" stroke-dasharray="3 3" opacity=".8" points="${all.map((i, hr) => `${(x(hr) + HWID / 2).toFixed(1)},${(WB - (S.rec[i].gust / wmax) * WH).toFixed(1)}`).join(' ')}"/>`;
     g += `<polyline fill="none" stroke="#5ff0b0" stroke-width="2.2" stroke-linejoin="round" points="${all.map((i, hr) => `${(x(hr) + HWID / 2).toFixed(1)},${(WB - (S.rec[i].wind / wmax) * WH).toFixed(1)}`).join(' ')}"/>`;
     // hour labels
@@ -211,7 +222,7 @@
     if (S.idx >= i0 && S.idx < i0 + 24) { const hr = S.idx - i0; g += `<rect x="${x(hr)}" y="50" width="${HWID}" height="${WB - 50 + 2}" rx="6" fill="none" stroke="var(--vc)" stroke-width="2" style="filter:drop-shadow(0 0 5px var(--vc))"/>`; }
     if (S.idx >= i0 && S.idx < i0 + 24) { const hr = S.idx - i0, len = Math.min(S.tripLen, 24 - hr); g += `<rect x="${x(hr)}" y="50" width="${len * HWID}" height="${WB - 50 + 2}" rx="6" fill="var(--vc)" opacity=".09"/><rect x="${x(hr)}" y="${BASE + 4}" width="${len * HWID}" height="4" rx="2" fill="var(--vc)" opacity=".8"/>`; }
     $('#strip').innerHTML = g;
-    $('#stripLegend').innerHTML = `<span><i style="background:#ffd23f"></i>major solunar</span><span><i style="background:#c9b46a"></i>minor</span><span><i style="background:#5ff0b0"></i>wind</span><span><i style="background:#4fd1ff;opacity:.5"></i>waves</span><span style="margin-left:auto">⛔ ✕ = unsafe for your boat</span>`;
+    $('#stripLegend').innerHTML = `<span><i style="background:#ffd23f"></i>major solunar</span><span><i style="background:#c9b46a"></i>minor</span><span><i style="background:#5ff0b0"></i>wind (shade = model range)</span><span><i style="background:#4fd1ff;opacity:.5"></i>waves</span><span style="margin-left:auto">⛔ ✕ = unsafe for your boat</span>`;
   }
   (function stripDrag() {
     const svg = $('#strip'); let down = false;
@@ -422,8 +433,8 @@
     };
   }
   function sourcesModal() {
-    const D = S.D, nm = { weather: 'Open-Meteo forecast', waves: 'Open-Meteo marine waves', windfield: 'Wind field (map)', wavefield: 'Wave field (map)', gauge: 'NOAA water-temp gauge', gaugeWind: 'NOAA wind gauge', gaugeAir: 'NOAA air-temp gauge', gaugePres: 'NOAA pressure gauge', alerts: 'NWS alerts', radar: 'RainViewer radar' };
-    openModal(`<h3>📡 Data sources</h3>${Object.entries(D.sources).map(([k, v]) => `<div class="logrow"><span>${v === 'live' ? '🟢' : v === 'demo' ? '🧪' : v === 'estimated' ? '🟡' : '🔴'}</span><b>${nm[k] || k}</b><span style="margin-left:auto;color:var(--tx2)">${v === 'down' ? (k.startsWith('gauge') || k === 'alerts' || k === 'radar' ? 'unavailable (fallback in use)' : 'unavailable') : v}</span></div>`).join('')}<div class="foot">Loaded ${D.fetchedAt.toLocaleTimeString()} in ${D.loadMs} ms. Refreshes automatically every 10 minutes.</div><div class="row"><button class="btn pri" data-close>Close</button></div>`);
+    const D = S.D, nm = { weather: 'Open-Meteo forecast', waves: 'Open-Meteo marine waves', windfield: 'Wind field (map)', wavefield: 'Wave field (map)', gauge: 'NOAA water-temp gauge', gaugeWind: 'NOAA wind gauge', gaugeAir: 'NOAA air-temp gauge', gaugePres: 'NOAA pressure gauge', alerts: 'NWS alerts', radar: 'RainViewer radar', models: 'Multi-model wind (GFS · ECMWF · ICON)', reports: 'Fishing-report file (data/reports.json)', nws: 'NWS nearshore forecast text' };
+    openModal(`<h3>📡 Data sources</h3>${Object.entries(D.sources).map(([k, v]) => `<div class="logrow"><span>${v === 'live' ? '🟢' : v === 'demo' ? '🧪' : v === 'estimated' ? '🟡' : '🔴'}</span><b>${nm[k] || k}</b><span style="margin-left:auto;color:var(--tx2)">${v === 'down' ? (k.startsWith('gauge') || k === 'alerts' || k === 'radar' ? 'unavailable (fallback in use)' : 'unavailable') : v}</span></div>`).join('')}${(D.reports.sources || []).map((r) => `<div class="logrow"><span>${r.status === 'ok' ? '🟢' : r.status === 'demo' ? '🧪' : '🟠'}</span><b>${esc(r.name)}</b><span style="margin-left:auto;color:var(--tx2);font-size:11.5px;text-align:right">${esc(r.status)}</span></div>`).join('')}${D.reports.missing ? '<div class="foot">No <code>data/reports.json</code> found — the scheduled fetcher hasn\'t run yet (see README).</div>' : ''}<div class="foot">Loaded ${D.fetchedAt.toLocaleTimeString()} in ${D.loadMs} ms. Refreshes automatically every 10 minutes.</div><div class="row"><button class="btn pri" data-close>Close</button></div>`);
   }
   $('#settingsBtn').onclick = () => settingsModal(false);
   $('#livePill').onclick = () => S.D && sourcesModal();
@@ -459,7 +470,7 @@
     loading = false; $('#refreshBtn').classList.remove('spin');
   }
   function renderAll() {
-    renderAlerts(); renderWindows(); renderSeason(); renderLog(); renderTime(false); renderChecklist(); MapView.updateCatches();
+    renderAlerts(); renderWindows(); renderSeason(); renderLog(); renderTime(false); renderChecklist(); renderReports(); MapView.updateCatches();
   }
   function updateLive() {
     const D = S.D, pill = $('#livePill'); if (!D) return;
@@ -610,6 +621,53 @@
     $('#checklist').innerHTML = items.map((c) => `<div class="chk ${S.checks.done[c[0]] ? 'done' : ''} ${c[2] ? 'cond' : ''}" data-k="${c[0]}"><i>✓</i><div><span>${c[1]}</span>${c[3] ? `<small>${esc(c[3](r, t))}</small>` : ''}</div></div>`).join('') + (done === items.length ? '<div class="ready">ALL SET — TIGHT LINES! 🎣</div>' : '');
   }
   $('#checklist').addEventListener('click', (e) => { const c = e.target.closest('[data-k]'); if (!c) return; S.checks.done[c.dataset.k] = !S.checks.done[c.dataset.k]; save(); renderChecklist(); });
+
+
+  /* ====================================================================
+     REPORTS & CHATTER
+     ==================================================================== */
+  const safeUrl = (u) => (/^https?:\/\//i.test(u || '') ? u : '');
+  function chatterTip() {
+    const a = S.D.repAgg; if (!a || !a.n) return '';
+    const bits = [a.depth ? `${a.depth[0] === a.depth[1] ? a.depth[0] : a.depth[0] + '–' + a.depth[1]} ft` : '', a.lures.join(', '), a.areas.length ? 'off ' + a.areas.join('/') : ''].filter(Boolean);
+    return bits.length ? `<br>📣 <b>Chatter:</b> ${esc(bits.join(' · '))}` : '';
+  }
+  const ago = (t) => { const h = Math.round((Date.now() - t) / 3600000); return h < 1 ? 'just now' : h < 36 ? h + 'h ago' : Math.round(h / 24) + 'd ago'; };
+  function sigChip(sig) { const [e, l] = G.Reports.label(sig); const c = sig >= 0.2 ? 'g' : sig <= -0.2 ? 'b' : 'w'; return `<span class="tag2 ${c}">${e} ${l}</span>`; }
+
+  function renderReports() {
+    const D = S.D; if (!D) return;
+    const a = D.repAgg, rp = D.reports, items = [...S.pasted.map((p) => ({ ...p, mine: true })), ...rp.items].sort((x, y) => y.t - x.t).slice(0, 7);
+    const [emo, lab] = G.Reports.label(a.signal), pct = ((a.signal + 1) / 2) * 100;
+    let h = `<div class="rep-head"><div class="rep-emo">${a.n ? emo : '🤔'}</div><div style="flex:1"><div class="rep-t">${a.n ? 'Bite chatter: <b style="color:var(--vc)">' + lab + '</b>' : 'No recent reports yet'}</div><div class="rep-sub">${a.n ? `${a.n} source${a.n > 1 ? 's' : ''}${a.mine ? ` (incl. ${a.mine} of your trips)` : ''} · newest ${ago(a.newest)} · feeds the “Angler reports” factor` : 'Paste one from any site or group — or enable the report fetcher (see README).'}</div><div class="meter"><i style="left:${a.n ? pct : 50}%"></i></div></div></div>`;
+    if (a.n && (a.depth || a.lures.length || a.areas.length)) h += `<div class="chips" style="margin:10px 0 2px">${a.depth ? `<span class="tag2">📏 ${a.depth[0] === a.depth[1] ? a.depth[0] : a.depth[0] + '–' + a.depth[1]} ft</span>` : ''}${a.lures.map((l) => `<span class="tag2">🎣 ${esc(l)}</span>`).join('')}${a.areas.map((l) => `<span class="tag2">📍 ${esc(l)}</span>`).join('')}</div>`;
+    h += items.map((it) => { const an = it.analysis, url = safeUrl(it.url); return `<div class="rep"><div class="rh"><b>${esc(it.source || it.src || 'Report')}</b>${it.sample ? '<span class="tag2 w">SAMPLE</span>' : ''}${it.mine ? '<span class="tag2">pasted</span>' : ''}<span class="when">${ago(it.t)}</span><span style="margin-left:auto">${sigChip(an.signal)}</span></div><p>${esc(an.snippet || '')}</p><div class="rf">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Read the full report ↗</a>` : ''}${it.mine ? `<button class="x" data-delrep="${it.id}">remove</button>` : ''}</div></div>`; }).join('');
+    if (!items.length) h += '<div class="empty">Nothing recent from the fetcher. Good places to look: ODNR Lake Erie reports, local guide blogs, tackle-shop pages, Facebook groups — copy the text, hit “Paste a report”, and I’ll read it.</div>';
+    const bu = D.buoys; if (bu.length) h += `<div class="obs">🛟 ${bu.map((b) => `<span><b>${esc(b.name)}${b.sample ? ' (sample)' : ''}</b>: ${b.waterT != null ? 'water ' + Math.round(b.waterT) + '°F · ' : ''}${b.wave != null ? 'waves ' + b.wave.toFixed(1) + ' ft · ' : ''}${b.wind != null ? 'wind ' + Math.round(b.wind) + ' mph ' + (b.windDir != null ? Model.compass(b.windDir) : '') : ''} <i>${ago(b.t)}</i></span>`).join('<br>')}</div>`;
+    if (D.nws) h += `<details class="nws"><summary>🌐 NWS nearshore marine forecast${D.nws.issued ? ' · issued ' + ago(Date.parse(D.nws.issued)) : ''}</summary><p>${esc(D.nws.text)}</p><a href="https://forecast.weather.gov/product.php?site=CLE&product=NSH&issuedby=CLE" target="_blank" rel="noopener noreferrer">Full product ↗</a></details>`;
+    h += `<div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap"><button class="btn pri" id="pasteBtn">＋ Paste a report</button><button class="mini" id="repSrcBtn">Source status</button></div>`;
+    $('#reports').innerHTML = h;
+    $('#repWhen').textContent = rp.generated ? 'fetched ' + ago(Date.parse(rp.generated)) : '';
+    $('#pasteBtn').onclick = pasteModal; $('#repSrcBtn').onclick = sourcesModal;
+  }
+  $('#reports').addEventListener('click', (e) => { const d = e.target.closest('[data-delrep]'); if (!d) return; S.pasted = S.pasted.filter((p) => String(p.id) !== d.dataset.delrep); save(); computeReports(); recompute(); renderAll(); });
+
+  function pasteModal() {
+    openModal(`<h3>📣 Paste a fishing report</h3><div class="foot" style="padding:0">Copy text from any site, group post or message. I read the mood (“limits”, “slow”, “tough”…), depths, lures and areas, and blend it into your score — fading over a few days. Stays on this device.</div>
+      <label>Report text</label><textarea id="pText" rows="6" placeholder="e.g. Walleye were hot off Fairport this morning — limits by 10 trolling crawler harnesses on boards in 48 feet…"></textarea>
+      <label>Source (optional)</label><input id="pSrc" placeholder="e.g. Capt. Mike, Facebook group, bait shop"/>
+      <label>How old is it?</label><select id="pAge"><option value="0">Today</option><option value="24">Yesterday</option><option value="48">2 days ago</option><option value="96">4 days ago</option><option value="168">A week ago</option></select>
+      <div id="pPrev" class="foot" style="margin-top:10px">Preview appears as you type…</div>
+      <div class="row"><button class="btn" data-close>Cancel</button><button class="btn pri" id="pSave">Add report</button></div>`);
+    const prev = () => { const t = $('#pText').value.trim(); if (!t) { $('#pPrev').textContent = 'Preview appears as you type…'; return null; } const a = G.Reports.analyze(t); $('#pPrev').innerHTML = `${sigChip(a.signal)} ${a.walleye ? '' : '<span class="tag2 w">no walleye mentioned — counted at 30%</span>'} ${a.depths.length ? '📏 ' + a.depths.map((d) => d.join('–')).join(', ') + ' ft ' : ''}${a.lures.length ? '🎣 ' + a.lures.join(', ') + ' ' : ''}${a.areas.length ? '📍 ' + a.areas.join(', ') : ''}${a.relevance < 1 ? '<br>' + (a.relevance < 0.5 ? 'Mentions the western basin — discounted for Geneva/central basin.' : 'No central-basin place names found — treated as partly relevant.') : ''}`; return a; };
+    $('#pText').oninput = prev;
+    $('#pSave').onclick = () => {
+      const t = $('#pText').value.trim(); if (!t) return toast('Paste some text first');
+      const a = G.Reports.analyze(t);
+      S.pasted.unshift({ id: Date.now(), src: $('#pSrc').value.trim() || 'My report', source: $('#pSrc').value.trim() || 'My report', t: Date.now() - (+$('#pAge').value) * 3600000, analysis: a, text: t.slice(0, 4000) });
+      S.pasted = S.pasted.slice(0, 20); save(); closeModal(); recompute(); renderAll(); toast('Report added — score updated 📣');
+    };
+  }
 
   /* ---- share / calendar ---- */
   function shareUrl() { const u = new URL(location.href); u.hash = `t=${S.D.times[S.idx]}&lat=${S.spot.lat.toFixed(4)}&lon=${S.spot.lon.toFixed(4)}`; return u.toString(); }

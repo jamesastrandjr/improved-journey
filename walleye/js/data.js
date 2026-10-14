@@ -55,15 +55,37 @@
       return { temperature_2m: air, precipitation_probability: pop, precipitation: precip, weather_code: code, pressure_msl: pres, cloud_cover: cloud, visibility: cloud > 88 && hr < 9 ? 1800 : 24000, wind_speed_10m: wind, wind_direction_10m: dir, wind_gusts_10m: wind * 1.35 + 2, wave_height: wave, wave_direction: dir, wave_period: 2.5 + wave * 1.4 };
     },
     forecast(url, marine) {
-      const p = new URL(url).searchParams, lats = p.get('latitude').split(',').map(Number), lons = p.get('longitude').split(',').map(Number), vars = p.get('hourly').split(','), times = Demo.times();
+      const p = new URL(url).searchParams, models = p.get('models') ? p.get('models').split(',') : null, lats = p.get('latitude').split(',').map(Number), lons = p.get('longitude').split(',').map(Number), vars = p.get('hourly').split(','), times = Demo.times();
       const res = lats.map((lat, k) => {
         const hourly = { time: times };
         vars.forEach((v) => (hourly[v] = []));
-        times.forEach((t, i) => { const o = Demo.at(i, t, lat, lons[k]); vars.forEach((v) => hourly[v].push(+o[v].toFixed(2))); });
+        if (models) { vars.length = 0; ['wind_speed_10m', 'wind_gusts_10m'].forEach((v) => models.forEach((m, mi) => { vars.push(v + '_' + m); hourly[v + '_' + m] = []; })); }
+        times.forEach((t, i) => {
+          const o = Demo.at(i, t, lat, lons[k]);
+          vars.forEach((v) => {
+            if (!models) return hourly[v].push(+o[v].toFixed(2));
+            const m = models.findIndex((x) => v.endsWith('_' + x)), base = v.startsWith('wind_gusts') ? o.wind_gusts_10m : o.wind_speed_10m;
+            hourly[v].push(+Math.max(0, base + Math.sin(i * 0.09 + m * 2.1) * (0.6 + (i / 24) * 0.9)).toFixed(2));
+          });
+        });
         return { latitude: lat, longitude: lons[k], hourly };
       });
       return res.length === 1 ? res[0] : res;
     },
+  };
+
+  Demo.reports = () => {
+    const now = Date.now();
+    return {
+      generated: new Date(now).toISOString(), demo: true,
+      sources: [{ id: 'sample', name: 'SAMPLE data (not a real report)', status: 'demo', count: 2 }],
+      items: [
+        { source: 'SAMPLE report', id: 'sample', title: 'Sample: central basin walleye', url: '', t: now - 20 * 3600000, sample: true, text: 'Walleye bite was good off Fairport. Trolling crawler harnesses with planer boards in 45-55 feet, steady action with a limit by noon.' },
+        { source: 'SAMPLE report', id: 'sample', title: 'Sample: Geneva slower', url: '', t: now - 70 * 3600000, sample: true, text: 'Walleye were scattered and slow off Geneva after the cold front. Tough day, a few fish in 50 fow on stickbaits.' },
+      ],
+      buoys: [{ id: '45005', name: 'SAMPLE buoy', t: now - 40 * 60000, wind: 11, windDir: 250, gust: 15, wave: 1.4, pres: 1015, airT: 55, waterT: 61.5, sample: true }],
+      nws: { issued: new Date(now - 3 * 3600000).toISOString(), text: 'SAMPLE TEXT — Geneva-on-the-Lake to Conneaut OH: SW winds 10 to 15 kt becoming W 10 kt. Waves 1 to 3 ft. (This is demo text, not a real forecast.)' },
+    };
   };
 
   /* ====================================================================
@@ -74,7 +96,7 @@
     const attempt = async (name, fn) => { try { const v = await fn(); sources[name] = 'live'; return v; } catch (e) { sources[name] = 'down'; return null; } };
     const gl = gridPoints.map((p) => p.lat), go = gridPoints.map((p) => p.lon);
 
-    const [fc, ma, gfc, gma, wT, wW, wA, wP, alerts, radar] = await Promise.all([
+    const [fc, ma, gfc, gma, wT, wW, wA, wP, alerts, radar, mdl, repJ, nwsP] = await Promise.all([
       attempt('weather', () => getJSON(fcUrl([FISH_CENTER.lat], [FISH_CENTER.lon], FC_HOURLY))),
       attempt('waves', () => getJSON(maUrl([FISH_CENTER.lat], [FISH_CENTER.lon], 'wave_height,wave_direction,wave_period'))),
       attempt('windfield', () => getJSON(fcUrl(gl, go, 'wind_speed_10m,wind_direction_10m,wind_gusts_10m'), 18000)),
@@ -85,17 +107,23 @@
       attempt('gaugePres', () => getJSON(coops('9063063', 'air_pressure'))),
       attempt('alerts', () => getJSON(`https://api.weather.gov/alerts/active?point=${FISH_CENTER.lat},${FISH_CENTER.lon}`)),
       attempt('radar', () => getJSON('https://api.rainviewer.com/public/weather-maps.json')),
+      attempt('models', () => getJSON(fcUrl([FISH_CENTER.lat], [FISH_CENTER.lon], 'wind_speed_10m,wind_gusts_10m', '&models=gfs_seamless,ecmwf_ifs025,icon_seamless'))),
+      attempt('reports', () => getJSON('data/reports.json?ts=' + Math.floor(Date.now() / 600000), 8000)),
+      attempt('nws', async () => { const l = await getJSON('https://api.weather.gov/products/types/NSH/locations/CLE'); return getJSON('https://api.weather.gov/products/' + l['@graph'][0].id); }),
     ]);
 
     let demo = false;
-    let fcR = fc, maR = ma, gfcR = gfc, gmaR = gma;
+    let fcR = fc, maR = ma, gfcR = gfc, gmaR = gma, mdlR = mdl, repR = repJ;
     if (!fc) {
       demo = true;
       fcR = Demo.forecast(fcUrl([FISH_CENTER.lat], [FISH_CENTER.lon], FC_HOURLY));
       maR = Demo.forecast(maUrl([FISH_CENTER.lat], [FISH_CENTER.lon], 'wave_height,wave_direction,wave_period'));
       gfcR = Demo.forecast(fcUrl(gl, go, 'wind_speed_10m,wind_direction_10m,wind_gusts_10m'));
       gmaR = Demo.forecast(maUrl(gl, go, 'wave_height'));
+      mdlR = Demo.forecast(fcUrl([FISH_CENTER.lat], [FISH_CENTER.lon], 'wind_speed_10m,wind_gusts_10m', '&models=gfs_seamless,ecmwf_ifs025,icon_seamless'));
+      repR = Demo.reports();
       Object.keys(sources).forEach((k) => { if (['weather', 'waves', 'windfield', 'wavefield'].includes(k)) sources[k] = 'demo'; });
+      sources.models = 'demo'; sources.reports = 'demo'; sources.nws = 'demo';
     }
 
     const f = asArr(fcR)[0].hourly, times = f.time, n = times.length;
@@ -129,6 +157,20 @@
         });
       }
     }
+
+    // multi-model agreement on wind
+    D.spread = new Array(n).fill(null); D.wMin = new Array(n).fill(null); D.wMax = new Array(n).fill(null);
+    if (mdlR) {
+      const mh2 = asArr(mdlR)[0].hourly, keys = Object.keys(mh2).filter((k) => k.startsWith('wind_speed_10m_')), idx2 = new Map(mh2.time.map((t, i) => [t, i]));
+      if (keys.length >= 2) times.forEach((t, i) => { const j = idx2.get(t); if (j == null) return; const v = keys.map((k) => mh2[k][j]).filter((x) => x != null); if (v.length >= 2) { D.wMin[i] = Math.min(...v); D.wMax[i] = Math.max(...v); D.spread[i] = D.wMax[i] - D.wMin[i]; } });
+      else sources.models = 'down';
+    }
+    // reports file (from the scheduled fetcher), buoys, nws text
+    D.reports = repR && repR.items ? repR : { items: [], sources: [], buoys: [], nws: null, missing: true };
+    D.reports.items.forEach((it) => { if (!it.analysis && it.text) it.analysis = G.Reports.analyze(it.text); if (it.analysis && !it.analysis.snippet) it.analysis.snippet = ''; if (it.sample) it.analysis.walleye = true; });
+    D.nws = nwsP && nwsP.productText ? { issued: nwsP.issuanceTime, text: nwsP.productText } : D.reports.nws ? { issued: D.reports.nws.issued, text: D.reports.nws.text, fromFile: true } : null;
+    if (D.nws && !D.nws.fromFile && !demo) { const blocks = D.nws.text.split(/\n\s*\$\$\s*\n?/).map((b) => b.trim()).filter(Boolean); D.nws.text = (blocks.find((b) => /geneva|ashtabula|conneaut|fairport|ripley|painesville/i.test(b)) || blocks[0] || '').replace(/\n(?!\n)/g, ' ').replace(/\s{2,}/g, ' ').slice(0, 1400); }
+    D.buoys = (D.reports.buoys || []).filter((b) => Date.now() - b.t < 4 * 3600000);
 
     // live gauge (NOAA CO-OPS)
     const lastV = (j, key = 'v') => { const d = j && j.data && j.data[j.data.length - 1]; return d ? d : null; };
@@ -164,8 +206,8 @@
     D.sol = D.ms.map((m) => Astro.solunarAt(m + 1800000, moonEv));
     D.pTrend3 = D.h.pressure_msl.map((p, i) => (i >= 3 ? p - D.h.pressure_msl[i - 3] : 0));
     const today = Astro.etDay(new Date());
-    const baseW = obs.waterT != null ? obs.waterT : Model.climoWaterT(today);
-    D.waterBase = baseW; D.waterLive = obs.waterT != null && !demo;
+    const bw = D.buoys.find((b) => b.waterT != null), baseW = obs.waterT != null ? obs.waterT : bw ? bw.waterT : Model.climoWaterT(today);
+    D.waterBase = baseW; D.waterLive = (obs.waterT != null || !!bw) && !demo; if (obs.waterT == null && bw) { obs.waterT = bw.waterT; obs.station = bw.name + ' (buoy)'; }
     D.waterT = times.map((t) => Math.max(33, baseW + (Model.climoWaterT(t.slice(0, 10)) - Model.climoWaterT(today))));
     D.loadMs = Date.now() - t0;
     return D;
@@ -183,6 +225,14 @@
     return { wind: w_ / sw, gust: g_ / sw, wave: wv_ / sw, dir: ((Math.atan2(sx, sy) * 180) / Math.PI + 360) % 360 };
   }
 
+  /* report signal for hour i: full strength for now/past, fading with a ~33h half-life into the future */
+  function repFor(D, i) {
+    const a = D.repAgg; if (!a || !a.n) return null;
+    const hrs = Math.max(0, (D.ms[i] - Date.now()) / 3600000), decay = Math.exp(-hrs / 48), lab = G.Reports.label(a.signal)[1].toLowerCase();
+    const age = Math.round((Date.now() - a.newest) / 3600000), ageT = age < 36 ? age + 'h' : Math.round(age / 24) + 'd';
+    return { signal: a.signal * decay, n: a.n, note: `Anglers report a ${lab} bite (${a.n} report${a.n > 1 ? 's' : ''}, newest ${ageT} ago)${hrs > 24 ? ' — stale by then' : ''}` };
+  }
+
   /* ---- build the model's hour record for index i at a spot ---- */
   function hourRecord(D, i, spot) {
     const H = D.h, sp = spot ? interp(D, i, spot.lat, spot.lon) : null;
@@ -191,7 +241,7 @@
       t: D.times[i], i,
       temp: H.temperature_2m[i], pop: H.precipitation_probability[i], precip: H.precipitation[i], code: H.weather_code[i], pres: H.pressure_msl[i], cloud: H.cloud_cover[i], vis: H.visibility[i],
       wind: sp ? sp.wind : H.wind_speed_10m[i], dir: sp ? sp.dir : H.wind_direction_10m[i], gust: sp ? sp.gust : H.wind_gusts_10m[i], wave: sp ? sp.wave : H.wave[i], wavePer: H.wavePer[i],
-      waveEst: D.waveEst[i], pTrend3: D.pTrend3[i], waterT: D.waterT[i], sunAlt: D.sunAlt[i], moonPhase: D.moon[i], sol: D.sol[i], alerts: al,
+      rep: repFor(D, i), spread: D.spread[i], waveEst: D.waveEst[i], pTrend3: D.pTrend3[i], waterT: D.waterT[i], sunAlt: D.sunAlt[i], moonPhase: D.moon[i], sol: D.sol[i], alerts: al,
     };
   }
 
