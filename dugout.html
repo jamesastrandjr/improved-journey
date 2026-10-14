@@ -47,6 +47,16 @@ td.l,th.l{text-align:left}
 .empty{padding:24px;text-align:center;color:var(--mute)}
 ul.plain{margin:0;padding-left:18px}
 ul.plain li{margin-bottom:6px}
+svg.field{width:100%;max-width:520px;height:auto;display:block;margin:0 auto}
+.grass{fill:#5fa36a}.dirt{fill:#c9a26b}.chalk{stroke:#fff;stroke-width:2;fill:none}
+.mk{fill:var(--card);stroke:var(--acc);stroke-width:3}
+.mk.empty{stroke:var(--warn);stroke-dasharray:4 3}
+.pl{font:700 11px system-ui,sans-serif;fill:var(--acc);text-anchor:middle}
+.nm{font:700 13px system-ui,sans-serif;fill:#fff;text-anchor:middle;paint-order:stroke;stroke:#1d3a26;stroke-width:3.5px;stroke-linejoin:round}
+.inns{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:10px}
+.inns button.on{background:var(--acc);border-color:var(--acc);color:#fff}
+@media (prefers-color-scheme:dark){.inns button.on{color:#0c1a12}}
+@media print{header,nav,.noprint{display:none!important}body{background:#fff;color:#000}.card{break-inside:avoid;border-color:#bbb}}
 </style>
 </head>
 <body>
@@ -410,10 +420,10 @@ function vStats(){
 function wStats(){ const f = $('#form'); if (f) f.onchange = () => { form = f.checked; render(); }; }
 
 /* ---------- Lineup ---------- */
-let absent = new Set(), balance = .7;
+let absent = new Set(), balance = .7, fieldInn = 0;
 function vLineup(){
   if (!db.players.length) return needPlayers();
-  return `<div class="card"><h2>Who's here this week?</h2><div class="chips">${db.players.map(p =>
+  return `<div class="card noprint"><h2>Who's here this week?</h2><div class="chips">${db.players.map(p =>
     `<label><input type="checkbox" data-here="${esc(p.name)}" ${absent.has(p.name)?'':'checked'}> ${esc(p.name)}</label>`).join('')}</div>
   <div class="row"><div style="min-width:260px"><label>Balance: <b id="bv">${balance.toFixed(2)}</b> &nbsp; (0 = win now &harr; 1 = equal for everyone)</label>
     <input type="range" id="bal" min="0" max="1" step="0.05" value="${balance}"></div>
@@ -428,19 +438,50 @@ function renderLineup(L){
   <div class="card"><h2>Defense by inning</h2><div class="scroll"><table><thead><tr><th>Player</th>${Array.from({length:innings},(_,i)=>`<th class="cell">${i+1}</th>`).join('')}<th>Bench</th></tr></thead><tbody>
   ${order.map(([n]) => `<tr><td>${esc(n)}</td>${plan[n].map(p => `<td class="cell ${p===BENCH?'bench':''}">${p}</td>`).join('')}<td>${plan[n].filter(p=>p===BENCH).length}</td></tr>`).join('')}
   </tbody></table></div>
-  <p><button class="pri" id="use">Use this plan when I enter the game</button> <span class="muted" id="usemsg"></span></p></div>`;
+  <p class="noprint"><button class="pri" id="use">Use this plan when I enter the game</button> <button id="print">Print lineup card</button> <span class="muted" id="usemsg"></span></p></div>
+  <div class="card"><h2>Field view</h2><div id="fieldwrap">${fieldView(L)}</div></div>`;
+}
+const SPOT = {P:[200,232],C:[200,338],'1B':[285,238],'2B':[240,172],SS:[160,172],'3B':[115,238],LF:[72,98],CF:[200,52],RF:[328,98]};
+function fieldView(L){
+  const i = Math.min(fieldInn, L.innings-1);
+  const who = {}; L.present.forEach(n => { const pos = L.plan[n][i]; if (pos!==BENCH) who[pos] = n; });
+  const bench = L.present.filter(n => L.plan[n][i]===BENCH);
+  const dots = POS.map(pos => { const [x,y] = SPOT[pos], n = who[pos];
+    return `<g><circle class="mk ${n?'':'empty'}" cx="${x}" cy="${y}" r="17"/><text class="pl" x="${x}" y="${y+4}">${pos}</text>
+      <text class="nm" x="${x}" y="${y+33}">${n ? esc(n) : '(open)'}</text></g>`; }).join('');
+  return `<div class="inns">${Array.from({length:L.innings},(_,k) => `<button data-inn="${k}" class="${k===i?'on':''}">Inning ${k+1}</button>`).join('')}</div>
+  <svg class="field" viewBox="0 0 400 390" role="img" aria-label="Baseball field with players at their positions for inning ${i+1}">
+    <rect width="400" height="390" fill="none"/>
+    <path class="grass" d="M200 335 L12 150 Q200 -45 388 150 Z"/>
+    <path class="dirt" d="M200 335 L290 245 L200 150 L110 245 Z"/>
+    <circle class="dirt" cx="200" cy="232" r="22"/>
+    <path class="grass" d="M200 315 L270 245 L200 175 L130 245 Z" opacity=".55"/>
+    <path class="chalk" d="M200 335 L12 150 M200 335 L388 150"/>
+    <g fill="#fff" stroke="#999"><rect x="283" y="238" width="14" height="14" transform="rotate(45 290 245)"/>
+      <rect x="193" y="143" width="14" height="14" transform="rotate(45 200 150)"/>
+      <rect x="103" y="238" width="14" height="14" transform="rotate(45 110 245)"/>
+      <path d="M192 330 h16 v6 l-8 6 l-8 -6 z"/></g>
+    ${dots}</svg>
+  <p style="text-align:center;margin:8px 0 0">${bench.length ? `<span class="bench">On the bench:</span> ${bench.map(esc).join(', ')}` : '<span class="muted">Everyone is in the field this inning.</span>'}</p>`;
 }
 function wLineup(){
   if (!$('#mk')) return;
   document.querySelectorAll('[data-here]').forEach(c => c.onchange = () => c.checked ? absent.delete(c.dataset.here) : absent.add(c.dataset.here));
   $('#bal').oninput = e => { balance = +e.target.value; $('#bv').textContent = balance.toFixed(2); };
-  const bindUse = () => { const u = $('#use'); if (u) u.onclick = () => {
-    db.lastPlan = {order:lastLineup.order.map(x=>x[0]), field:lastLineup.plan}; save(); $('#usemsg').textContent = 'Saved - the Enter game tab will be pre-filled.'; }; };
+  const bindUse = () => {
+    const u = $('#use'); if (u) u.onclick = () => {
+      db.lastPlan = {order:lastLineup.order.map(x=>x[0]), field:lastLineup.plan}; save(); $('#usemsg').textContent = 'Saved - the Enter game tab will be pre-filled.'; };
+    const pr = $('#print'); if (pr) pr.onclick = () => window.print();
+    const fw = $('#fieldwrap'); if (fw) fw.onclick = e => {
+      const b = e.target.closest('[data-inn]'); if (!b) return;
+      fieldInn = +b.dataset.inn; fw.innerHTML = fieldView(lastLineup); };
+  };
   bindUse();
   $('#mk').onclick = () => {
     const present = names().filter(n => !absent.has(n));
     if (present.length < 4) return alert('Need at least 4 players.');
     const prof = profiles(.85), innings = db.settings.innings;
+    fieldInn = 0;
     lastLineup = {order:battingOrder(present, prof, balance), plan:fieldPlan(present, prof, balance, innings), present, innings, prof};
     let note = present.length<9 ? `<div class="card bench">Only ${present.length} players: some positions will be uncovered.</div>` : '';
     $('#lres').innerHTML = note + renderLineup(lastLineup); bindUse();
