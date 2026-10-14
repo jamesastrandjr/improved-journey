@@ -1,0 +1,4 @@
+team_data.json
+*.tmp
+__pycache__/
+game.csv
