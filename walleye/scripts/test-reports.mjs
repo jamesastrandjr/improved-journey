@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { htmlToText, parseRss, parseNdbc, pickZone, parseAsc, ascToDepth, encodeBathy } from './lib.mjs';
+const R = createRequire(import.meta.url)('../js/reports.js');
+const hot = R.analyze('Walleye fishing off Fairport was excellent this week. Boats limited out by 9am trolling crawler harnesses with planer boards in 45-55 feet of water. Hot bite continues.');
+const slow = R.analyze("Walleye bite was slow and tough off Geneva after the cold front. Water is muddy and we didn't catch much. Skunked in 40 fow.");
+const neg = R.analyze('The bite was not good off Ashtabula for walleye.');
+const west = R.analyze('Western basin walleye fishing was excellent near Maumee Bay, limits for everyone.');
+const perch = R.analyze('Great perch fishing near Cleveland, limited out on yellow perch.');
+assert.ok(hot.signal > 0.6, 'hot ' + hot.signal); assert.deepEqual(hot.depths[0], [45, 55]); assert.ok(hot.lures.includes('crawler harness') && hot.lures.includes('planer boards')); assert.ok(hot.areas.includes('Fairport'));
+assert.ok(slow.signal < -0.5, 'slow ' + slow.signal); assert.equal(slow.depths[0][0], 40);
+assert.ok(neg.signal < 0, 'negation ' + neg.signal);
+assert.ok(west.signal < hot.signal * 0.6, 'western basin discounted'); assert.ok(Math.abs(perch.signal) < hot.signal * 0.5, 'non-walleye discounted');
+const now = Date.now(), agg = R.aggregate([{ t: now - 864e5, analysis: hot }, { t: now - 2 * 864e5, analysis: slow }, { t: now - 40 * 864e5, analysis: slow }], now);
+assert.equal(agg.n, 2); assert.ok(agg.signal > 0 && agg.signal < 0.7); assert.deepEqual(agg.depth.length, 2);
+assert.equal(R.aggregate([], now).n, 0); assert.equal(R.label(0.7)[1], 'HOT'); assert.equal(R.label(-0.7)[1], 'TOUGH');
+assert.equal(htmlToText('<html><nav>menu</nav><main><h1>Report</h1><p>Walleye &amp; perch &#8217;ok&#8217;</p><script>x()</script></main></html>'), 'Report\nWalleye & perch ’ok’');
+const rss = parseRss('<rss><channel><item><title>Erie Report</title><link>http://a.b/1</link><pubDate>Wed, 14 Oct 2026 12:00:00 GMT</pubDate><description><![CDATA[<p>Walleye bite is <b>good</b></p>]]></description></item></channel></rss>');
+assert.equal(rss.length, 1); assert.equal(rss[0].title, 'Erie Report'); assert.equal(rss[0].text, 'Walleye bite is good'); assert.equal(rss[0].t, Date.UTC(2026, 9, 14, 12));
+const nd = parseNdbc('#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft\n2026 10 14 15 50 250  6.0  8.0   0.9     4   MM 240 1015.2  14.0  16.5    MM   MM   MM    MM');
+assert.equal(nd.wind, 13.4); assert.equal(nd.wave, 3); assert.equal(nd.waterT, 61.7); assert.equal(nd.t, Date.UTC(2026, 9, 14, 15, 50));
+const z = pickZone('LEZ144-\nWest zone text\n\n$$\n\nLEZ146-\nGeneva-on-the-Lake OH\nSW winds 10 kt.\n\n$$'); assert.ok(/Geneva/.test(z) && !/West zone/.test(z));
+const nw = R.parseNwsText('LEZ148-\n.TODAY...Southwest winds 10 to 15 knots. Waves 1 to 3 feet.\n.TONIGHT...West winds 10 knots. Waves 1 foot or less.');
+assert.deepEqual(nw.waves, [1, 3]); assert.deepEqual(nw.windKt, [10, 15]);
+assert.deepEqual(R.parseNwsText('Winds light. Waves 2 feet or less.').waves, [0, 2]); assert.equal(R.parseNwsText('nothing here').waves, null);
+const gl = R.parseGlsea('time,Erie\nUTC,degree_C\n2026-10-10T00:00:00Z,16.0\n2026-10-12T00:00:00Z,15.5\n2026-10-11T00:00:00Z,NaN');
+assert.equal(gl.erieF, 59.9); assert.equal(gl.t, Date.UTC(2026, 9, 12)); assert.equal(R.parseGlsea('Year,Day,Erie\n2026,285,15.0').erieF, 59);
+const z2 = pickZone('LEZ146-\nVermilion\n\n$$\n\nLEZ147-\nWillowick to Geneva-on-the-Lake OH\nW winds 10 kt.\n\n$$\n\nLEZ148-\nGeneva-on-the-Lake to Conneaut OH\nSW winds 15 kt.\n\n$$'); assert.ok(/LEZ147/.test(z2) && /LEZ148/.test(z2) && !/Vermilion/.test(z2));
+// --- bathymetry: ARC ASCII -> depth ft -> encoded -> decoded in the browser module
+const asc = 'ncols 4\nnrows 2\nxllcorner -81.0\nyllcorner 42.0\ncellsize 0.01\nNODATA_value -9999\n10 20 30 -9999\n15 25 35 45\n';
+const pa = parseAsc(asc); assert.equal(pa.nx, 4); assert.equal(pa.north, 42.02); assert.ok(Number.isNaN(pa.v[3]));
+const bb = { west: -81.1, east: -80.9, south: 41.9, north: 42.1 };
+const dg = ascToDepth(pa, { units: 'm', mode: 'depth', bbox: bb }); assert.ok(Math.abs(dg.d[0] - 32.8084) < 1e-3); assert.ok(Number.isNaN(dg.d[3]));
+const dn = ascToDepth(pa, { mode: 'negative', bbox: bb }); assert.ok(Number.isNaN(dn.d[0]), 'positive values under negative mode are land');
+const ev = ascToDepth(parseAsc('ncols 2\nnrows 1\nxllcorner -81\nyllcorner 42\ncellsize 0.01\nNODATA_value -9999\n120.0 110.0'), { units: 'm', surfaceM: 173.5, bbox: bb }); assert.equal(ev.mode, 'elevation'); assert.ok(Math.abs(ev.d[0] - 53.5 * 3.28084) < 1e-2);
+const B = createRequire(import.meta.url)('../js/bathy.js'), enc = encodeBathy(dg, 't'); B.setGrid(B.fromJson(enc), 'test', 'precise');
+assert.ok(Math.abs(B.depthAt(42.015, -80.995) - 32.8) < 0.2); assert.equal(B.depthAt(41.0, -70), NaN);
+assert.ok(B.target(66, null)[0] >= 30); assert.ok(B.target(48, null)[1] <= 45);
+// ENC contour fallback: two straight contours -> interpolated grid between them
+const feat = (v, lat) => ({ properties: { VALDCO: v }, geometry: { type: 'LineString', coordinates: [[-81.0, lat], [-80.9, lat]] } });
+const eg = B.gridFromContours([feat(10, 41.95), feat(20, 42.0), feat(30, 42.05)], { west: -81.0, east: -80.9, south: 41.9, north: 42.1 }, 0.005);
+assert.ok(eg.grid.nx === 20); B.setGrid(eg.grid, 'enc', 'coarse'); const mid = B.depthAt(42.0, -80.95); assert.ok(mid > 20 * 3.28 * 0.8 && mid < 20 * 3.28 * 1.2, 'enc metres->ft ' + mid);
+// multi-band ENC: soundings with z, finer band outweighs coarse band
+const sd = B.featsToPts([{ properties: {}, geometry: { type: 'MultiPoint', coordinates: [[-80.95, 42.0, 18.5], [-80.94, 42.0, 18.7]] } }, { properties: { VALSOU: 20 }, geometry: { type: 'Point', coordinates: [-80.93, 42.0] } }], 2);
+assert.equal(sd.length, 3); assert.equal(sd[0][2], 18.5); assert.equal(sd[2][2], 20); assert.equal(sd[0][3], 2);
+const coarse = B.featsToPts([{ properties: { VALDCO: 30 }, geometry: { type: 'LineString', coordinates: [[-81.0, 42.0], [-80.9, 42.0]] } }], 1), fine = B.featsToPts([{ properties: { VALDCO: 10 }, geometry: { type: 'LineString', coordinates: [[-81.0, 42.0], [-80.9, 42.0]] } }], 3);
+const mix = B.gridFromPts([...coarse, ...fine], { west: -81.0, east: -80.9, south: 41.95, north: 42.05 }, 0.005); B.setGrid(mix.grid, 'm', 'coarse'); assert.ok(B.depthAt(42.0, -80.95) < 20 * 3.28084, 'finer band dominates the blend');
+console.log('reports tests passed ✔');
