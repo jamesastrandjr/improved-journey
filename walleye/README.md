@@ -30,9 +30,9 @@ Layout: `js/astro.js` (sun/moon), `js/model.js` (scoring), `js/data.js` (feeds +
 | **Multi-model wind** (GFS · ECMWF · ICON) | When the models disagree you get a "treat this hour loosely" confidence chip and a shaded range on the wind line. | Browser (Open-Meteo) |
 
 ### Put it online (GitHub Pages, automatic)
-1. Merge this branch into `main`.
+1. Merge this branch into your default branch (here it is oddly named `index.html`; consider renaming it to `main` in Settings → Branches).
 2. Repo → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
-3. **Actions → Deploy site to GitHub Pages → Run workflow** (it then rebuilds on every push to `main` and every 3 hours). Each build runs the report fetcher, so `data/reports.json` is fresh without any commits.
+3. **Actions → Deploy site to GitHub Pages → Run workflow** (it then rebuilds on every push to the default branch and every 3 hours). Each build runs the report fetcher, so `data/reports.json` is fresh without any commits.
 4. Your site: `https://<your-username>.github.io/improved-journey/walleye/` (the mind map stays at the root).
 5. Open **Source status** in the reports card to confirm which feeds work. Entries in `scripts/sources.json` marked `verify` are unconfirmed; enable fishing-report sources only after checking the URL and the site's terms.
 

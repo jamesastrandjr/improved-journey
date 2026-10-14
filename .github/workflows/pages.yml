@@ -1,7 +1,7 @@
 name: Deploy site to GitHub Pages
 on:
   push:
-    branches: [main]
+    branches: [index.html, main]
     paths: ['walleye/**', 'index.html', '.github/workflows/pages.yml']
   schedule:
     - cron: '17 */3 * * *'   # rebuild every 3 hours so the gauge / buoy / NWS data file stays fresh
