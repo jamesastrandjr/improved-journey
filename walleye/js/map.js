@@ -156,7 +156,7 @@
     const base = S.rec[i];
     S.cell = D.grid ? D.grid.map((p) => {
       const r = Object.assign({}, base, { wind: p.wind[i], gust: p.gust[i], dir: p.dir[i], wave: p.wave[i] });
-      const ev = Model.evaluate(r, { boat: S.boat, distMi: Data.miles(S.home, p) });
+      const ev = Model.evaluate(r, { boat: S.boat, method: S.method, distMi: Data.miles(S.home, p) });
       return { score: ev.score, level: ev.level, wind: p.wind[i], dir: p.dir[i], wave: p.wave[i] };
     }) : null;
     if (S.layers.heat && S.cell) paintHeat();

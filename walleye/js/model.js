@@ -49,10 +49,10 @@
     const note = a < -8 ? 'Dark — night bite, fewer boats' : a < 8 ? 'Low light — the walleye window' : h.cloud > 70 ? 'Bright but overcast — fish stay shallower and active' : a > 30 ? 'High sun — fish sink deeper and get picky' : 'Mid-light, decent';
     return { s, note };
   }
-  function fChop(h) {
-    const w = pl(h.wind, [[0, 0.5], [3, 0.65], [6, 0.9], [10, 1], [15, 1], [18, 0.8], [22, 0.5], [28, 0.2], [40, 0]]);
-    const v = pl(h.wave, [[0, 0.6], [0.5, 0.85], [1, 1], [2.5, 1], [3.5, 0.6], [5, 0.2], [8, 0]]);
-    const note = h.wave < 0.5 && h.wind < 4 ? 'Glass calm — clear water, spooky fish' : h.wave <= 2.5 && h.wind >= 5 && h.wind <= 16 ? 'A walleye chop — ideal' : h.wave > 3.5 ? 'Big waves — rough and sloppy' : 'Workable chop';
+  function fChop(h, opts) {
+    const m = METHODS[(opts && opts.method) || 'troll'];
+    const w = pl(h.wind, m.wind), v = pl(h.wave, m.wave);
+    const note = m.key === 'jig' && (h.wind > 12 || h.wave > 2) ? 'Too much wind/chop to hold a vertical jig' : m.key === 'drift' && h.wind < 5 ? 'Not enough wind to drift' : h.wave < 0.5 && h.wind < 4 ? 'Glass calm — clear water, spooky fish' : h.wave <= 2.5 && h.wind >= 5 && h.wind <= 16 ? 'A walleye chop — ideal' : h.wave > 3.5 ? 'Big waves — rough and sloppy' : 'Workable chop';
     return { s: 0.5 * w + 0.5 * v, note };
   }
   function fPressure(h) {
@@ -82,6 +82,28 @@
     return { s, note };
   }
 
+  /* fishing method — changes the wind/wave sweet spot and the tips shown */
+  const METHODS = {
+    troll: { key: 'troll', label: 'Trolling (planer boards, harnesses, stickbaits)', wind: [[0, 0.45], [4, 0.7], [8, 1], [16, 1], [20, 0.85], [25, 0.5], [32, 0.2], [40, 0]], wave: [[0, 0.55], [0.5, 0.8], [1, 1], [3, 1], [4, 0.6], [5.5, 0.2], [8, 0]] },
+    jig: { key: 'jig', label: 'Jigging / vertical (reefs & structure)', wind: [[0, 0.7], [3, 0.95], [6, 1], [10, 0.8], [14, 0.45], [18, 0.2], [25, 0]], wave: [[0, 0.9], [1, 1], [1.5, 0.8], [2.5, 0.4], [3.5, 0.1], [5, 0]] },
+    drift: { key: 'drift', label: 'Drifting (crawler harness / spinner rigs)', wind: [[0, 0.3], [4, 0.6], [8, 1], [14, 1], [18, 0.6], [24, 0.2], [32, 0]], wave: [[0, 0.6], [0.5, 0.85], [1, 1], [2.5, 1], [3.5, 0.5], [5, 0.1], [8, 0]] },
+  };
+  const HOURS = {
+    day: { label: 'Daytime only', night: 0.4 },
+    twilight: { label: 'Dawn & dusk lover (some night)', night: 0.8 },
+    any: { label: 'Anytime — night bite too', night: 1 },
+  };
+  /* starting-point tips for the selected method, from water temp & light */
+  function tip(h, method) {
+    const T = h.waterT, low = h.sunAlt < 8 || h.cloud > 70;
+    if (method === 'troll') {
+      const spd = T < 50 ? '1.0–1.5' : T < 60 ? '1.5–2.0' : T < 70 ? '1.8–2.4' : '2.0–2.6';
+      return `Troll ~${spd} mph. ${T < 55 ? 'Shallower stickbaits near structure.' : T < 70 ? 'Crawler harnesses / spoons on planer boards; ' + (low ? 'run them shallower in this light.' : 'divers to get below the glare.') : 'Spoons on divers to find the thermocline; fish are deep.'}`;
+    }
+    if (method === 'jig') return `${T < 50 ? 'Slow, small jigs tight to the bottom' : T < 65 ? 'Jig & minnow or blade baits over reefs' : 'Heavier jigs deeper off structure'}; ${h.wind > 10 ? 'wind makes holding position hard — use the drift sock.' : 'light air — hold position and work the bottom.'}`;
+    return `Drift ~${T < 55 ? '0.8–1.2' : '1.0–1.6'} mph with ${T < 55 ? 'jig-and-crawler' : 'crawler harnesses'}; ${h.wind < 6 ? 'drift sock out for more speed.' : 'let the wind do the work.'}`;
+  }
+
   const FACTORS = [
     { id: 'water', label: 'Water temp', w: 0.2, fn: fWater, arg: (h) => h.waterT, icon: '🌡️' },
     { id: 'light', label: 'Light', w: 0.26, fn: fLight, icon: '🌅' },
@@ -95,7 +117,7 @@
   /* h: merged hour record. opts: {boat, distMi, alerts} */
   function evaluate(h, opts = {}) {
     const boat = BOATS[opts.boat || 'mid'];
-    const factors = FACTORS.map((f) => { const r = f.fn(f.arg ? f.arg(h) : h); return { id: f.id, label: f.label, icon: f.icon, w: f.w, s: r.s, note: r.note }; });
+    const factors = FACTORS.map((f) => { const r = f.fn(f.arg ? f.arg(h) : h, opts); return { id: f.id, label: f.label, icon: f.icon, w: f.w, s: r.s, note: r.note }; });
     const waterS = factors[0].s;
     const bite = Math.min(100, Math.round(Math.pow(factors.reduce((a, f) => a + f.s * f.w, 0), 1.55) * (0.45 + 0.55 * waterS) * 100));
 
@@ -138,5 +160,5 @@
     return verdict({ level: 0, score }).color;
   }
 
-  G.Model = { pl, clamp, BOATS, FACTORS, compass, climoWaterT, estimateWave, alertLevel, evaluate, verdict, scoreColor, VERDICTS, NOGO };
+  G.Model = { METHODS, HOURS, tip, pl, clamp, BOATS, FACTORS, compass, climoWaterT, estimateWave, alertLevel, evaluate, verdict, scoreColor, VERDICTS, NOGO };
 })(window);

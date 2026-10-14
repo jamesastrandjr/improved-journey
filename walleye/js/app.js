@@ -6,14 +6,14 @@
   const TZ = Astro.TZ, REFRESH_MS = 10 * 60 * 1000;
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const DEF = { boat: 'mid', speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
+  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('wsif.v1') || '{}'); } catch (e) {}
   const S = (G.S = Object.assign({ D: null, idx: 0, follow: true, rec: [], ev: [], rank: [], windows: [], days: [], playing: false, month: new Date().getMonth(), calDay: null, nextRefresh: Date.now() + REFRESH_MS }, JSON.parse(JSON.stringify(DEF)), saved));
   S.layers = Object.assign({}, DEF.layers, S.layers);
 
   function save() {
-    try { localStorage.setItem('wsif.v1', JSON.stringify({ boat: S.boat, speed: S.speed, thr: S.thr, notify: S.notify, base: S.base, layers: S.layers, home: S.home, spot: S.spot, logs: S.logs, spots: S.spots, notified: S.notified.slice(-30) })); } catch (e) {}
+    try { localStorage.setItem('wsif.v1', JSON.stringify({ boat: S.boat, method: S.method, hours: S.hours, setup: true, speed: S.speed, thr: S.thr, notify: S.notify, base: S.base, layers: S.layers, home: S.home, spot: S.spot, logs: S.logs, spots: S.spots, notified: S.notified.slice(-30) })); } catch (e) {}
   }
 
   /* ---------- formatting ---------- */
@@ -40,8 +40,8 @@
     S.dist = Data.miles(S.home, S.spot);
     S.rec = []; S.ev = []; S.rank = [];
     for (let i = 0; i < D.n; i++) {
-      const r = Data.hourRecord(D, i, S.spot), ev = Model.evaluate(r, { boat: S.boat, distMi: S.dist });
-      S.rec.push(r); S.ev.push(ev); S.rank.push(ev.score * (D.sunAlt[i] < -6 ? 0.8 : 1));
+      const r = Data.hourRecord(D, i, S.spot), ev = Model.evaluate(r, { boat: S.boat, method: S.method, distMi: S.dist });
+      S.rec.push(r); S.ev.push(ev); S.rank.push(ev.score * (D.sunAlt[i] < -6 ? Model.HOURS[S.hours].night : 1));
     }
     // days
     const today = Astro.etDay(new Date()), byDay = {};
@@ -101,6 +101,7 @@
     const good = ev.factors.filter((f) => f.s >= 0.85).sort((a, b) => b.s * b.w - a.s * a.w).slice(0, 2), bad = ev.factors.filter((f) => f.s <= 0.55).sort((a, b) => (1 - b.s) * b.w - (1 - a.s) * a.w).slice(0, 2);
     $('#vWhy').innerHTML = [...ev.reasons.sort((a, b) => b.lv - a.lv).slice(0, 2).map((r) => `<span class="tag2 ${r.lv >= 2 ? 'b' : 'w'}">${r.lv >= 2 ? '⛔' : '⚠️'} ${esc(r.msg)}</span>`), ...good.map((f) => `<span class="tag2 g">${f.icon} ${esc(f.note)}</span>`), ...bad.map((f) => `<span class="tag2 w">${f.icon} ${esc(f.note)}</span>`)].join('');
 
+    $('#vTip').innerHTML = `<b>${Model.METHODS[S.method].label.split(' (')[0]} · ${Model.BOATS[S.boat].label.split(' ·')[0]} boat</b> — ${esc(Model.tip(rec, S.method))}`;
     // next window
     const nx = $('#nextWin'), w = S.windows.slice().sort((a, b) => a.s - b.s).find((r) => r.e >= D.nowIdx);
     if (w) {
@@ -231,7 +232,7 @@
       (S.windows.map((w) => {
         const pe = S.ev[w.peak], c = colorFor(pe), sMs = D.ms[w.s], eMs = D.ms[w.e] + 3600000;
         return `<div class="win" style="--c:${c}" data-i="${w.peak}"><div class="p">${pe.score}</div><div class="w"><b>${fD(sMs, { weekday: 'long', month: 'short', day: 'numeric' })}</b><small>${fT(sMs)} – ${fT(eMs)} · ${Math.round(S.rec[w.peak].wind)} mph ${Model.compass(S.rec[w.peak].dir)} · ${S.rec[w.peak].wave.toFixed(1)} ft · ${rel(sMs)}</small></div><span style="color:var(--tx3)">→</span></div>`;
-      }).join('') || '<div class="empty">No windows found.</div>') + `<div class="foot" style="padding:2px 0 0">Night hours are discounted 20% when ranking windows.</div>`;
+      }).join('') || '<div class="empty">No windows found.</div>') + `<div class="foot" style="padding:2px 0 0">Ranking uses your trip-hours setting: night hours count ${Math.round(Model.HOURS[S.hours].night * 100)}%.</div>`;
   }
   $('#windows').addEventListener('click', (e) => { const w = e.target.closest('[data-i]'); if (w) selectIdx(+w.dataset.i, true); });
 
@@ -345,7 +346,7 @@
     if (final) { recompute(); MapView.updateSpot(); renderAll(); save(); }
     else { // cheap live preview while dragging
       const r = Data.hourRecord(S.D, S.idx, S.spot), d = Data.miles(S.home, S.spot); S.dist = d;
-      S.rec[S.idx] = r; S.ev[S.idx] = Model.evaluate(r, { boat: S.boat, distMi: d });
+      S.rec[S.idx] = r; S.ev[S.idx] = Model.evaluate(r, { boat: S.boat, method: S.method, distMi: d });
       renderVerdict(); renderTiles(); renderFactors(); MapView.updateField(); MapView.updateSpot();
     }
   }
@@ -400,9 +401,11 @@
   };
 
   /* ---------- settings ---------- */
-  function settingsModal() {
-    openModal(`<h3>⚙ Settings</h3>
+  function settingsModal(first) {
+    openModal(`<h3>${first ? '🎣 Tell me how you fish' : '⚙ Settings'}</h3>${first ? '<div class="foot" style="padding:0">These tailor the safety limits, the wind/wave sweet spot, rankings and tips to <i>your</i> trips. Change them anytime in ⚙.</div>' : ''}
       <label>Your boat (sets the safety limits)</label><select id="stBoat">${Object.entries(Model.BOATS).map(([k, b]) => `<option value="${k}" ${k === S.boat ? 'selected' : ''}>${b.label} — waves ≤ ${b.wave} ft, gusts ≤ ${b.gust} mph</option>`).join('')}</select>
+      <label>How you fish</label><select id="stMethod">${Object.entries(Model.METHODS).map(([k, m]) => `<option value="${k}" ${k === S.method ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
+      <label>When you go out</label><select id="stHours">${Object.entries(Model.HOURS).map(([k, m]) => `<option value="${k}" ${k === S.hours ? 'selected' : ''}>${m.label}</option>`).join('')}</select>
       <label>Cruise speed (mph) — for run times</label><input id="stSpd" type="number" min="5" max="60" value="${S.speed}"/>
       <label>"Prime window" threshold: <span id="thrV">${S.thr}</span></label><input id="stThr" type="range" min="50" max="90" value="${S.thr}"/>
       <label><input id="stNotify" type="checkbox" style="width:auto" ${S.notify ? 'checked' : ''}/> Notify me when a prime window is within 3 hours (while this tab is open)</label>
@@ -410,7 +413,7 @@
     $('#stThr').oninput = (e) => ($('#thrV').textContent = e.target.value);
     $('#stSrc').onclick = sourcesModal;
     $('#stSave').onclick = async () => {
-      S.boat = $('#stBoat').value; S.speed = +$('#stSpd').value || 20; S.thr = +$('#stThr').value; S.notify = $('#stNotify').checked;
+      S.boat = $('#stBoat').value; S.method = $('#stMethod').value; S.hours = $('#stHours').value; S.speed = +$('#stSpd').value || 20; S.thr = +$('#stThr').value; S.notify = $('#stNotify').checked;
       if (S.notify && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
       if (S.notify && (!('Notification' in window) || Notification.permission === 'denied')) { S.notify = false; toast('Notifications are blocked by the browser'); }
       save(); closeModal(); MapView.updateHome(); recompute(); MapView.updateSpot(); renderAll();
@@ -420,7 +423,7 @@
     const D = S.D, nm = { weather: 'Open-Meteo forecast', waves: 'Open-Meteo marine waves', windfield: 'Wind field (map)', wavefield: 'Wave field (map)', gauge: 'NOAA water-temp gauge', gaugeWind: 'NOAA wind gauge', gaugeAir: 'NOAA air-temp gauge', gaugePres: 'NOAA pressure gauge', alerts: 'NWS alerts', radar: 'RainViewer radar' };
     openModal(`<h3>📡 Data sources</h3>${Object.entries(D.sources).map(([k, v]) => `<div class="logrow"><span>${v === 'live' ? '🟢' : v === 'demo' ? '🧪' : v === 'estimated' ? '🟡' : '🔴'}</span><b>${nm[k] || k}</b><span style="margin-left:auto;color:var(--tx2)">${v === 'down' ? (k.startsWith('gauge') || k === 'alerts' || k === 'radar' ? 'unavailable (fallback in use)' : 'unavailable') : v}</span></div>`).join('')}<div class="foot">Loaded ${D.fetchedAt.toLocaleTimeString()} in ${D.loadMs} ms. Refreshes automatically every 10 minutes.</div><div class="row"><button class="btn pri" data-close>Close</button></div>`);
   }
-  $('#settingsBtn').onclick = settingsModal;
+  $('#settingsBtn').onclick = () => settingsModal(false);
   $('#livePill').onclick = () => S.D && sourcesModal();
 
   /* ====================================================================
@@ -493,5 +496,5 @@
   /* ---------- boot ---------- */
   MapView.init();
   window.addEventListener('resize', () => MapView.invalidate());
-  refresh(false).then(() => { setInterval(updateLive, 1000); updateLive(); });
+  refresh(false).then(() => { setInterval(updateLive, 1000); updateLive(); if (!saved.setup) { settingsModal(true); save(); } });
 })(window);

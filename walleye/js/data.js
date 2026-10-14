@@ -209,7 +209,8 @@
   /* ---- seasonal "potential" for any calendar day (typical weather, best light) ---- */
   const climoCache = {};
   function climoDay(dayStr) {
-    if (climoCache[dayStr]) return climoCache[dayStr];
+    const method = (G.S && G.S.method) || 'troll', ck = method + dayStr;
+    if (climoCache[ck]) return climoCache[ck];
     const doy = Astro.dayOfYear(dayStr), ev = Astro.sunEvents(dayStr), waterT = Model.climoWaterT(dayStr);
     const noon = Astro.etToDate(dayStr + 'T12:00'), mp = Astro.moonPhase(noon).phase;
     const air = 50 + 24 * Math.cos((2 * Math.PI * (doy - 203)) / 365);
@@ -218,10 +219,10 @@
     const names = ['dawn', 'dusk', 'midday'];
     slots.forEach((dt, k) => {
       const h = { temp: air, pop: 15, precip: 0, code: 2, pres: 1016, cloud: 55, vis: 24000, wind: 10, dir: 250, gust: 15, wave: 1.5, pTrend3: -0.8, waterT, sunAlt: Astro.sunAlt(dt), moonPhase: mp, sol: { type: null, v: 0 }, alerts: [] };
-      const e = Model.evaluate(h, { boat: 'mid' });
+      const e = Model.evaluate(h, { boat: 'mid', method });
       if (e.bite > best) { best = e.bite; bestEv = e; slot = names[k]; slotTime = dt.toLocaleTimeString('en-US', { timeZone: Astro.TZ, hour: 'numeric', minute: '2-digit' }); }
     });
-    return (climoCache[dayStr] = { score: best, waterT, moon: mp, ev, slot, slotTime, factors: bestEv && bestEv.factors });
+    return (climoCache[ck] = { score: best, waterT, moon: mp, ev, slot, slotTime, factors: bestEv && bestEv.factors });
   }
 
   G.Data = { HOME, FISH_CENTER, shoreLat, gridPoints, GRID_LONS, GRID_ROWS, ROW_OFF, ROW_STEP, load, interp, hourRecord, miles, bearing, climoDay, Demo };
