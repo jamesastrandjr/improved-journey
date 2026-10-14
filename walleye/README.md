@@ -29,11 +29,12 @@ Layout: `js/astro.js` (sun/moon), `js/model.js` (scoring), `js/data.js` (feeds +
 | **NWS nearshore marine forecast text** | Shown in the card (zone block that mentions Geneva/Ashtabula/Conneaut). | Browser, with the Action's copy as fallback |
 | **Multi-model wind** (GFS · ECMWF · ICON) | When the models disagree you get a "treat this hour loosely" confidence chip and a shaded range on the wind line. | Browser (Open-Meteo) |
 
-### Turn on the scheduled fetcher
-1. Merge this branch into your default branch (GitHub only runs scheduled workflows from the default branch).
-2. Repo → **Actions → Refresh walleye reports → Run workflow** once to test; afterwards it runs every 3 hours and commits `walleye/data/reports.json`.
-3. Open `walleye/scripts/sources.json`, **check each URL** (entries marked `verify` are unconfirmed), and add the RSS/Atom feeds or pages of the guides, tackle shops or agencies you trust. Keep it low-volume and respect each site's terms of use — the fetcher only stores short snippets and always links back to the original.
-4. In the app, **Source status** (in the reports card) shows which sources worked.
+### Put it online (GitHub Pages, automatic)
+1. Merge this branch into `main`.
+2. Repo → **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+3. **Actions → Deploy site to GitHub Pages → Run workflow** (it then rebuilds on every push to `main` and every 3 hours). Each build runs the report fetcher, so `data/reports.json` is fresh without any commits.
+4. Your site: `https://<your-username>.github.io/improved-journey/walleye/` (the mind map stays at the root).
+5. Open **Source status** in the reports card to confirm which feeds work. Entries in `scripts/sources.json` marked `verify` are unconfirmed; enable fishing-report sources only after checking the URL and the site's terms.
 
 `node walleye/scripts/test-reports.mjs` runs the offline unit tests (analyzer, RSS/HTML/NDBC/NWS parsers). Without the fetcher the app still works — paste reports manually.
 
