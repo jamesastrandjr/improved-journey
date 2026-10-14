@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dugout - Lineup Helper</title>
+<style>
+:root{--bg:#f6f7f4;--card:#fff;--ink:#1d2a22;--mute:#667369;--line:#dfe4dc;--acc:#1f6b45;--acc2:#e8f2ec;--warn:#b4531a}
+@media (prefers-color-scheme:dark){:root{--bg:#141a16;--card:#1d2620;--ink:#e8efe9;--mute:#9aa89e;--line:#2d3a31;--acc:#5cc08a;--acc2:#223329;--warn:#e89a62}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,Segoe UI,sans-serif}
+header{padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--card)}
+header h1{margin:0;font-size:18px}
+header .tools{display:flex;gap:8px;flex-wrap:wrap}
+nav{display:flex;gap:4px;padding:8px 16px 0;overflow-x:auto;background:var(--card);border-bottom:1px solid var(--line)}
+nav button{border:0;background:none;padding:10px 14px;font:inherit;color:var(--mute);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav button.on{color:var(--acc);border-color:var(--acc);font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+h2{margin:0 0 10px;font-size:16px}
+button,.btn{font:inherit;padding:7px 12px;border-radius:7px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--acc);border-color:var(--acc);color:#fff}
+[data-theme] button.pri,button.pri{color:#fff}
+@media (prefers-color-scheme:dark){button.pri{color:#0c1a12}}
+button.small{padding:3px 8px;font-size:13px}
+button.del{color:var(--warn)}
+input,select,textarea{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);max-width:100%}
+input[type=number]{width:64px}
+label{color:var(--mute);font-size:13px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:10px}
+.row>div{display:flex;flex-direction:column;gap:3px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:5px 8px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.03em}
+td.l,th.l{text-align:left}
+.muted{color:var(--mute)}
+.pill{display:inline-block;padding:1px 8px;border-radius:99px;background:var(--acc2);color:var(--acc);font-size:12px}
+.bench{color:var(--warn);font-weight:600}
+.cell{text-align:center!important}
+.hint{font-size:13px;color:var(--mute);margin:4px 0 10px}
+.chips label{display:inline-flex;gap:5px;align-items:center;margin:0 12px 6px 0;color:var(--ink);font-size:14px}
+.prefs{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:6px}
+.prefs div{display:flex;flex-direction:column;font-size:12px;color:var(--mute)}
+.prefs select{padding:3px}
+.empty{padding:24px;text-align:center;color:var(--mute)}
+ul.plain{margin:0;padding-left:18px}
+ul.plain li{margin-bottom:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#9918; Dugout <span class="muted" id="teamname"></span></h1>
+  <div class="tools">
+    <button id="export">Back up (download)</button>
+    <button id="import">Restore</button>
+    <button id="demo">Load demo season</button>
+    <input type="file" id="file" accept="application/json" hidden>
+  </div>
+</header>
+<nav id="tabs"></nav>
+<main id="view"></main>
+
+<script>
+"use strict";
+/* ============================== constants & storage ============================== */
+const BAT = ['ab','h','2b','3b','hr','bb','hbp','k','r','rbi','sb','sac'];
+const BAT_LABEL = {ab:'AB',h:'H','2b':'2B','3b':'3B',hr:'HR',bb:'BB',hbp:'HBP',k:'K',r:'R',rbi:'RBI',sb:'SB',sac:'SAC'};
+const POS = ['P','C','1B','2B','3B','SS','LF','CF','RF'];
+const BENCH = 'B';
+const PREMIUM = new Set(['P','C','SS','2B','3B','1B']);
+const POS_W = {P:1.5,C:1.3,SS:1.3,'2B':1.1,'3B':1.1,CF:1.1,'1B':1.0,LF:0.9,RF:0.9};
+const KEY = 'dugout.v1';
+const PA_PRIOR = 15, AB_PRIOR = 20, CH_PRIOR = 8;
+
+const blank = () => ({name:'My Team', settings:{innings:6, maxP:2, maxC:3}, players:[], games:[], lastPlan:null});
+let db = load();
+function load(){
+  try { const t = JSON.parse(localStorage.getItem(KEY)); if (t && t.players) return Object.assign(blank(), t); } catch(e){}
+  return blank();
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(db)); } catch(e){ alert('Could not save to this browser. Use "Back up" to keep your data.'); } }
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const $ = (s, r=document) => r.querySelector(s);
+const names = () => db.players.map(p => p.name);
+const games = () => [...db.games].sort((a,b) => a.date < b.date ? -1 : 1);
+const fmt = x => x >= 1 ? x.toFixed(3) : x.toFixed(3).replace(/^0/, '');
+const div = (a,b,d=0) => b ? a/b : d;
+
+/* ============================== stats ============================== */
+function batTotals(decay=1){
+  const t = {}; db.players.forEach(p => { t[p.name] = {gp:0}; BAT.forEach(f => t[p.name][f]=0); });
+  const gs = games();
+  gs.forEach((g,i) => {
+    const w = Math.pow(decay, gs.length-1-i);
+    for (const [n,l] of Object.entries(g.batting||{})) {
+      if (!t[n]) continue;
+      t[n].gp += w; BAT.forEach(f => t[n][f] += w*(l[f]||0));
+    }
+  });
+  return t;
+}
+function rates(c){
+  const pa = c.ab+c.bb+c.hbp+c.sac, tb = (c.h-c['2b']-c['3b']-c.hr)+2*c['2b']+3*c['3b']+4*c.hr;
+  const obp = div(c.h+c.bb+c.hbp, pa), slg = div(tb, c.ab);
+  return {pa, avg:div(c.h,c.ab), obp, slg, ops:obp+slg, kRate:div(c.k,pa), sbPa:div(c.sb,pa)};
+}
+function leagueRates(totals){
+  const agg = {}; BAT.forEach(f => agg[f]=0);
+  Object.values(totals).forEach(t => BAT.forEach(f => agg[f]+=t[f]));
+  const lg = rates(agg);
+  return lg.pa < 20 ? {obp:.35, slg:.35, avg:.25, kRate:.2} : lg;
+}
+function shrunk(c, lg){
+  const pa = c.ab+c.bb+c.hbp+c.sac, tb = (c.h-c['2b']-c['3b']-c.hr)+2*c['2b']+3*c['3b']+4*c.hr;
+  const obp = (c.h+c.bb+c.hbp+PA_PRIOR*lg.obp)/(pa+PA_PRIOR);
+  const slg = (tb+AB_PRIOR*lg.slg)/(c.ab+AB_PRIOR);
+  return {obp, slg, ops:obp+slg, avg:(c.h+AB_PRIOR*lg.avg)/(c.ab+AB_PRIOR),
+          kRate:(c.k+PA_PRIOR*lg.kRate)/(pa+PA_PRIOR), sbPa:div(c.sb,pa)};
+}
+function fieldData(){
+  const d = {}; db.players.forEach(p => d[p.name] = {pos:{}, bench:0, games:0, inn:0});
+  games().forEach(g => {
+    for (const [n,f] of Object.entries(g.fielding||{})) {
+      const x = d[n]; if (!x) continue;
+      const inns = f.innings||[], played = inns.filter(i => i!==BENCH);
+      x.games++; x.bench += inns.length-played.length; x.inn += played.length;
+      played.forEach(p => { (x.pos[p] ||= {inn:0,ch:0,e:0}).inn++; });
+      if (played.length) {
+        const cnt = {}; played.forEach(p => cnt[p]=(cnt[p]||0)+1);
+        const main = Object.keys(cnt).sort((a,b) => cnt[b]-cnt[a])[0];
+        x.pos[main].ch += f.ch||0; x.pos[main].e += f.e||0;
+      }
+    }
+  });
+  return d;
+}
+const chErr = d => Object.values(d.pos).reduce((a,s) => [a[0]+s.ch, a[1]+s.e], [0,0]);
+const fpct = (ch,e,prior,k=CH_PRIOR) => (ch-e+k*prior)/(ch+k);
+function teamFpct(fd){
+  let ch=0,e=0; Object.values(fd).forEach(d => { const [c,er]=chErr(d); ch+=c; e+=er; });
+  return ch>=20 ? (ch-e)/ch : .8;
+}
+
+/* ============================== planner ============================== */
+const norm = o => {
+  const v = Object.values(o), lo = Math.min(...v), hi = Math.max(...v), r = {};
+  for (const k in o) r[k] = hi-lo < 1e-9 ? .5 : (o[k]-lo)/(hi-lo);
+  return r;
+};
+function profiles(decay=.85){
+  const totals = batTotals(decay), lg = leagueRates(totals), fd = fieldData(), tf = teamFpct(fd), out = {};
+  db.players.forEach(p => {
+    const d = fd[p.name], [ch,e] = chErr(d), own = fpct(ch,e,tf), skill = {};
+    POS.forEach(pos => {
+      const pref = ((p.pref||{})[pos] || 3)/5, s = d.pos[pos] || {inn:0,ch:0,e:0};
+      skill[pos] = .45*pref + .45*fpct(s.ch,s.e,own) + .10*Math.min(s.inn,12)/12;
+    });
+    let prem = 0; for (const [pos,s] of Object.entries(d.pos)) if (PREMIUM.has(pos)) prem += s.inn;
+    let wsum = 0, ws = 0; POS.forEach(x => { wsum += POS_W[x]*skill[x]; ws += POS_W[x]; });
+    out[p.name] = {bat:shrunk(totals[p.name], lg), skill, def:wsum/ws, fpct:own,
+      benchPG: d.games ? d.bench/d.games : 0, premPG: d.games ? prem/d.games : 0, games:d.games};
+  });
+  if (db.players.length) {
+    const bn = norm(Object.fromEntries(Object.entries(out).map(([n,p]) => [n,p.bat.ops])));
+    const dn = norm(Object.fromEntries(Object.entries(out).map(([n,p]) => [n,p.def])));
+    for (const n in out) out[n].value = .6*bn[n] + .4*dn[n];
+  }
+  return out;
+}
+function slotFrac(name, last=3){
+  const fr = [];
+  games().slice(-last).forEach(g => {
+    const o = g.order||[], i = o.indexOf(name);
+    if (i >= 0) fr.push(i/Math.max(o.length-1,1));
+  });
+  return fr.length ? fr.reduce((a,b)=>a+b,0)/fr.length : .5;
+}
+function battingOrder(present, prof, balance){
+  const adj = {}; present.forEach(n => adj[n] = balance*.06*(slotFrac(n)-.5));
+  const pool = [...present], order = [];
+  const pick = (key, why) => {
+    let best = pool[0]; pool.forEach(n => { if (key(n)+adj[n] > key(best)+adj[best]) best = n; });
+    pool.splice(pool.indexOf(best),1); order.push([best, why(best)]);
+  };
+  const b = n => prof[n].bat;
+  pick(n => b(n).obp+.5*b(n).sbPa, n => `Table-setter: on-base ${fmt(b(n).obp)}`);
+  pick(n => .5*(b(n).avg+b(n).obp)-.3*b(n).kRate, n => `Contact: avg ${fmt(b(n).avg)}, K rate ${Math.round(b(n).kRate*100)}%`);
+  pick(n => b(n).ops, n => `Best all-round bat: OPS ${fmt(b(n).ops)}`);
+  pick(n => b(n).slg, n => `Power: slugging ${fmt(b(n).slg)}`);
+  while (pool.length) pick(n => b(n).ops, n => `OPS ${fmt(b(n).ops)}`);
+  return order;
+}
+function assign(players, positions, value){
+  let best = new Map([[0, [0, []]]]);
+  for (const pos of positions) {
+    const next = new Map();
+    for (const [mask,[score,picks]] of best) {
+      players.forEach((p,j) => {
+        if (mask>>j & 1) return;
+        const key = mask | 1<<j, s = score+value(p,pos), cur = next.get(key);
+        if (!cur || s > cur[0]) next.set(key, [s, [...picks,[pos,p]]]);
+      });
+      if (players.length < positions.length) {
+        const s = score-2, cur = next.get(mask);
+        if (!cur || s > cur[0]) next.set(mask, [s, [...picks,[pos,null]]]);
+      }
+    }
+    best = next;
+  }
+  return best.get((1<<players.length)-1)[1];
+}
+function fieldPlan(present, prof, balance, innings){
+  const s = db.settings, nField = Math.min(9, present.length);
+  const plan = {}, benchNow = {}, cnt = {};
+  present.forEach(n => { plan[n]=[]; benchNow[n]=0; cnt[n]={}; });
+  const meanPrem = present.reduce((a,n) => a+prof[n].premPG, 0)/present.length;
+  for (let inn=0; inn<innings; inn++) {
+    const priority = n => {
+      let pr = (1-balance)*prof[n].value + balance*.5*(prof[n].benchPG+benchNow[n]);
+      if (inn && plan[n][inn-1]===BENCH) pr += 100;
+      return pr;
+    };
+    const ranked = [...present].sort((a,b) => priority(b)-priority(a));
+    const onField = ranked.slice(0,nField);
+    ranked.slice(nField).forEach(n => benchNow[n]++);
+    const value = (n,pos) => {
+      let v = POS_W[pos]*prof[n].skill[pos] - .15*(cnt[n][pos]||0);
+      if (inn && plan[n][inn-1]===pos) v += .05;
+      if (PREMIUM.has(pos)) {
+        let used = 0; PREMIUM.forEach(p => used += cnt[n][p]||0);
+        v += balance*.05*(meanPrem-prof[n].premPG) - balance*.03*used;
+      }
+      if (pos==='P' && (cnt[n].P||0) >= s.maxP) v -= 1000;
+      if (pos==='C' && (cnt[n].C||0) >= s.maxC) v -= 1000;
+      return v;
+    };
+    const by = {}; assign(onField, POS, value).forEach(([pos,p]) => { if (p) by[p]=pos; });
+    present.forEach(n => {
+      const pos = by[n] || BENCH; plan[n].push(pos);
+      if (pos!==BENCH) cnt[n][pos] = (cnt[n][pos]||0)+1;
+    });
+  }
+  return plan;
+}
+
+/* ============================== UI plumbing ============================== */
+const TABS = [['roster','Roster'],['game','Enter game'],['stats','Stats'],['lineup','Lineup'],['report','Report']];
+let tab = 'roster', editing = null, lastLineup = null;
+function render(){
+  $('#teamname').textContent = db.name ? '- ' + db.name : '';
+  $('#tabs').innerHTML = TABS.map(([k,l]) => `<button data-t="${k}" class="${k===tab?'on':''}">${l}</button>`).join('');
+  $('#view').innerHTML = ({roster:vRoster, game:vGame, stats:vStats, lineup:vLineup, report:vReport})[tab]();
+  ({roster:wRoster, game:wGame, stats:wStats, lineup:wLineup, report:()=>{}})[tab]();
+}
+$('#tabs').onclick = e => { const t = e.target.closest('button'); if (t) { tab = t.dataset.t; render(); } };
+const needPlayers = () => db.players.length ? '' : `<div class="card empty">Add your players on the <b>Roster</b> tab first.</div>`;
+
+/* ---------- Roster ---------- */
+function vRoster(){
+  return `
+  <div class="card"><h2>Team</h2><div class="row">
+    <div><label>Team name</label><input id="tname" value="${esc(db.name)}"></div>
+    <div><label>Innings per game</label><input id="inn" type="number" min="3" max="9" value="${db.settings.innings}"></div>
+    <div><label>Max innings pitching</label><input id="maxp" type="number" min="1" max="9" value="${db.settings.maxP}"></div>
+    <div><label>Max innings catching</label><input id="maxc" type="number" min="1" max="9" value="${db.settings.maxC}"></div>
+    <button id="saveteam" class="pri">Save</button></div></div>
+  <div class="card"><h2>Add player</h2><div class="row">
+    <div><label>Name</label><input id="pname" placeholder="First name"></div>
+    <div><label>Number</label><input id="pnum" type="number" min="0"></div>
+    <button id="addp" class="pri">Add</button></div></div>
+  ${db.players.map((p,i) => `
+  <div class="card"><div class="row" style="justify-content:space-between;margin-bottom:6px">
+    <b>${esc(p.name)} ${p.number!=='' && p.number!=null ? `<span class="pill">#${esc(p.number)}</span>`:''}</b>
+    <button class="small del" data-rm="${i}">Remove</button></div>
+    <div class="hint">How comfortable is ${esc(p.name)} at each position? (1 = rarely, 5 = best fit; 3 = no opinion)</div>
+    <div class="prefs">${POS.map(pos => `<div>${pos}<select data-pref="${i}|${pos}">${[1,2,3,4,5].map(v =>
+      `<option ${((p.pref||{})[pos]||3)===v?'selected':''}>${v}</option>`).join('')}</select></div>`).join('')}</div></div>`).join('')}`;
+}
+function wRoster(){
+  $('#saveteam').onclick = () => {
+    db.name = $('#tname').value.trim(); const n = (id,lo,hi,d) => Math.min(hi, Math.max(lo, parseInt($(id).value)||d));
+    db.settings = {innings:n('#inn',3,9,6), maxP:n('#maxp',1,9,2), maxC:n('#maxc',1,9,3)}; save(); render();
+  };
+  const add = () => {
+    const name = $('#pname').value.trim(); if (!name) return;
+    if (names().some(n => n.toLowerCase()===name.toLowerCase())) return alert('Already on the roster');
+    db.players.push({name, number:$('#pnum').value, pref:{}}); save(); render();
+  };
+  $('#addp').onclick = add; $('#pname').onkeydown = e => { if (e.key==='Enter') add(); };
+  document.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => {
+    const p = db.players[b.dataset.rm];
+    if (confirm(`Remove ${p.name} from the roster? Their past game stats stay saved in the games but won't be shown.`)) { db.players.splice(b.dataset.rm,1); save(); render(); }
+  });
+  document.querySelectorAll('[data-pref]').forEach(s => s.onchange = () => {
+    const [i,pos] = s.dataset.pref.split('|'); (db.players[i].pref ||= {})[pos] = +s.value; save();
+  });
+}
+
+/* ---------- Enter game ---------- */
+function parsePos(text, innings){
+  const out = [];
+  for (const tok of text.replace(/,/g,' ').split(/\s+/).filter(Boolean)) {
+    const [p, rep] = tok.toUpperCase().split('*');
+    if (!POS.includes(p) && p!==BENCH) throw new Error(`Unknown position "${p}". Use ${POS.join(' ')} or B for bench.`);
+    for (let i=0;i<(rep?parseInt(rep):1);i++) out.push(p);
+  }
+  if (out.length !== innings) throw new Error(`Need ${innings} innings of positions, got ${out.length}.`);
+  return out;
+}
+function vGame(){
+  if (!db.players.length) return needPlayers();
+  const g = editing, today = new Date().toISOString().slice(0,10), plan = db.lastPlan, N = db.settings.innings;
+  const order = g ? g.order : (plan ? plan.order : names());
+  const rest = names().filter(n => !order.includes(n));
+  const rows = [...order, ...rest].filter(n => names().includes(n));
+  return `
+  <div class="card"><h2>${g ? 'Edit game' : 'Enter a game'}</h2>
+  <div class="hint">One row per player. Uncheck "Played" for absent kids. Rows are saved in batting order (use the arrows to reorder).
+  ${plan && !g ? '<b>Batting order and positions are pre-filled from your last Lineup plan.</b>' : ''}
+  Positions look like <code>SS*3 P*2 B</code> (B = bench).</div>
+  <div class="row">
+    <div><label>Date</label><input type="date" id="gdate" value="${g ? g.date : today}"></div>
+    <div><label>Opponent</label><input id="gopp" value="${g ? esc(g.opponent) : ''}"></div>
+    <div><label>Our runs</label><input id="gus" type="number" min="0" value="${g ? g.us : 0}"></div>
+    <div><label>Their runs</label><input id="gthem" type="number" min="0" value="${g ? g.them : 0}"></div></div>
+  <div class="scroll"><table id="gt"><thead><tr><th>#</th><th class="l">Player</th><th>Played</th>
+    ${BAT.map(f => `<th>${BAT_LABEL[f]}</th>`).join('')}<th class="l">Positions (${N} inn)</th><th>Ch</th><th>E</th></tr></thead><tbody>
+  ${rows.map(n => {
+    const b = g ? (g.batting[n]||null) : null, f = g ? (g.fielding||{})[n] : (plan && plan.field[n] ? {innings:plan.field[n]} : null);
+    const played = g ? !!b : (!plan || plan.order.includes(n));
+    const posTxt = f ? compress(f.innings) : '';
+    return `<tr data-n="${esc(n)}"><td><button class="small" data-up>&uarr;</button><button class="small" data-dn>&darr;</button></td>
+    <td class="l"><b>${esc(n)}</b></td><td class="cell"><input type="checkbox" class="pl" ${played?'checked':''}></td>
+    ${BAT.map(k => `<td><input type="number" min="0" class="bf" data-k="${k}" value="${b ? (b[k]||0) : 0}" style="width:52px"></td>`).join('')}
+    <td class="l"><input class="ps" value="${esc(posTxt)}" style="width:170px"></td>
+    <td><input type="number" min="0" class="ch" value="${f ? (f.ch||0) : 0}" style="width:52px"></td>
+    <td><input type="number" min="0" class="er" value="${f ? (f.e||0) : 0}" style="width:52px"></td></tr>`; }).join('')}
+  </tbody></table></div>
+  <p><button class="pri" id="savegame">Save game</button> ${g ? '<button id="cancel">Cancel edit</button>' : ''}
+  <span id="gmsg" class="bench"></span></p></div>
+  <div class="card"><h2>Past games</h2>${games().length ? `<table><thead><tr><th class="l">Date</th><th class="l">Opponent</th><th>Score</th><th></th></tr></thead><tbody>
+  ${[...games()].reverse().map(x => `<tr><td class="l">${esc(x.date)}</td><td class="l">${esc(x.opponent||'')}</td>
+    <td>${x.us}-${x.them}</td><td><button class="small" data-edit="${esc(x.date)}">Edit</button>
+    <button class="small del" data-delg="${esc(x.date)}">Delete</button></td></tr>`).join('')}</tbody></table>` : '<div class="muted">No games yet.</div>'}</div>`;
+}
+function compress(inns){
+  const out = []; inns.forEach(p => { const l = out[out.length-1]; if (l && l[0]===p) l[1]++; else out.push([p,1]); });
+  return out.map(([p,c]) => c>1 ? `${p}*${c}` : p).join(' ');
+}
+function wGame(){
+  const tb = $('#gt tbody'); if (!tb) return;
+  tb.onclick = e => {
+    const tr = e.target.closest('tr'); if (!tr) return;
+    if (e.target.matches('[data-up]') && tr.previousElementSibling) tr.parentNode.insertBefore(tr, tr.previousElementSibling);
+    if (e.target.matches('[data-dn]') && tr.nextElementSibling) tr.parentNode.insertBefore(tr.nextElementSibling, tr);
+  };
+  $('#savegame').onclick = () => {
+    const msg = t => { $('#gmsg').textContent = t; };
+    const N = db.settings.innings, game = {date:$('#gdate').value, opponent:$('#gopp').value.trim(),
+      us:+$('#gus').value||0, them:+$('#gthem').value||0, innings:N, batting:{}, fielding:{}, order:[]};
+    if (!game.date) return msg('Pick a date.');
+    for (const tr of tb.querySelectorAll('tr')) {
+      if (!tr.querySelector('.pl').checked) continue;
+      const n = tr.dataset.n, line = {};
+      tr.querySelectorAll('.bf').forEach(i => line[i.dataset.k] = Math.max(0, parseInt(i.value)||0));
+      if (line.h > line.ab) return msg(`${n}: hits can't be more than at-bats.`);
+      if (line['2b']+line['3b']+line.hr > line.h) return msg(`${n}: extra-base hits can't be more than hits.`);
+      game.batting[n] = line; game.order.push(n);
+      const txt = tr.querySelector('.ps').value.trim();
+      if (txt) {
+        try { game.fielding[n] = {innings:parsePos(txt,N), ch:parseInt(tr.querySelector('.ch').value)||0, e:parseInt(tr.querySelector('.er').value)||0}; }
+        catch(err) { return msg(`${n}: ${err.message}`); }
+      }
+    }
+    if (!game.order.length) return msg('No players marked as played.');
+    const clash = db.games.find(x => x.date===game.date && x !== editing);
+    if (clash && !confirm(`A game on ${game.date} already exists. Replace it?`)) return;
+    db.games = db.games.filter(x => x.date!==game.date && x!==editing); db.games.push(game);
+    db.lastPlan = null; editing = null; save(); tab = 'stats'; render();
+  };
+  const c = $('#cancel'); if (c) c.onclick = () => { editing = null; render(); };
+  document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => { editing = db.games.find(x => x.date===b.dataset.edit); render(); scrollTo(0,0); });
+  document.querySelectorAll('[data-delg]').forEach(b => b.onclick = () => {
+    if (confirm('Delete the game on ' + b.dataset.delg + '?')) { db.games = db.games.filter(x => x.date!==b.dataset.delg); save(); render(); }
+  });
+}
+
+/* ---------- Stats ---------- */
+let form = false;
+function vStats(){
+  if (!db.players.length) return needPlayers();
+  if (!db.games.length) return `<div class="card empty">No games yet. Enter your first game on the <b>Enter game</b> tab.</div>`;
+  const t = batTotals(form ? .8 : 1), fd = fieldData();
+  const rows = db.players.map(p => ({n:p.name, c:t[p.name], r:rates(t[p.name])})).sort((a,b) => b.r.ops-a.r.ops);
+  const gs = games(), w = gs.filter(g => g.us>g.them).length, l = gs.filter(g => g.us<g.them).length;
+  return `<div class="card"><div class="row" style="justify-content:space-between"><h2>${form?'Recent form (recent games count more)':'Season batting'}</h2>
+    <label><input type="checkbox" id="form" ${form?'checked':''}> Weight recent games more</label></div>
+    <div class="scroll"><table><thead><tr><th>Player</th><th>GP</th><th>AB</th><th>H</th><th>AVG</th><th>OBP</th><th>SLG</th><th>OPS</th><th>R</th><th>RBI</th><th>SB</th><th>K</th></tr></thead><tbody>
+    ${rows.map(({n,c,r}) => `<tr><td>${esc(n)}</td><td>${c.gp.toFixed(form?1:0)}</td><td>${c.ab.toFixed(form?1:0)}</td><td>${c.h.toFixed(form?1:0)}</td>
+    <td>${fmt(r.avg)}</td><td>${fmt(r.obp)}</td><td>${fmt(r.slg)}</td><td><b>${fmt(r.ops)}</b></td><td>${c.r.toFixed(form?1:0)}</td><td>${c.rbi.toFixed(form?1:0)}</td><td>${c.sb.toFixed(form?1:0)}</td><td>${c.k.toFixed(form?1:0)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="muted">Record: <b>${w}-${l}-${gs.length-w-l}</b></p></div>
+  <div class="card"><h2>Fielding &amp; playing time</h2><div class="scroll"><table><thead><tr><th>Player</th><th>GP</th><th>Inn</th><th>Bench</th><th>FPCT</th><th>E</th><th class="l">Innings by position</th></tr></thead><tbody>
+  ${db.players.map(p => { const d = fd[p.name], [ch,e] = chErr(d);
+    return `<tr><td>${esc(p.name)}</td><td>${d.games}</td><td>${d.inn}</td><td>${d.bench}</td><td>${ch ? fmt((ch-e)/ch) : '-'}</td><td>${e}</td>
+    <td class="l muted">${Object.entries(d.pos).sort((a,b)=>b[1].inn-a[1].inn).map(([k,v]) => `${k}:${v.inn}`).join(' ')}</td></tr>`; }).join('')}
+  </tbody></table></div></div>`;
+}
+function wStats(){ const f = $('#form'); if (f) f.onchange = () => { form = f.checked; render(); }; }
+
+/* ---------- Lineup ---------- */
+let absent = new Set(), balance = .7;
+function vLineup(){
+  if (!db.players.length) return needPlayers();
+  return `<div class="card"><h2>Who's here this week?</h2><div class="chips">${db.players.map(p =>
+    `<label><input type="checkbox" data-here="${esc(p.name)}" ${absent.has(p.name)?'':'checked'}> ${esc(p.name)}</label>`).join('')}</div>
+  <div class="row"><div style="min-width:260px"><label>Balance: <b id="bv">${balance.toFixed(2)}</b> &nbsp; (0 = win now &harr; 1 = equal for everyone)</label>
+    <input type="range" id="bal" min="0" max="1" step="0.05" value="${balance}"></div>
+    <button class="pri" id="mk">Build lineup</button></div>
+  <div class="hint">Default 0.70: playing time stays close to even; skill decides tie-breaks, positions and batting spots.</div></div>
+  <div id="lres">${lastLineup ? renderLineup(lastLineup) : ''}</div>`;
+}
+function renderLineup(L){
+  const {order, plan, present, innings, prof} = L;
+  return `<div class="card"><h2>Batting order</h2><table><tbody>${order.map(([n,why],i) =>
+    `<tr><td>${i+1}.</td><td class="l"><b>${esc(n)}</b></td><td class="l muted">${esc(why)}</td></tr>`).join('')}</tbody></table></div>
+  <div class="card"><h2>Defense by inning</h2><div class="scroll"><table><thead><tr><th>Player</th>${Array.from({length:innings},(_,i)=>`<th class="cell">${i+1}</th>`).join('')}<th>Bench</th></tr></thead><tbody>
+  ${order.map(([n]) => `<tr><td>${esc(n)}</td>${plan[n].map(p => `<td class="cell ${p===BENCH?'bench':''}">${p}</td>`).join('')}<td>${plan[n].filter(p=>p===BENCH).length}</td></tr>`).join('')}
+  </tbody></table></div>
+  <p><button class="pri" id="use">Use this plan when I enter the game</button> <span class="muted" id="usemsg"></span></p></div>`;
+}
+function wLineup(){
+  if (!$('#mk')) return;
+  document.querySelectorAll('[data-here]').forEach(c => c.onchange = () => c.checked ? absent.delete(c.dataset.here) : absent.add(c.dataset.here));
+  $('#bal').oninput = e => { balance = +e.target.value; $('#bv').textContent = balance.toFixed(2); };
+  const bindUse = () => { const u = $('#use'); if (u) u.onclick = () => {
+    db.lastPlan = {order:lastLineup.order.map(x=>x[0]), field:lastLineup.plan}; save(); $('#usemsg').textContent = 'Saved - the Enter game tab will be pre-filled.'; }; };
+  bindUse();
+  $('#mk').onclick = () => {
+    const present = names().filter(n => !absent.has(n));
+    if (present.length < 4) return alert('Need at least 4 players.');
+    const prof = profiles(.85), innings = db.settings.innings;
+    lastLineup = {order:battingOrder(present, prof, balance), plan:fieldPlan(present, prof, balance, innings), present, innings, prof};
+    let note = present.length<9 ? `<div class="card bench">Only ${present.length} players: some positions will be uncovered.</div>` : '';
+    $('#lres').innerHTML = note + renderLineup(lastLineup); bindUse();
+  };
+}
+
+/* ---------- Report ---------- */
+function vReport(){
+  if (!db.games.length) return `<div class="card empty">Enter a game first to see strengths to praise.</div>`;
+  const t = batTotals(1), prof = profiles(1), fd = fieldData(), gs = games();
+  const R = Object.fromEntries(db.players.map(p => [p.name, rates(t[p.name])]));
+  const cats = {
+    'on-base percentage': n => prof[n].bat.obp, 'slugging (power)': n => prof[n].bat.slg,
+    'making contact (fewest strikeouts)': n => -prof[n].bat.kRate, 'stolen bases': n => t[n].sb,
+    'RBIs': n => t[n].rbi, 'runs scored': n => t[n].r, 'fielding (sure-handed)': n => prof[n].fpct};
+  const ns = names().filter(n => t[n].gp);
+  const cards = ns.map(n => {
+    let ranks = [];
+    for (const [label,key] of Object.entries(cats)) {
+      const vals = ns.map(key).sort((a,b) => b-a);
+      if (new Set(vals).size > 1) ranks.push([vals.indexOf(key(n))+1, label]);
+    }
+    ranks = ranks.filter(r => r[0] <= 3).sort((a,b) => a[0]-b[0]).slice(0,2);
+    const lines = ranks.map(([r,l]) => r===1 ? `Team leader in ${l}` : `Top ${r} on the team in ${l}`);
+    if (!lines.length) lines.push(`Showed up for ${t[n].gp} games and is building their numbers`);
+    const recent = gs.slice(-3).filter(g => g.batting && g.batting[n]);
+    if (recent.length>=2 && t[n].gp>=4) {
+      const c = {}; BAT.forEach(f => c[f] = recent.reduce((a,g) => a+g.batting[n][f], 0));
+      if (rates(c).obp > R[n].obp + .05) lines.push('Trending up: on base more often lately');
+    }
+    lines.push(`Best fit in the field: ${POS.reduce((a,p) => prof[n].skill[p] > prof[n].skill[a] ? p : a, POS[0])}`);
+    return `<tr><td class="l"><b>${esc(n)}</b></td><td class="l">${lines.map(esc).join(' &middot; ')}</td></tr>`;
+  }).join('');
+  const avg = ns.filter(n => fd[n].games).map(n => [n, fd[n].bench/fd[n].games]).sort((a,b) => b[1]-a[1]);
+  const mean = avg.reduce((a,x) => a+x[1],0)/(avg.length||1);
+  const lows = ns.filter(n => slotFrac(n, gs.length) > .7);
+  return `<div class="card"><h2>What each player brings</h2><div class="hint">Use these when talking with the kids and parents.</div>
+    <div class="scroll"><table><tbody>${cards}</tbody></table></div></div>
+  <div class="card"><h2>Playing-time audit</h2><div class="hint">Innings on the bench per game attended.</div><table><tbody>
+  ${avg.map(([n,v]) => `<tr><td class="l">${esc(n)}</td><td>${v.toFixed(1)}</td><td class="l bench">${v>mean+.75?'owed more field time':''}</td></tr>`).join('')}</tbody></table>
+  ${lows.length ? `<p class="muted">Often batting near the bottom: ${lows.map(esc).join(', ')}. The lineup tool nudges them up over time.</p>` : ''}</div>`;
+}
+
+/* ============================== backup / demo ============================== */
+$('#export').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(db,null,2)], {type:'application/json'}));
+  a.download = `dugout-${new Date().toISOString().slice(0,10)}.json`; a.click();
+};
+$('#import').onclick = () => $('#file').click();
+$('#file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  f.text().then(t => {
+    const d = JSON.parse(t); if (!d.players || !d.games) throw 0;
+    if (confirm('Replace everything in this browser with the backup?')) { db = Object.assign(blank(), d); save(); render(); }
+  }).catch(() => alert('That file is not a Dugout backup.'));
+  e.target.value = '';
+};
+$('#demo').onclick = () => {
+  if (db.players.length && !confirm('This replaces your current data with a made-up demo season. Continue?')) return;
+  let seed = 7; const rnd = () => (seed = (seed*16807) % 2147483647) / 2147483647, ri = (a,b) => a + Math.floor(rnd()*(b-a+1));
+  const ns = ['Ben','Carlos','Dylan','Ethan','Finn','Gabe','Henry','Isaac','Jack','Kai','Leo'];
+  const skill = {}; [...ns].reverse().forEach((n,i) => skill[n] = .10+.03*i+(rnd()-.5)*.08);
+  db = blank(); db.name = 'Demo Dragons';
+  db.players = ns.map((n,i) => ({name:n, number:String(i+1), pref:{}}));
+  db.players[0].pref = {P:5, SS:4}; db.players[1].pref = {C:5};
+  const start = new Date(); start.setDate(start.getDate()-42);
+  for (let w=0; w<6; w++) {
+    const present = ns.filter(() => rnd() > .1).sort(() => rnd()-.5), d = new Date(start); d.setDate(d.getDate()+7*w);
+    const g = {date:d.toISOString().slice(0,10), opponent:'Team '+(w+1), us:ri(3,12), them:ri(3,12), innings:6, batting:{}, fielding:{}, order:present};
+    present.forEach(n => {
+      const ab = ri(2,4); let h = 0; for (let i=0;i<ab;i++) if (rnd() < skill[n]+.1) h++;
+      let xb = 0; for (let i=0;i<h;i++) if (rnd()<.25) xb++;
+      g.batting[n] = {ab,h,'2b':xb,'3b':0,hr:0,bb:ri(0,1),hbp:0,k:ri(0,2),r:ri(0,2),rbi:ri(0,2),sb:ri(0,1),sac:0};
+    });
+    db.games.push(g); // temporarily push so the planner sees earlier weeks
+    const plan = fieldPlan(present, profiles(), .7, 6);
+    present.forEach(n => g.fielding[n] = {innings:plan[n], ch:ri(0,5), e:ri(0,1)});
+  }
+  save(); tab = 'stats'; render();
+};
+
+render();
+</script>
+</body>
+</html>

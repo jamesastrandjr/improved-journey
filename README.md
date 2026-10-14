@@ -1,5 +1,7 @@
 # Dugout — youth baseball stats & lineup helper
 
+**Easiest way:** open `dugout.html` in any browser (phone or laptop). No install, no server. Data is saved in that browser; use **Back up** now and then to download a copy. The Python command-line version below does the same thing.
+
 Enter your game numbers once a week; get a batting order, an inning-by-inning
 defensive plan, and talking points for every player. Pure Python 3.9+, no installs.
 
