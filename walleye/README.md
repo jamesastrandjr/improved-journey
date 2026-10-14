@@ -12,7 +12,7 @@ A zero-build, static web app. Open `walleye/index.html` (or serve the repo, e.g.
 - **Tailored to you:** boat size, fishing method (troll / jig / drift) and trip hours change the safety limits, wind/wave sweet spot, rankings and tips.
 - **Trip planner:** pick a trip length and get avg/peak score, max waves & gusts, a "be docked by" time before conditions turn, sunset warnings, a ✨ best-start finder and a calendar (.ics) export.
 - **Bite clock**, **🎯 best spot now** finder, **pre-launch safety checklist** that adapts to conditions, **share links** that restore the exact hour/spot, **GPS** "dot → me", and an **installable offline PWA**.
-- **Bottom topography:** depth, slope, humps/drop-offs, contour lines with labels, depth shading, a top-structure finder and a *Depth & structure* score factor (NCEI Great Lakes bathymetry grid, with NOAA ENC chart contours as an automatic coarse fallback). See DATA_SOURCES.md for the one-time precise-data setup.
+- **Bottom topography:** depth, slope, humps/drop-offs, contour lines with labels, depth shading, a top-structure finder and a *Depth & structure* score factor (NCEI Great Lakes bathymetry grid, with multi-band NOAA ENC contours + soundings as an automatic fallback, and a 🗺 NOAA ENC chart overlay). See DATA_SOURCES.md for the one-time precise-data setup.
 - If the weather services are unreachable the app falls back to clearly-labelled **demo data**.
 
 The model (see `js/model.js`) blends water temp, light, wind/waves, pressure trend, wind direction, sky and solunar influence. It is a planning aid, not a marine forecast — always check the NWS marine forecast and wear a PFD.

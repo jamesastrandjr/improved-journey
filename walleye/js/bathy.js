@@ -118,26 +118,57 @@
   async function getJSON(url, ms = 15000) { const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms); try { const r = await fetch(url, { signal: ctl.signal }); if (!r.ok) throw new Error('HTTP ' + r.status); return await r.json(); } finally { clearTimeout(t); } }
   const BOUNDS = { west: -81.35, east: -80.55, south: 41.78, north: 42.35 };
 
-  /* NOAA ENC depth contours (ArcGIS layer 64, GeoJSON) -> interpolated grid. Coarse: precision is about half a contour interval. */
-  async function loadEnc(opts = {}) {
-    const bb = Object.assign({}, BOUNDS, opts.bounds), base = 'https://encdirect.noaa.gov/arcgis/rest/services/encdirect/enc_general/MapServer/64/query';
-    const feats = [];
-    for (let off = 0; off < 6000; off += 1000) {
-      const j = await getJSON(`${base}?where=1%3D1&geometry=${bb.west},${bb.south},${bb.east},${bb.north}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&f=geojson&resultRecordCount=1000&resultOffset=${off}`);
-      feats.push(...(j.features || [])); if (!(j.properties && j.properties.exceededTransferLimit) && (j.features || []).length < 1000) break;
-    }
-    return gridFromContours(feats, bb);
+  /* NOAA ENC depth contours + spot soundings from several chart scale bands -> one interpolated grid.
+     Layer ids are looked up from each service's own layer list (only general-band contours = layer 64 is hard-coded). Finer bands and soundings weigh more. */
+  const ENC_ROOT = 'https://encdirect.noaa.gov/arcgis/rest/services/encdirect/', BANDS = [['enc_approach', 3], ['enc_coastal', 2], ['enc_general', 1]];
+  async function discover(service) {
+    const j = await getJSON(`${ENC_ROOT}${service}/MapServer?f=json`, 10000), L = j.layers || [];
+    const c = L.find((l) => /depth[_ ]?contour[_ ]?line/i.test(l.name)), sd = L.find((l) => /sounding/i.test(l.name) && !/line|area|bar/i.test(l.name));
+    return { contour: c ? c.id : null, sounding: sd ? sd.id : null };
   }
-  function gridFromContours(feats, bb, cell = 0.003) {
-    const pts = []; let mx = 0;
+  async function queryLayer(service, id, bb) {
+    const base = `${ENC_ROOT}${service}/MapServer/${id}/query`, out = [];
+    for (let off = 0; off < 6000; off += 1000) {
+      const j = await getJSON(`${base}?where=1%3D1&geometry=${bb.west},${bb.south},${bb.east},${bb.north}&geometryType=esriGeometryEnvelope&inSR=4326&spatialRel=esriSpatialRelIntersects&outFields=*&outSR=4326&returnZ=true&f=geojson&resultRecordCount=1000&resultOffset=${off}`);
+      out.push(...(j.features || [])); if (!(j.properties && j.properties.exceededTransferLimit) && (j.features || []).length < 1000) break;
+    }
+    return out;
+  }
+  async function loadEnc(opts = {}) {
+    const bb = Object.assign({}, BOUNDS, opts.bounds), pts = [], used = [];
+    for (const [svc, w] of BANDS) {
+      let ids = null; try { ids = await discover(svc); } catch (e) {}
+      if (!ids && svc === 'enc_general') ids = { contour: 64, sounding: null };
+      if (!ids) continue;
+      let n = 0;
+      for (const [kind, id, wt] of [['contour', ids.contour, w], ['sounding', ids.sounding, w * 1.5]]) {
+        if (id == null) continue;
+        try { const f = await queryLayer(svc, id, bb), p = featsToPts(f, wt); n += p.length; pts.push(...p); } catch (e) {}
+      }
+      if (n) used.push(svc.replace('enc_', ''));
+    }
+    if (pts.length < 20) throw new Error('no chart depth data returned for that area');
+    return Object.assign(gridFromPts(pts, bb), { label: used.join('+') });
+  }
+  /* GeoJSON features -> [lon, lat, depth, weight]; contour lines are densified, soundings keep their own z/depth value */
+  function featsToPts(feats, weight = 1, cell = 0.003) {
+    const pts = [];
     feats.forEach((f) => {
-      const p = f.properties || {}, key = Object.keys(p).find((k) => /^valdco$/i.test(k)) || Object.keys(p).find((k) => /depth|^dep/i.test(k) && Number.isFinite(+p[k])); if (!key) return;
-      const v = +p[key]; if (!Number.isFinite(v) || v <= 0) return; mx = Math.max(mx, v);
-      const lines = f.geometry ? (f.geometry.type === 'LineString' ? [f.geometry.coordinates] : f.geometry.type === 'MultiLineString' ? f.geometry.coordinates : []) : [];
-      lines.forEach((ln) => { for (let k = 0; k < ln.length; k++) { pts.push([ln[k][0], ln[k][1], v]); if (k) { const [x0, y0] = ln[k - 1], [x1, y1] = ln[k], n = Math.floor(Math.hypot(x1 - x0, y1 - y0) / (cell * 0.7)); for (let s = 1; s < n; s++) pts.push([x0 + ((x1 - x0) * s) / n, y0 + ((y1 - y0) * s) / n, v]); } } });
+      const p = f.properties || {}, key = Object.keys(p).find((k) => /^valdco$/i.test(k)) || Object.keys(p).find((k) => /^(valsou|depth|dep\w*)$/i.test(k) && Number.isFinite(+p[k])), g = f.geometry; if (!g) return;
+      const prop = key ? +p[key] : NaN;
+      if (g.type === 'LineString' || g.type === 'MultiLineString') {
+        if (!Number.isFinite(prop) || prop <= 0) return;
+        (g.type === 'LineString' ? [g.coordinates] : g.coordinates).forEach((ln) => { for (let k = 0; k < ln.length; k++) { pts.push([ln[k][0], ln[k][1], prop, weight]); if (k) { const [x0, y0] = ln[k - 1], [x1, y1] = ln[k], n = Math.floor(Math.hypot(x1 - x0, y1 - y0) / (cell * 0.7)); for (let s = 1; s < n; s++) pts.push([x0 + ((x1 - x0) * s) / n, y0 + ((y1 - y0) * s) / n, prop, weight]); } } });
+      } else if (g.type === 'Point' || g.type === 'MultiPoint') {
+        (g.type === 'Point' ? [g.coordinates] : g.coordinates).forEach((c) => { const v = Number.isFinite(c[2]) && c[2] > 0 ? c[2] : prop; if (Number.isFinite(v) && v > 0) pts.push([c[0], c[1], v, weight]); });
+      }
     });
-    if (pts.length < 20) throw new Error('no depth contours in that area');
-    const toFt = mx > 80 ? 1 : FT; // S-57 contours are metres; values beyond Lake Erie's ~210 ft maximum can't be metres
+    return pts;
+  }
+  function gridFromContours(feats, bb, cell) { return gridFromPts(featsToPts(feats, 1), bb, cell); }
+  function gridFromPts(pts, bb, cell = 0.0025) {
+    if (pts.length < 20) throw new Error('no depth data in that area');
+    const mx = pts.reduce((m, p) => Math.max(m, p[2]), 0), toFt = mx > 80 ? 1 : FT; // S-57 depths are metres; anything beyond Lake Erie's ~210 ft maximum cannot be metres
     const nx = Math.round((bb.east - bb.west) / cell), ny = Math.round((bb.north - bb.south) / cell), bin = 0.02, bins = new Map();
     pts.forEach((p) => { const k = Math.floor((p[0] - bb.west) / bin) + ',' + Math.floor((p[1] - bb.south) / bin); (bins.get(k) || bins.set(k, []).get(k)).push(p); });
     const d = new Float32Array(nx * ny).fill(NaN);
@@ -146,15 +177,15 @@
       const bx = Math.floor((lon - bb.west) / bin), by = Math.floor((lat - bb.south) / bin); let cand = [];
       for (let r = 1; r <= 4 && cand.length < 12; r++) { cand = []; for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) { const a = bins.get(bx + dx + ',' + (by + dy)); if (a) cand.push(...a); } }
       if (!cand.length) continue;
-      cand.forEach((p) => (p.dd = (p[0] - lon) * 0.74 * (p[0] - lon) * 0.74 + (p[1] - lat) * (p[1] - lat) + 1e-9)); cand.sort((a, b) => a.dd - b.dd);
-      let sw = 0, sv = 0; cand.slice(0, 8).forEach((p) => { const w = 1 / p.dd; sw += w; sv += w * p[2]; }); d[j * nx + i] = (sv / sw) * toFt;
+      const near = cand.map((p) => ({ p, dd: ((p[0] - lon) * 0.74) ** 2 + (p[1] - lat) ** 2 + 1e-9 })).sort((a, b) => a.dd - b.dd).slice(0, 8);
+      let sw = 0, sv = 0; near.forEach(({ p, dd }) => { const w = p[3] / dd; sw += w; sv += w * p[2]; }); d[j * nx + i] = (sv / sw) * toFt;
     }
-    return { grid: { west: bb.west, north: bb.north, dlon: cell, dlat: cell, nx, ny, d }, features: feats.length };
+    return { grid: { west: bb.west, north: bb.north, dlon: cell, dlat: cell, nx, ny, d }, features: pts.length };
   }
 
   async function load() {
     try { const j = await getJSON('data/bathy.json?ts=' + Math.floor(Date.now() / 3600000)); setGrid(fromJson(j), j.src || 'NCEI bathymetry grid', 'precise'); return B.src; } catch (e) {}
-    try { const r = await loadEnc(); setGrid(r.grid, 'NOAA ENC chart contours', 'coarse'); return B.src; } catch (e) { B.error = e.message; return null; }
+    try { const r = await loadEnc(); setGrid(r.grid, 'NOAA ENC chart (' + r.label + ')', 'coarse'); return B.src; } catch (e) { B.error = e.message; return null; }
   }
 
   /* walleye depth target (ft) from water temp, nudged toward depths anglers report */
@@ -164,5 +195,5 @@
     return t;
   }
 
-  return { B, FT, quick, setGrid, fromJson, depthAt, info, structureAt, findSpots, contours, shadeCanvas, load, loadEnc, gridFromContours, target, BOUNDS };
+  return { B, FT, quick, setGrid, fromJson, depthAt, info, structureAt, findSpots, contours, shadeCanvas, load, loadEnc, featsToPts, gridFromPts, gridFromContours, target, BOUNDS };
 });

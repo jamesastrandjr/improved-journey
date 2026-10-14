@@ -2,7 +2,7 @@
 (function (G) {
   const { Astro, Model, Data } = G;
   const $ = (s) => document.querySelector(s);
-  let contourLayer, labelLayer, shadeLayer, structLayer, map, dot, dotEl, homeMarker, heat, windLayer, windEls = [], rings, ringsLbl, catchLayer, seaMarks, bases = {}, baseKey, radarLayers = [], radarTimer = null, radarIdx = 0, lake;
+  let encLayer, contourLayer, labelLayer, shadeLayer, structLayer, map, dot, dotEl, homeMarker, heat, windLayer, windEls = [], rings, ringsLbl, catchLayer, seaMarks, bases = {}, baseKey, radarLayers = [], radarTimer = null, radarIdx = 0, lake;
   const HB = L.latLngBounds([41.78, -81.3], [42.24, -80.6]);
 
   /* ---------- color ramp ---------- */
@@ -82,7 +82,7 @@
   function buildLayerUI() {
     const el = $('#layers');
     el.innerHTML = `<div class="seg" id="baseSeg">${[['dark', 'Dark'], ['sat', 'Satellite'], ['noaa', 'NOAA chart'], ['light', 'Light']].map(([k, n]) => `<button data-b="${k}">${n}</button>`).join('')}</div>` +
-      [['heat', '🔥 Bite map'], ['contours', '📐 Contours'], ['depth', '🌊 Depth shade'], ['struct', '🎯 Structure'], ['wind', '💨 Wind'], ['radar', '📡 Radar'], ['rings', '◎ Run rings'], ['catches', '🐟 Catches'], ['sea', '⛯ Sea marks']].map(([k, n]) => `<button class="chip" data-l="${k}">${n}</button>`).join('');
+      [['heat', '🔥 Bite map'], ['contours', '📐 Contours'], ['depth', '🌊 Depth shade'], ['struct', '🎯 Structure'], ['wind', '💨 Wind'], ['radar', '📡 Radar'], ['rings', '◎ Run rings'], ['catches', '🐟 Catches'], ['enc', '🗺 NOAA ENC chart'], ['sea', '⛯ Sea marks']].map(([k, n]) => `<button class="chip" data-l="${k}">${n}</button>`).join('');
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-b]'), l = e.target.closest('[data-l]');
       if (b) { S.base = b.dataset.b; applyLayers(); G.App.save(); }
@@ -93,6 +93,7 @@
     Object.entries(bases).forEach(([k, lyr]) => { const on = k === S.base; if (on && !map.hasLayer(lyr)) lyr.addTo(map).bringToBack(); if (!on && map.hasLayer(lyr)) map.removeLayer(lyr); });
     document.querySelectorAll('#baseSeg button').forEach((b) => b.classList.toggle('on', b.dataset.b === S.base));
     document.querySelectorAll('#layers .chip').forEach((b) => b.classList.toggle('on', !!S.layers[b.dataset.l]));
+    if (S.layers.enc) ensureEnc(); else if (encLayer && map.hasLayer(encLayer)) map.removeLayer(encLayer);
     toggle(contourLayer, S.layers.contours); applyLabels(); toggle(structLayer, S.layers.struct); if (shadeLayer) toggle(shadeLayer, S.layers.depth);
     toggle(heat, S.layers.heat); toggle(windLayer, S.layers.wind); toggle(rings, S.layers.rings); toggle(catchLayer, S.layers.catches); toggle(seaMarks, S.layers.sea);
     $('#legend').style.display = S.layers.heat ? 'flex' : 'none';
@@ -117,6 +118,20 @@
       radarIdx = (radarIdx + 1) % radarLayers.length;
     };
     step(); radarTimer = setInterval(step, 700);
+  }
+
+  /* ---------- NOAA ENC chart (WMS; layer names read from GetCapabilities) ---------- */
+  async function ensureEnc() {
+    if (encLayer) { if (!map.hasLayer(encLayer)) encLayer.addTo(map); return; }
+    const url = 'https://gis.charttools.noaa.gov/arcgis/rest/services/MCS/ENCOnline/MapServer/exts/MaritimeChartService/WMSServer';
+    try {
+      const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 12000), xml = await (await fetch(url + '?service=WMS&request=GetCapabilities&version=1.3.0', { signal: ctl.signal })).text(); clearTimeout(t);
+      const doc = new DOMParser().parseFromString(xml, 'text/xml'), top = doc.querySelector('Capability > Layer'), own = top && [...top.children].find((e) => e.tagName === 'Name');
+      const names = own ? [own.textContent] : top ? [...top.children].filter((e) => e.tagName === 'Layer').map((e) => [...e.children].find((c) => c.tagName === 'Name')).filter(Boolean).map((n) => n.textContent) : [];
+      if (!names.length) throw new Error('no layers');
+      encLayer = L.tileLayer.wms(url, { layers: names.join(','), format: 'image/png', transparent: true, version: '1.3.0', opacity: 0.88, maxZoom: 16, attribution: 'Charts: NOAA ENC' });
+      if (S.layers.enc) encLayer.addTo(map);
+    } catch (e) { S.layers.enc = false; document.querySelectorAll('#layers [data-l=enc]').forEach((b) => b.classList.remove('on')); G.App.toast('NOAA ENC chart service did not answer — use the “NOAA chart” base map instead'); }
   }
 
   /* ---------- bottom: contours, depth shade, structure markers ---------- */

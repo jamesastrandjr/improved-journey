@@ -21,7 +21,8 @@ Not used (yet): the Cleveland buoy thermistor chain on GLOS Seagull ERDDAP (`obs
 | Rank | Source | Used for | Status |
 |---|---|---|---|
 | 1 | **NCEI Great Lakes bathymetry, Lake Erie** (3 arc-second ≈ 90 m grid; DOI 10.7289/V5KS6PHK) via the NOAA *Grid Extract* tool, ARC ASCII | precise depth, slope, humps, drop-offs, contours, structure finder | dataset & formats **verified**; you download it once (see below). `scripts/build-bathy.mjs` converts it to `data/bathy.json` |
-| 2 | **NOAA ENC depth contours** (`encdirect … enc_general/MapServer/64`, GeoJSON query) | automatic fallback: coarse depth surface interpolated between chart contours (≈ ±5 ft) | layer **verified**; unit/field handling unverified live |
+| 2 | **NOAA ENC contours + spot soundings, multi-band** (`encdirect …/enc_approach`, `enc_coastal`, `enc_general`) | automatic fallback: depth surface interpolated from chart contours and soundings; finer scale bands and soundings weigh more (≈ ±5 ft or better where soundings exist) | services **verified**; layer ids are *discovered at runtime* from each service's layer list (general contour layer 64 is verified); depth units/fields unverified live |
+| 2 | **NOAA ENC chart overlay** (ENCOnline WMS) — map chip *🗺 NOAA ENC chart* | official chart symbology with soundings on the map | WMS URL **verified**; layer names read from GetCapabilities at runtime |
 | – | NOAA chart tiles (map base layer "NOAA chart") | visual reference with soundings | unverified live |
 
 Depths are relative to the low-water datum (about 568.6 ft IGLD85) — confirm with the chart and your sounder.

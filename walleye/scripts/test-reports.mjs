@@ -40,4 +40,9 @@ assert.ok(B.target(66, null)[0] >= 30); assert.ok(B.target(48, null)[1] <= 45);
 const feat = (v, lat) => ({ properties: { VALDCO: v }, geometry: { type: 'LineString', coordinates: [[-81.0, lat], [-80.9, lat]] } });
 const eg = B.gridFromContours([feat(10, 41.95), feat(20, 42.0), feat(30, 42.05)], { west: -81.0, east: -80.9, south: 41.9, north: 42.1 }, 0.005);
 assert.ok(eg.grid.nx === 20); B.setGrid(eg.grid, 'enc', 'coarse'); const mid = B.depthAt(42.0, -80.95); assert.ok(mid > 20 * 3.28 * 0.8 && mid < 20 * 3.28 * 1.2, 'enc metres->ft ' + mid);
+// multi-band ENC: soundings with z, finer band outweighs coarse band
+const sd = B.featsToPts([{ properties: {}, geometry: { type: 'MultiPoint', coordinates: [[-80.95, 42.0, 18.5], [-80.94, 42.0, 18.7]] } }, { properties: { VALSOU: 20 }, geometry: { type: 'Point', coordinates: [-80.93, 42.0] } }], 2);
+assert.equal(sd.length, 3); assert.equal(sd[0][2], 18.5); assert.equal(sd[2][2], 20); assert.equal(sd[0][3], 2);
+const coarse = B.featsToPts([{ properties: { VALDCO: 30 }, geometry: { type: 'LineString', coordinates: [[-81.0, 42.0], [-80.9, 42.0]] } }], 1), fine = B.featsToPts([{ properties: { VALDCO: 10 }, geometry: { type: 'LineString', coordinates: [[-81.0, 42.0], [-80.9, 42.0]] } }], 3);
+const mix = B.gridFromPts([...coarse, ...fine], { west: -81.0, east: -80.9, south: 41.95, north: 42.05 }, 0.005); B.setGrid(mix.grid, 'm', 'coarse'); assert.ok(B.depthAt(42.0, -80.95) < 20 * 3.28084, 'finer band dominates the blend');
 console.log('reports tests passed ✔');

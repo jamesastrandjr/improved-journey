@@ -6,7 +6,7 @@
   const TZ = Astro.TZ, REFRESH_MS = 10 * 60 * 1000;
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', tripLen: 6, pasted: [], checks: { date: '', done: {} }, speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, contours: true, depth: false, struct: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
+  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', tripLen: 6, pasted: [], checks: { date: '', done: {} }, speed: 20, thr: 70, notify: false, base: 'dark', layers: { enc: false, heat: true, contours: true, depth: false, struct: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('wsif.v1') || '{}'); } catch (e) {}
   const S = (G.S = Object.assign({ D: null, idx: 0, follow: true, rec: [], ev: [], rank: [], windows: [], days: [], playing: false, month: new Date().getMonth(), calDay: null, nextRefresh: Date.now() + REFRESH_MS }, JSON.parse(JSON.stringify(DEF)), saved));
@@ -735,7 +735,7 @@
     renderAll();
   }
 
-  G.App = { setSpot, spotAction, save, refresh };
+  G.App = { toast, setSpot, spotAction, save, refresh };
 
   /* ---------- boot ---------- */
   if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
