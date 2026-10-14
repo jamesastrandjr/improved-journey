@@ -2,7 +2,7 @@
 (function (G) {
   const { Astro, Model, Data } = G;
   const $ = (s) => document.querySelector(s);
-  let map, dot, dotEl, homeMarker, heat, windLayer, windEls = [], rings, ringsLbl, catchLayer, seaMarks, bases = {}, baseKey, radarLayers = [], radarTimer = null, radarIdx = 0, lake;
+  let contourLayer, labelLayer, shadeLayer, structLayer, map, dot, dotEl, homeMarker, heat, windLayer, windEls = [], rings, ringsLbl, catchLayer, seaMarks, bases = {}, baseKey, radarLayers = [], radarTimer = null, radarIdx = 0, lake;
   const HB = L.latLngBounds([41.78, -81.3], [42.24, -80.6]);
 
   /* ---------- color ramp ---------- */
@@ -45,6 +45,9 @@
     windLayer = L.layerGroup().addTo(map);
     rings = L.layerGroup().addTo(map);
     catchLayer = L.layerGroup().addTo(map);
+    map.createPane('shade'); map.getPane('shade').style.zIndex = 340; map.getPane('shade').style.pointerEvents = 'none';
+    contourLayer = L.layerGroup(); labelLayer = L.layerGroup(); structLayer = L.layerGroup();
+    map.on('zoomend', () => applyLabels());
 
     // wind arrow field
     Data.gridPoints.forEach((p) => {
@@ -79,7 +82,7 @@
   function buildLayerUI() {
     const el = $('#layers');
     el.innerHTML = `<div class="seg" id="baseSeg">${[['dark', 'Dark'], ['sat', 'Satellite'], ['noaa', 'NOAA chart'], ['light', 'Light']].map(([k, n]) => `<button data-b="${k}">${n}</button>`).join('')}</div>` +
-      [['heat', '🔥 Bite map'], ['wind', '💨 Wind'], ['radar', '📡 Radar'], ['rings', '◎ Run rings'], ['catches', '🐟 Catches'], ['sea', '⛯ Sea marks']].map(([k, n]) => `<button class="chip" data-l="${k}">${n}</button>`).join('');
+      [['heat', '🔥 Bite map'], ['contours', '📐 Contours'], ['depth', '🌊 Depth shade'], ['struct', '🎯 Structure'], ['wind', '💨 Wind'], ['radar', '📡 Radar'], ['rings', '◎ Run rings'], ['catches', '🐟 Catches'], ['sea', '⛯ Sea marks']].map(([k, n]) => `<button class="chip" data-l="${k}">${n}</button>`).join('');
     el.addEventListener('click', (e) => {
       const b = e.target.closest('[data-b]'), l = e.target.closest('[data-l]');
       if (b) { S.base = b.dataset.b; applyLayers(); G.App.save(); }
@@ -90,6 +93,7 @@
     Object.entries(bases).forEach(([k, lyr]) => { const on = k === S.base; if (on && !map.hasLayer(lyr)) lyr.addTo(map).bringToBack(); if (!on && map.hasLayer(lyr)) map.removeLayer(lyr); });
     document.querySelectorAll('#baseSeg button').forEach((b) => b.classList.toggle('on', b.dataset.b === S.base));
     document.querySelectorAll('#layers .chip').forEach((b) => b.classList.toggle('on', !!S.layers[b.dataset.l]));
+    toggle(contourLayer, S.layers.contours); applyLabels(); toggle(structLayer, S.layers.struct); if (shadeLayer) toggle(shadeLayer, S.layers.depth);
     toggle(heat, S.layers.heat); toggle(windLayer, S.layers.wind); toggle(rings, S.layers.rings); toggle(catchLayer, S.layers.catches); toggle(seaMarks, S.layers.sea);
     $('#legend').style.display = S.layers.heat ? 'flex' : 'none';
     if (S.layers.radar) loadRadar(); else stopRadar();
@@ -115,6 +119,28 @@
     step(); radarTimer = setInterval(step, 700);
   }
 
+  /* ---------- bottom: contours, depth shade, structure markers ---------- */
+  function applyLabels() { if (!map || !labelLayer) return; const on = S.layers.contours && map.getZoom() >= 11; if (on && !map.hasLayer(labelLayer)) labelLayer.addTo(map); if (!on && map.hasLayer(labelLayer)) map.removeLayer(labelLayer); }
+  function updateBathy() {
+    const B = G.Bathy; contourLayer.clearLayers(); labelLayer.clearLayers(); if (shadeLayer) { map.removeLayer(shadeLayer); shadeLayer = null; }
+    if (!B || !B.B.ready) { updateStructure(); return; }
+    const g = B.B.grid, stride = Math.max(1, Math.round(0.0022 / g.dlat)), levels = []; for (let L = 10; L <= 100; L += 5) levels.push(L);
+    const cs = B.contours(levels, stride), r = L.canvas({ padding: 0.3 });
+    Object.entries(cs).forEach(([lv, segs]) => {
+      const L_ = +lv, major = L_ % 25 === 0, tens = L_ % 10 === 0;
+      L.polyline(segs, { renderer: r, color: major ? '#d6efff' : '#9fd8ff', weight: major ? 1.8 : tens ? 1.1 : 0.7, opacity: major ? 0.8 : 0.5, interactive: false, smoothFactor: 1 }).addTo(contourLayer);
+      if (tens) { const step = Math.max(1, Math.floor(segs.length / 5)); for (let k = Math.floor(step / 2); k < segs.length; k += step) { const m = [(segs[k][0][0] + segs[k][1][0]) / 2, (segs[k][0][1] + segs[k][1][1]) / 2]; L.marker(m, { interactive: false, icon: L.divIcon({ className: 'ctlbl', html: `${L_}`, iconSize: [24, 12], iconAnchor: [12, 6] }) }).addTo(labelLayer); } }
+    });
+    const bounds = { west: g.west, east: g.west + g.nx * g.dlon, north: g.north, south: g.north - g.ny * g.dlat }, cv = B.shadeCanvas(300, Math.round(300 * (bounds.north - bounds.south) / ((bounds.east - bounds.west) * 0.74)), bounds);
+    if (cv) shadeLayer = L.imageOverlay(cv.toDataURL(), [[bounds.south, bounds.west], [bounds.north, bounds.east]], { pane: 'shade', opacity: 0.65, interactive: false });
+    applyLayers(); updateStructure();
+  }
+  function updateStructure() {
+    structLayer.clearLayers();
+    (S.structSpots || []).forEach((p, k) => L.marker([p.lat, p.lon], { icon: L.divIcon({ className: '', iconSize: [26, 26], iconAnchor: [13, 13], html: `<div class="stpin">${k + 1}</div>` }) })
+      .bindTooltip(`${Math.round(p.ft)} ft · ${p.kind} · ${p.mi.toFixed(1)} mi`, { direction: 'top' }).on('click', () => G.App.setSpot({ lat: p.lat, lng: p.lon }, true)).addTo(structLayer));
+  }
+
   /* ---------- home + rings ---------- */
   function updateHome() {
     homeMarker.setLatLng([S.home.lat, S.home.lon]).setTooltipContent(S.home.name || 'Home port');
@@ -133,8 +159,9 @@
     const d = Data.miles(S.home, S.spot), b = Data.bearing(S.home, S.spot), eta = Math.round((d / S.speed) * 60);
     S.dist = d;
     const saved = S.spots.find((s) => Data.miles(s, S.spot) < 0.15);
+    const bi = G.Bathy && G.Bathy.info(S.spot.lat, S.spot.lon), bl = bi ? `<div class="m">📐 <b>${Math.round(bi.ft)} ft</b> · ${bi.kind}${bi.slope >= 0.5 ? ' · ' + bi.slope.toFixed(1) + '° slope' : ''}${bi.relief >= 4 ? ' · ' + Math.round(bi.relief) + ' ft relief' : ''}</div>` : '';
     $('#spotCard').innerHTML = `<div class="t">📍 ${saved ? '⭐ ' + esc(saved.name) : 'Your fishing spot'}</div>
-      <div class="m">${d.toFixed(1)} mi ${Model.compass(b)} of ${esc(S.home.name || 'port')} · ~${eta} min run · ${S.spot.lat.toFixed(4)}°, ${S.spot.lon.toFixed(4)}°</div>
+      <div class="m">${d.toFixed(1)} mi ${Model.compass(b)} of ${esc(S.home.name || 'port')} · ~${eta} min run · ${S.spot.lat.toFixed(4)}°, ${S.spot.lon.toFixed(4)}°</div>${bl}
       <div class="acts"><button class="mini" data-a="save">${saved ? '★ Remove spot' : '☆ Save spot'}</button><button class="mini" data-a="home">⚓ Make home port</button><button class="mini" data-a="gps">📍 Dot → my GPS</button><button class="mini" data-a="fit">⌖ Re-center</button></div>`;
   }
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -155,7 +182,7 @@
     // evaluate each grid cell
     const base = S.rec[i];
     S.cell = D.grid ? D.grid.map((p) => {
-      const r = Object.assign({}, base, { wind: p.wind[i], gust: p.gust[i], dir: p.dir[i], wave: p.wave[i] });
+      const r = Object.assign({}, base, { depth: null, wind: p.wind[i], gust: p.gust[i], dir: p.dir[i], wave: p.wave[i] });
       const ev = Model.evaluate(r, { boat: S.boat, method: S.method, distMi: Data.miles(S.home, p) });
       return { score: ev.score, level: ev.level, wind: p.wind[i], dir: p.dir[i], wave: p.wave[i] };
     }) : null;
@@ -174,7 +201,7 @@
   function paintHeat() {
     const ctx = hc.getContext('2d'), img = ctx.createImageData(HW, HH), cells = S.cell, rows = Data.GRID_ROWS, cols = Data.GRID_LONS.length;
     const west = HB.getWest(), east = HB.getEast(), north = HB.getNorth(), south = HB.getSouth();
-    const at = (u, v) => cells[u * rows + v];
+    const at = (u, v) => cells[u * rows + v], tgt = G.Bathy && G.Bathy.B.ready ? G.Bathy.target(S.D.waterT[S.idx], S.D.repAgg) : null;
     for (let y = 0; y < HH; y++) {
       const lat = north - ((y + 0.5) / HH) * (north - south);
       for (let x = 0; x < HW; x++) {
@@ -185,7 +212,9 @@
         const u = Math.max(0, Math.min(cols - 1, uf)), v = Math.max(0, Math.min(rows - 1, vf));
         const u0 = Math.floor(u), v0 = Math.floor(v), u1 = Math.min(cols - 1, u0 + 1), v1 = Math.min(rows - 1, v0 + 1), fu = u - u0, fv = v - v0;
         const s = (at(u0, v0).score * (1 - fu) + at(u1, v0).score * fu) * (1 - fv) + (at(u0, v1).score * (1 - fu) + at(u1, v1).score * fu) * fv;
-        const [r, g, b] = ramp(s);
+        let sAdj = s; const Bq = G.Bathy;
+        if (Bq && Bq.B.ready && tgt) { const q = Bq.quick(lat, lon); if (q) sAdj = s + (Model.depthScore({ ft: q.ft, lo: tgt[0], hi: tgt[1], structure: q.structure, kind: '' }).s - 0.6) * 15; }
+        const [r, g, b] = ramp(sAdj);
         let a = Math.min(1, (dLat - 0.004) / 0.03) * 0.62;
         const edgeU = Math.max(0, Math.abs(uf - (cols - 1) / 2) - (cols - 1) / 2) / 0.9, edgeV = Math.max(0, vf - (rows - 1)) / 1.2;
         a *= Math.max(0, 1 - Math.max(edgeU, edgeV));
@@ -227,7 +256,7 @@
 
   G.MapView = {
     locate,
-    init, updateSpot, updateHome, updateField, updateCatches, ramp, rampCss, loadRadar,
+    init, updateBathy, updateStructure, updateSpot, updateHome, updateField, updateCatches, ramp, rampCss, loadRadar,
     flyTo: (lat, lon) => map.panTo([lat, lon]),
     fit: () => map.fitBounds([[41.8, -81.25], [42.2, -80.65]]),
     invalidate: () => map && map.invalidateSize(),

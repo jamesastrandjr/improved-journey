@@ -104,6 +104,13 @@
     return `Drift ~${T < 55 ? '0.8–1.2' : '1.0–1.6'} mph with ${T < 55 ? 'jig-and-crawler' : 'crawler harnesses'}; ${h.wind < 6 ? 'drift sock out for more speed.' : 'let the wind do the work.'}`;
   }
 
+  /* depth & structure: is this spot in the depth band the fish favor, and is there bottom structure to hold them? */
+  function depthScore(d) {
+    const out = d.ft < d.lo ? d.lo - d.ft : d.ft > d.hi ? d.ft - d.hi : 0, fit = out === 0 ? 1 : Math.max(0.3, 1 - Math.min(0.7, out * 0.035)), s = clamp(0.25 + 0.55 * fit + 0.2 * d.structure);
+    const where = out === 0 ? `inside the ${d.lo}–${d.hi} ft zone fish are favoring` : d.ft < d.lo ? `shallower than the ${d.lo}–${d.hi} ft zone` : `deeper than the ${d.lo}–${d.hi} ft zone`;
+    return { s, note: `${Math.round(d.ft)} ft — ${where}; ${d.kind}${d.structure >= 0.6 ? ' (good structure)' : d.structure < 0.25 ? ' (little to hold fish)' : ''}` };
+  }
+  function fDepth(h) { return depthScore(h.depth); }
   function fReports(h) {
     const r = h.rep, sig = r.signal;
     return { s: clamp(0.5 + 0.5 * sig), note: r.note };
@@ -117,13 +124,14 @@
     { id: 'dir', label: 'Wind direction', w: 0.06, fn: fDir, icon: '🧭' },
     { id: 'sky', label: 'Sky', w: 0.06, fn: fSky, icon: '☁️' },
     { id: 'moon', label: 'Moon / solunar', w: 0.08, fn: fMoon, icon: '🌙' },
-    { id: 'reports', label: 'Angler reports', w: 0.1, fn: fReports, icon: '📣', optional: true },
+    { id: 'reports', label: 'Angler reports', w: 0.1, fn: fReports, icon: '📣', optional: true, need: 'rep' },
+    { id: 'depth', label: 'Depth & structure', w: 0.12, fn: fDepth, icon: '📐', optional: true, need: 'depth' },
   ];
 
   /* h: merged hour record. opts: {boat, distMi, alerts} */
   function evaluate(h, opts = {}) {
     const boat = BOATS[opts.boat || 'mid'];
-    const factors = FACTORS.filter((f) => !f.optional || h.rep).map((f) => { const r = f.fn(f.arg ? f.arg(h) : h, opts); return { id: f.id, label: f.label, icon: f.icon, w: f.w, s: r.s, note: r.note }; });
+    const factors = FACTORS.filter((f) => !f.optional || h[f.need]).map((f) => { const r = f.fn(f.arg ? f.arg(h) : h, opts); return { id: f.id, label: f.label, icon: f.icon, w: f.w, s: r.s, note: r.note }; });
     const waterS = factors[0].s;
     const bite = Math.min(100, Math.round(Math.pow(factors.reduce((a, f) => a + f.s * f.w, 0) / factors.reduce((a, f) => a + f.w, 0), 1.55) * (0.45 + 0.55 * waterS) * 100));
 
@@ -141,6 +149,7 @@
     if (h.pop >= 60 && h.precip > 0.05) bump(1, 'Rain likely');
     if (h.temp < 28) bump(1, 'Freezing — spray ice & cold exposure');
     if (h.waterT < 40) bump(1, 'Cold-water immersion risk — PFD & layers');
+    if (h.depth && h.depth.ft < 8) bump(1, `Shallow water (${Math.round(h.depth.ft)} ft) — shoal/reef, watch the sounder`);
     if (h.pTrend3 < -5) bump(1, 'Rapidly falling pressure — squalls possible');
     if (opts.distMi > 8 && h.wave > boat.wave * 0.5) bump(1, `Long run (${opts.distMi.toFixed(0)} mi) home in building seas`);
     for (const al of h.alerts || []) { const lv = alertLevel(al.event); if (lv) bump(lv, `NWS: ${al.event}`); }
@@ -166,5 +175,5 @@
     return verdict({ level: 0, score }).color;
   }
 
-  G.Model = { METHODS, HOURS, tip, pl, clamp, BOATS, FACTORS, compass, climoWaterT, estimateWave, alertLevel, evaluate, verdict, scoreColor, VERDICTS, NOGO };
+  G.Model = { depthScore, METHODS, HOURS, tip, pl, clamp, BOATS, FACTORS, compass, climoWaterT, estimateWave, alertLevel, evaluate, verdict, scoreColor, VERDICTS, NOGO };
 })(window);

@@ -17,6 +17,19 @@ Ranked by how much I trust each source. "Verified" = I confirmed the fact on the
 
 Not used (yet): the Cleveland buoy thermistor chain on GLOS Seagull ERDDAP (`obs_70_thermistor_latest`) — it would give thermocline depth, but I couldn't confirm its columns.
 
+## Lake bottom (topography)
+| Rank | Source | Used for | Status |
+|---|---|---|---|
+| 1 | **NCEI Great Lakes bathymetry, Lake Erie** (3 arc-second ≈ 90 m grid; DOI 10.7289/V5KS6PHK) via the NOAA *Grid Extract* tool, ARC ASCII | precise depth, slope, humps, drop-offs, contours, structure finder | dataset & formats **verified**; you download it once (see below). `scripts/build-bathy.mjs` converts it to `data/bathy.json` |
+| 2 | **NOAA ENC depth contours** (`encdirect … enc_general/MapServer/64`, GeoJSON query) | automatic fallback: coarse depth surface interpolated between chart contours (≈ ±5 ft) | layer **verified**; unit/field handling unverified live |
+| – | NOAA chart tiles (map base layer "NOAA chart") | visual reference with soundings | unverified live |
+
+Depths are relative to the low-water datum (about 568.6 ft IGLD85) — confirm with the chart and your sounder.
+
+**One-time precise setup:** open https://maps.ngdc.noaa.gov/viewers/wcs-client → Great Lakes bathymetry → Lake Erie → box from Fairport to Conneaut and ~20 mi out → **ARC ASCII** → save as `walleye/data/source/lake_erie.asc` → push. The deploy workflow runs `build-bathy.mjs` automatically (it prints the depth range and warns if units look wrong; override with `--units ft`, `--mode elevation --surface-m 173.5`, `--factor 2`).
+
+**How depth feeds the score:** a *Depth & structure* factor (12%) compares the spot's depth with the band walleye favor for the current water temperature (nudged toward depths anglers report), plus bottom structure (relief, slope, rises). Shoals under 8 ft add a caution. The map's bite field adds the same effect per pixel; *Best spot now* and the structure finder use it too.
+
 ## Fishing reports
 I searched and found **no verified, machine-readable official walleye report** for the Geneva area (ODNR's page URL could not be confirmed; Patch republishes ODNR text undated; FishingBooker and walleye.com forums are commercial/user-generated). So the policy is:
 1. **Nothing is scraped by default.** `scripts/sources.json` ships with report sources *disabled*.

@@ -6,7 +6,7 @@
   const TZ = Astro.TZ, REFRESH_MS = 10 * 60 * 1000;
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', tripLen: 6, pasted: [], checks: { date: '', done: {} }, speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
+  const DEF = { boat: 'mid', method: 'troll', hours: 'twilight', tripLen: 6, pasted: [], checks: { date: '', done: {} }, speed: 20, thr: 70, notify: false, base: 'dark', layers: { heat: true, contours: true, depth: false, struct: true, wind: true, radar: false, rings: true, catches: true, sea: false }, home: Data.HOME, spot: { lat: 41.95, lon: -80.95 }, logs: [], spots: [], notified: [] };
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('wsif.v1') || '{}'); } catch (e) {}
   const S = (G.S = Object.assign({ D: null, idx: 0, follow: true, rec: [], ev: [], rank: [], windows: [], days: [], playing: false, month: new Date().getMonth(), calDay: null, nextRefresh: Date.now() + REFRESH_MS }, JSON.parse(JSON.stringify(DEF)), saved));
@@ -45,6 +45,7 @@
     const D = S.D; if (!D) return;
     computeReports();
     S.dist = Data.miles(S.home, S.spot);
+    if (G.Bathy && G.Bathy.B.ready) { const t = G.Bathy.target(D.waterT[D.nowIdx], D.repAgg); S.depthTarget = t; S.structSpots = G.Bathy.findSpots({ lo: t[0], hi: t[1], home: S.home, maxMi: 20, count: 6 }); } else { S.depthTarget = null; S.structSpots = []; }
     S.rec = []; S.ev = []; S.rank = [];
     for (let i = 0; i < D.n; i++) {
       const r = Data.hourRecord(D, i, S.spot), ev = Model.evaluate(r, { boat: S.boat, method: S.method, distMi: S.dist });
@@ -110,7 +111,7 @@
     const good = ev.factors.filter((f) => f.s >= 0.85).sort((a, b) => b.s * b.w - a.s * a.w).slice(0, 2), bad = ev.factors.filter((f) => f.s <= 0.55).sort((a, b) => (1 - b.s) * b.w - (1 - a.s) * a.w).slice(0, 2);
     $('#vWhy').innerHTML = [conf, ...ev.reasons.sort((a, b) => b.lv - a.lv).slice(0, 2).map((r) => `<span class="tag2 ${r.lv >= 2 ? 'b' : 'w'}">${r.lv >= 2 ? '⛔' : '⚠️'} ${esc(r.msg)}</span>`), ...good.map((f) => `<span class="tag2 g">${f.icon} ${esc(f.note)}</span>`), ...bad.map((f) => `<span class="tag2 w">${f.icon} ${esc(f.note)}</span>`)].join('');
 
-    $('#vTip').innerHTML = `<b>${Model.METHODS[S.method].label.split(' (')[0]} · ${Model.BOATS[S.boat].label.split(' ·')[0]} boat</b> — ${esc(Model.tip(rec, S.method))}${chatterTip()}`;
+    $('#vTip').innerHTML = `<b>${Model.METHODS[S.method].label.split(' (')[0]} · ${Model.BOATS[S.boat].label.split(' ·')[0]} boat</b> — ${esc(Model.tip(rec, S.method))}${chatterTip()}${bottomTip()}`;
     // next window
     const nx = $('#nextWin'), w = S.windows.slice().sort((a, b) => a.s - b.s).find((r) => r.e >= D.nowIdx);
     if (w) {
@@ -471,7 +472,7 @@
     loading = false; $('#refreshBtn').classList.remove('spin');
   }
   function renderAll() {
-    renderAlerts(); renderWindows(); renderSeason(); renderLog(); renderTime(false); renderChecklist(); renderReports(); MapView.updateCatches();
+    renderAlerts(); renderWindows(); renderSeason(); renderLog(); renderTime(false); renderChecklist(); renderReports(); renderStruct(); MapView.updateCatches();
   }
   function updateLive() {
     const D = S.D, pill = $('#livePill'); if (!D) return;
@@ -594,6 +595,7 @@
     };
     for (let lon = -81.2; lon <= -80.69; lon += 0.04) for (let k = 0; k < 10; k++) tryPt(Data.shoreLat(lon) + 0.04 + k * 0.03, lon);
     S.spots.forEach((sp) => tryPt(sp.lat, sp.lon, sp.name));
+    (S.structSpots || []).forEach((sp) => tryPt(sp.lat, sp.lon, 'structure'));
     if (!best) return toast('No spot found');
     setSpot({ lat: best.lat, lng: best.lon }, true); MapView.flyTo(best.lat, best.lon);
     toast(`🎯 ${best.label ? '⭐ ' + best.label : 'Best bite'}: ${best.ev.score} at ${best.d.toFixed(1)} mi ${Model.compass(Data.bearing(S.home, best))}`);
@@ -672,6 +674,43 @@
     };
   }
 
+
+  /* ====================================================================
+     BOTTOM & STRUCTURE
+     ==================================================================== */
+  const bearingTxt = (b) => `${String(Math.round(b)).padStart(3, '0')}°`;
+  function bottomTip() {
+    const B = G.Bathy; if (!B || !B.B.ready) return '';
+    const i = B.info(S.spot.lat, S.spot.lon), t = S.depthTarget; if (!i) return '';
+    const axis = i.along != null && i.slope >= 0.4 ? ` Contour runs ${bearingTxt(i.along)}/${bearingTxt((i.along + 180) % 360)}${S.method === 'troll' ? ' — troll along it' : ''}.` : '';
+    return `<br>📐 <b>Bottom:</b> ${Math.round(i.ft)} ft ${t ? '(fish favoring ' + t[0] + '–' + t[1] + ' ft)' : ''} · ${i.kind}.${axis}`;
+  }
+  function renderStruct() {
+    const B = G.Bathy, el = $('#struct'); if (!el) return;
+    if (!B || !B.B.ready) {
+      $('#structSrc').textContent = 'no bottom data yet';
+      el.innerHTML = `<div class="foot" style="padding:0">I need lake-bottom depths to score <i>where</i> to fish: depth, drop-offs, humps and reefs. ${B && B.B.error ? 'The live chart-contour service did not answer (' + esc(B.B.error) + ').' : ''}</div>
+        <div class="row" style="margin-top:8px;gap:6px;flex-wrap:wrap"><button class="btn pri" id="bathyTry">Load NOAA chart contours</button></div>
+        <details class="nws" style="margin-top:10px"><summary>🎯 Get precise bottom data (one-time, ~5 min)</summary><p style="font-family:inherit;font-size:12.5px">1. Open the <a href="https://maps.ngdc.noaa.gov/viewers/wcs-client" target="_blank" rel="noopener noreferrer">NOAA Grid Extract</a> → Great Lakes bathymetry → <b>Lake Erie</b>.<br>2. Draw a box from Fairport to Conneaut and 20 miles out, choose <b>ARC ASCII</b>, download.<br>3. Put the file in the repo at <code>walleye/data/source/lake_erie.asc</code> and push. The site build turns it into <code>data/bathy.json</code> (~90 m resolution).</p></details>`;
+      const b = $('#bathyTry'); if (b) b.onclick = async () => { b.textContent = 'Loading…'; const src = await B.load(); if (src) { recompute(); MapView.updateBathy(); renderAll(); toast('Bottom data loaded: ' + src); } else renderStruct(); };
+      return;
+    }
+    $('#structSrc').textContent = `${B.B.src} · ${B.B.precision === 'precise' ? '~90 m' : 'coarse (≈ ±5 ft)'}`;
+    const i = B.info(S.spot.lat, S.spot.lon), t = S.depthTarget; let h = '';
+    if (i) {
+      const ds = Model.depthScore({ ft: i.ft, lo: t[0], hi: t[1], structure: i.structure, kind: i.kind });
+      h += `<div class="kv"><span>📐 <b>${Math.round(i.ft)} ft</b></span><span>${esc(i.kind)}</span><span>slope ${i.slope.toFixed(1)}°</span><span>relief ${Math.round(i.relief)} ft</span><span>🎯 target <b>${t[0]}–${t[1]} ft</b></span></div>
+        <div class="foot" style="padding:6px 0 0">Structure <b>${Math.round(i.structure * 100)}</b>/100<div class="bar2"><i style="width:${i.structure * 100}%"></i></div></div>
+        <div class="foot" style="padding:6px 0 0">${esc(ds.note)}. ${i.along != null && i.slope >= 0.4 ? 'The contour here runs ' + bearingTxt(i.along) + '/' + bearingTxt((i.along + 180) % 360) + '.' : ''}</div>`;
+    } else h += '<div class="foot" style="padding:0">Your dot is outside the bottom-data area (or on land).</div>';
+    h += `<div class="foot" style="padding:12px 0 2px"><b>Top structure in your depth zone</b> (${t[0]}–${t[1]} ft, within 20 mi of ${esc(S.home.name || 'port')}):</div>`;
+    h += (S.structSpots || []).map((p, k) => `<div class="spl" data-sp="${k}"><div class="n">${k + 1}</div><div><b>${Math.round(p.ft)} ft · ${esc(p.kind)}</b><small>${p.mi.toFixed(1)} mi ${Model.compass(Data.bearing(S.home, p))} · structure ${Math.round(p.st * 100)} · tap to put the dot here</small></div></div>`).join('') || '<div class="empty">No strong structure found in that depth zone.</div>';
+    h += '<div class="foot" style="padding-top:8px">Toggle 📐 Contours, 🌊 Depth shade and 🎯 Structure on the map. Depth is relative to low-water datum — check the NOAA chart and your sounder before relying on it.</div>';
+    el.innerHTML = h;
+  }
+  $('#struct').addEventListener('click', (e) => { const r = e.target.closest('[data-sp]'); if (!r) return; const p = S.structSpots[+r.dataset.sp]; setSpot({ lat: p.lat, lng: p.lon }, true); MapView.flyTo(p.lat, p.lon); });
+  async function loadBathy() { const B = G.Bathy; if (!B || B.B.ready) return; const src = await B.load(); if (src) { recompute(); MapView.updateBathy(); renderAll(); } else renderStruct(); }
+
   /* ---- share / calendar ---- */
   function shareUrl() { const u = new URL(location.href); u.hash = `t=${S.D.times[S.idx]}&lat=${S.spot.lat.toFixed(4)}&lon=${S.spot.lon.toFixed(4)}`; return u.toString(); }
   $('#shareBtn').onclick = async () => {
@@ -702,5 +741,5 @@
   if ('serviceWorker' in navigator && /^https?:/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
   MapView.init();
   window.addEventListener('resize', () => MapView.invalidate());
-  refresh(false).then(() => { setInterval(updateLive, 1000); updateLive(); if (!saved.setup) { settingsModal(true); save(); } });
+  refresh(false).then(() => { loadBathy(); setInterval(updateLive, 1000); updateLive(); if (!saved.setup) { settingsModal(true); save(); } });
 })(window);

@@ -244,6 +244,12 @@
     return { wind: w_ / sw, gust: g_ / sw, wave: wv_ / sw, dir: ((Math.atan2(sx, sy) * 180) / Math.PI + 360) % 360 };
   }
 
+  function depthFor(D, i, spot) {
+    const B = G.Bathy; if (!B || !B.B.ready || !spot) return null;
+    const inf = B.info(spot.lat, spot.lon); if (!inf) return null;
+    const [lo, hi] = B.target(D.waterT[i], D.repAgg);
+    return Object.assign({ lo, hi }, inf);
+  }
   /* report signal for hour i: full strength for now/past, fading with a ~33h half-life into the future */
   function repFor(D, i) {
     const a = D.repAgg; if (!a || !a.n) return null;
@@ -260,7 +266,7 @@
       t: D.times[i], i,
       temp: H.temperature_2m[i], pop: H.precipitation_probability[i], precip: H.precipitation[i], code: H.weather_code[i], pres: H.pressure_msl[i], cloud: H.cloud_cover[i], vis: H.visibility[i],
       wind: sp ? sp.wind : H.wind_speed_10m[i], dir: sp ? sp.dir : H.wind_direction_10m[i], gust: sp ? sp.gust : H.wind_gusts_10m[i], wave: sp ? sp.wave : H.wave[i], wavePer: H.wavePer[i],
-      rep: repFor(D, i), spread: D.spread[i], waveEst: D.waveEst[i], pTrend3: D.pTrend3[i], waterT: D.waterT[i], sunAlt: D.sunAlt[i], moonPhase: D.moon[i], sol: D.sol[i], alerts: al,
+      depth: depthFor(D, i, spot), rep: repFor(D, i), spread: D.spread[i], waveEst: D.waveEst[i], pTrend3: D.pTrend3[i], waterT: D.waterT[i], sunAlt: D.sunAlt[i], moonPhase: D.moon[i], sol: D.sol[i], alerts: al,
     };
   }
 

@@ -29,6 +29,8 @@ jobs:
       - name: Fetch gauge, buoy, NWS text and any enabled report sources
         run: node walleye/scripts/fetch-reports.mjs
         continue-on-error: true
+      - name: Build lake-bottom depth grid (only if walleye/data/source/*.asc exists)
+        run: node walleye/scripts/build-bathy.mjs
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

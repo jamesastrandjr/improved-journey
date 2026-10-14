@@ -33,3 +33,32 @@ export function pickZone(text, re = /LEZ14[78]|geneva|conneaut/i) {
   const hit = blocks.filter((b) => re.test(b)).slice(0, 2), use = hit.length ? hit : blocks.slice(0, 1);
   return use.join('\n\n').replace(/\n(?!\n)/g, ' ').replace(/\s{2,}/g, ' ').slice(0, 1800);
 }
+
+/* ---------- ESRI ARC ASCII grid (an NCEI Grid Extract format) -> depth grid in feet ---------- */
+export function parseAsc(text) {
+  const lines = String(text).split(/\r?\n/), h = {}; let k = 0;
+  for (; k < lines.length; k++) { const m = /^\s*([A-Za-z_]+)\s+(-?[\d.eE+-]+)\s*$/.exec(lines[k]); if (!m) break; h[m[1].toLowerCase()] = +m[2]; }
+  const nx = h.ncols, ny = h.nrows, cell = h.cellsize, nodata = h.nodata_value ?? -9999;
+  if (!nx || !ny || !cell) throw new Error('not an ARC ASCII grid (missing ncols/nrows/cellsize)');
+  const west = h.xllcorner ?? h.xllcenter - cell / 2, south = h.yllcorner ?? h.yllcenter - cell / 2, v = new Float32Array(nx * ny).fill(NaN);
+  let n = 0; for (; k < lines.length && n < nx * ny; k++) { const t = lines[k].trim(); if (!t) continue; for (const s of t.split(/\s+/)) { if (n >= nx * ny) break; const x = +s; v[n++] = x === nodata ? NaN : x; } }
+  return { nx, ny, cell, west, north: south + ny * cell, v };
+}
+export function ascToDepth(asc, { units = 'm', mode = 'auto', surfaceM = 173.5, factor = 1, bbox = { west: -81.35, east: -80.55, south: 41.78, north: 42.35 } } = {}) {
+  const valid = Array.from(asc.v).filter(Number.isFinite).sort((a, b) => a - b), med = valid[Math.floor(valid.length / 2)] ?? 0;
+  if (mode === 'auto') mode = med > 90 ? 'elevation' : med < 0 ? 'negative' : 'depth';
+  const toFt = units === 'ft' ? 1 : 3.28084, conv = (x) => (mode === 'elevation' ? (surfaceM - x) * (units === 'ft' ? 1 / 3.28084 : 1) * toFt : mode === 'negative' ? -x * toFt : x * toFt);
+  // crop
+  const i0 = Math.max(0, Math.floor((bbox.west - asc.west) / asc.cell)), i1 = Math.min(asc.nx, Math.ceil((bbox.east - asc.west) / asc.cell)), j0 = Math.max(0, Math.floor((asc.north - bbox.north) / asc.cell)), j1 = Math.min(asc.ny, Math.ceil((asc.north - bbox.south) / asc.cell));
+  if (i1 <= i0 || j1 <= j0) throw new Error('grid does not overlap the Lake Erie fishing area');
+  const nx = Math.floor((i1 - i0) / factor), ny = Math.floor((j1 - j0) / factor), d = new Float32Array(nx * ny).fill(NaN);
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    let s = 0, c = 0; for (let dj = 0; dj < factor; dj++) for (let di = 0; di < factor; di++) { const x = asc.v[(j0 + j * factor + dj) * asc.nx + (i0 + i * factor + di)]; if (Number.isFinite(x)) { const f = conv(x); if (f > 0.3) { s += f; c++; } } }
+    if (c >= (factor * factor) / 2) d[j * nx + i] = s / c;
+  }
+  return { mode, nx, ny, west: asc.west + i0 * asc.cell, north: asc.north - j0 * asc.cell, dlon: asc.cell * factor, dlat: asc.cell * factor, d };
+}
+export function encodeBathy(g, note) {
+  const buf = Buffer.alloc(g.nx * g.ny * 2); g.d.forEach((v, k) => buf.writeInt16LE(Number.isFinite(v) ? Math.max(-32767, Math.min(32767, Math.round(v * 10))) : -32768, k * 2));
+  return { v: 1, src: 'NCEI Great Lakes bathymetry', note, units: 'ft', west: g.west, north: g.north, dlon: g.dlon, dlat: g.dlat, nx: g.nx, ny: g.ny, b64: buf.toString('base64') };
+}
