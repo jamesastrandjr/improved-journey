@@ -127,6 +127,7 @@
   function renderAlerts() {
     const D = S.D, out = [];
     if (D.demo) out.push(`<div class="alert note-demo"><span>🧪</span><div><b>Demo data</b>Couldn't reach the live weather services from here, so you're seeing a realistic simulated forecast. Everything is fully interactive — open this on a connection that can reach Open-Meteo / NOAA for the real thing.</div></div>`);
+    if (location.protocol === 'file:') out.push(`<div class="alert"><span>📁</span><div><b>Opened as a local file</b>Live weather can still load, but the scheduled report file, offline install and GPS usually need the page hosted over https (e.g. GitHub Pages). Some data may be missing here.</div></div>`);
     const act = D.alerts.filter((a) => a.to > Date.now());
     act.forEach((a) => { const lv = Model.alertLevel(a.event); out.push(`<div class="alert ${lv >= 2 ? 'bad' : ''}"><span>${lv >= 2 ? '🚨' : '⚠️'}</span><div><b>${esc(a.event)}</b>${esc(a.headline)}</div></div>`); });
     $('#alerts').innerHTML = out.join('');
@@ -146,9 +147,9 @@
     const mi = Astro.phaseIndex(r.moonPhase), sol = D.moonEvents.filter((e) => e.type === 'major' && e.t >= D.ms[i] - 3 * 3600000 && e.t > ms - 3600000).slice(0, 1)[0];
     const tiles = [
       ['Wind', `${dial(r.dir, r.wind)}<div class="v">${Math.round(r.wind)} <small>mph ${Model.compass(r.dir)}</small></div><div class="s">gusts ${Math.round(r.gust)}</div>`],
-      ['Waves', `<div class="v" style="margin-top:12px">${r.wave.toFixed(1)} <small>ft</small></div><div class="s">${r.waveEst ? '~' : ''}${Math.round(r.wavePer || 3)} s period<br>${r.wave < 1 ? 'flat-ish' : r.wave < 2.5 ? 'light chop' : r.wave < 4 ? 'choppy' : 'rough'}</div>${r.waveEst ? '<span class="badge est">EST</span>' : ''}`],
+      ['Waves', `<div class="v" style="margin-top:12px">${r.wave.toFixed(1)} <small>ft</small></div><div class="s">${r.waveEst ? (D.waveCal ? 'NWS-tuned · ' : '~') : ''}${Math.round(r.wavePer || 3)} s period<br>${r.wave < 1 ? 'flat-ish' : r.wave < 2.5 ? 'light chop' : r.wave < 4 ? 'choppy' : 'rough'}</div>${r.waveEst ? '<span class="badge est">EST</span>' : ''}`],
       ['Air', `<div class="v" style="margin-top:6px">${Math.round(r.temp)}°<small>F</small></div><div class="s" style="font-size:22px;margin-top:2px">${wx(r.code, r.sunAlt, r.cloud)}</div>`],
-      ['Water', `<div class="v" style="margin-top:6px">${r.waterT.toFixed(0)}°<small>F</small></div><div class="s">${live ? D.obs.station : 'seasonal model'}</div><span class="badge ${live ? '' : 'est'}">${live ? 'LIVE' : 'MODEL'}</span>`],
+      ['Water', `<div class="v" style="margin-top:6px">${r.waterT.toFixed(0)}°<small>F</small></div><div class="s">${live ? D.obs.station : D.waterSrc}</div><span class="badge ${live ? '' : 'est'}">${live ? 'LIVE' : D.waterSrc === 'satellite lake-avg' ? 'SAT' : 'MODEL'}</span>`],
       ['Pressure', `<div class="v" style="margin-top:6px">${inHg(r.pres)} <small>inHg</small></div><div class="s">${arrow} ${tr > 0 ? '+' : ''}${tr.toFixed(1)} hPa / 3h</div>`],
       ['Sky', `<div class="v" style="margin-top:6px">${Math.round(r.cloud)}<small>% cloud</small></div><div class="s">${Math.round(r.pop)}% rain · ${r.vis >= 16000 ? 'clear vis' : (r.vis / 1609).toFixed(1) + ' mi vis'}</div>`],
       ['Sun', `<div class="v" style="margin-top:6px;font-size:14px">↑ ${se.sunrise ? fT(se.sunrise) : '—'}<br>↓ ${se.sunset ? fT(se.sunset) : '—'}</div><div class="s">${r.sunAlt > 0 ? 'sun up' : r.sunAlt > -6 ? 'twilight' : 'dark'}</div>`],
@@ -635,6 +636,7 @@
   const ago = (t) => { const h = Math.round((Date.now() - t) / 3600000); return h < 1 ? 'just now' : h < 36 ? h + 'h ago' : Math.round(h / 24) + 'd ago'; };
   function sigChip(sig) { const [e, l] = G.Reports.label(sig); const c = sig >= 0.2 ? 'g' : sig <= -0.2 ? 'b' : 'w'; return `<span class="tag2 ${c}">${e} ${l}</span>`; }
 
+  const READ_LINKS = [['Walleye.com central-basin reports', 'https://community.walleye.com/central-lake-erie-fishing-reports/'], ['ODNR Lake Erie', 'https://ohiodnr.gov/'], ['NWS Cleveland marine', 'https://www.weather.gov/cle/marine_forecast'], ['Cleveland buoy 45164', 'https://www.ndbc.noaa.gov/station_page.php?station=45164']];
   function renderReports() {
     const D = S.D; if (!D) return;
     const a = D.repAgg, rp = D.reports, items = [...S.pasted.map((p) => ({ ...p, mine: true })), ...rp.items].sort((x, y) => y.t - x.t).slice(0, 7);
@@ -644,7 +646,8 @@
     h += items.map((it) => { const an = it.analysis, url = safeUrl(it.url); return `<div class="rep"><div class="rh"><b>${esc(it.source || it.src || 'Report')}</b>${it.sample ? '<span class="tag2 w">SAMPLE</span>' : ''}${it.mine ? '<span class="tag2">pasted</span>' : ''}<span class="when">${ago(it.t)}</span><span style="margin-left:auto">${sigChip(an.signal)}</span></div><p>${esc(an.snippet || '')}</p><div class="rf">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">Read the full report ↗</a>` : ''}${it.mine ? `<button class="x" data-delrep="${it.id}">remove</button>` : ''}</div></div>`; }).join('');
     if (!items.length) h += '<div class="empty">Nothing recent from the fetcher. Good places to look: ODNR Lake Erie reports, local guide blogs, tackle-shop pages, Facebook groups — copy the text, hit “Paste a report”, and I’ll read it.</div>';
     const bu = D.buoys; if (bu.length) h += `<div class="obs">🛟 ${bu.map((b) => `<span><b>${esc(b.name)}${b.sample ? ' (sample)' : ''}</b>: ${b.waterT != null ? 'water ' + Math.round(b.waterT) + '°F · ' : ''}${b.wave != null ? 'waves ' + b.wave.toFixed(1) + ' ft · ' : ''}${b.wind != null ? 'wind ' + Math.round(b.wind) + ' mph ' + (b.windDir != null ? Model.compass(b.windDir) : '') : ''} <i>${ago(b.t)}</i></span>`).join('<br>')}</div>`;
-    if (D.nws) h += `<details class="nws"><summary>🌐 NWS nearshore marine forecast${D.nws.issued ? ' · issued ' + ago(Date.parse(D.nws.issued)) : ''}</summary><p>${esc(D.nws.text)}</p><a href="https://forecast.weather.gov/product.php?site=CLE&product=NSH&issuedby=CLE" target="_blank" rel="noopener noreferrer">Full product ↗</a></details>`;
+    if (D.nws) h += `<details class="nws"><summary>🌐 NWS nearshore forecast (Willowick→Geneva→Conneaut)${D.nws.issued ? ' · issued ' + ago(Date.parse(D.nws.issued)) : ''}</summary><p>${esc(D.nws.text)}</p><a href="https://www.weather.gov/cle/marine_forecast" target="_blank" rel="noopener noreferrer">NWS Cleveland marine page ↗</a></details>`;
+    h += `<div class="foot" style="padding:10px 0 0">📖 <b>Read, then paste:</b> ${READ_LINKS.map(([n, u]) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${n} ↗</a>`).join(' · ')}</div>`;
     h += `<div class="row" style="margin-top:10px;gap:6px;flex-wrap:wrap"><button class="btn pri" id="pasteBtn">＋ Paste a report</button><button class="mini" id="repSrcBtn">Source status</button></div>`;
     $('#reports').innerHTML = h;
     $('#repWhen').textContent = rp.generated ? 'fetched ' + ago(Date.parse(rp.generated)) : '';

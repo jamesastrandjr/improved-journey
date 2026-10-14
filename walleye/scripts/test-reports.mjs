@@ -20,4 +20,10 @@ assert.equal(rss.length, 1); assert.equal(rss[0].title, 'Erie Report'); assert.e
 const nd = parseNdbc('#YY  MM DD hh mm WDIR WSPD GST  WVHT   DPD   APD MWD   PRES  ATMP  WTMP  DEWP  VIS PTDY  TIDE\n#yr  mo dy hr mn degT m/s  m/s     m   sec   sec degT   hPa  degC  degC  degC  nmi  hPa    ft\n2026 10 14 15 50 250  6.0  8.0   0.9     4   MM 240 1015.2  14.0  16.5    MM   MM   MM    MM');
 assert.equal(nd.wind, 13.4); assert.equal(nd.wave, 3); assert.equal(nd.waterT, 61.7); assert.equal(nd.t, Date.UTC(2026, 9, 14, 15, 50));
 const z = pickZone('LEZ144-\nWest zone text\n\n$$\n\nLEZ146-\nGeneva-on-the-Lake OH\nSW winds 10 kt.\n\n$$'); assert.ok(/Geneva/.test(z) && !/West zone/.test(z));
+const nw = R.parseNwsText('LEZ148-\n.TODAY...Southwest winds 10 to 15 knots. Waves 1 to 3 feet.\n.TONIGHT...West winds 10 knots. Waves 1 foot or less.');
+assert.deepEqual(nw.waves, [1, 3]); assert.deepEqual(nw.windKt, [10, 15]);
+assert.deepEqual(R.parseNwsText('Winds light. Waves 2 feet or less.').waves, [0, 2]); assert.equal(R.parseNwsText('nothing here').waves, null);
+const gl = R.parseGlsea('time,Erie\nUTC,degree_C\n2026-10-10T00:00:00Z,16.0\n2026-10-12T00:00:00Z,15.5\n2026-10-11T00:00:00Z,NaN');
+assert.equal(gl.erieF, 59.9); assert.equal(gl.t, Date.UTC(2026, 9, 12)); assert.equal(R.parseGlsea('Year,Day,Erie\n2026,285,15.0').erieF, 59);
+const z2 = pickZone('LEZ146-\nVermilion\n\n$$\n\nLEZ147-\nWillowick to Geneva-on-the-Lake OH\nW winds 10 kt.\n\n$$\n\nLEZ148-\nGeneva-on-the-Lake to Conneaut OH\nSW winds 15 kt.\n\n$$'); assert.ok(/LEZ147/.test(z2) && /LEZ148/.test(z2) && !/Vermilion/.test(z2));
 console.log('reports tests passed ✔');

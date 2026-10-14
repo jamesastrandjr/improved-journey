@@ -36,3 +36,6 @@ Layout: `js/astro.js` (sun/moon), `js/model.js` (scoring), `js/data.js` (feeds +
 4. In the app, **Source status** (in the reports card) shows which sources worked.
 
 `node walleye/scripts/test-reports.mjs` runs the offline unit tests (analyzer, RSS/HTML/NDBC/NWS parsers). Without the fetcher the app still works — paste reports manually.
+
+
+See **[DATA_SOURCES.md](DATA_SOURCES.md)** for the ranked source plan, what was verified, and the hosting note (open via https/GitHub Pages for full real-time features).

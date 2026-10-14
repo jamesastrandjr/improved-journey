@@ -18,6 +18,11 @@
   const maUrl = (lats, lons, hourly) => `https://marine-api.open-meteo.com/v1/marine?latitude=${lats.join(',')}&longitude=${lons.join(',')}&hourly=${hourly}&length_unit=imperial&timezone=America%2FNew_York&past_days=1&forecast_days=10`;
   const coops = (station, product) => `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?product=${product}&application=walleye_should_i_fish&station=${station}&date=latest&units=english&time_zone=lst_ldt&format=json`;
 
+  /* Fairport Harbor (9063053) is the closest CO-OPS gauge to Geneva; Cleveland (9063063) is the backup */
+  async function coopsAny(product) {
+    for (const st of ['9063053', '9063063']) { try { const j = await getJSON(coops(st, product), 9000); if (j && j.data && j.data.length) return j; } catch (e) {} }
+    throw new Error('no CO-OPS data');
+  }
   async function getJSON(url, ms = 12000) {
     const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
     try {
@@ -84,7 +89,7 @@
         { source: 'SAMPLE report', id: 'sample', title: 'Sample: Geneva slower', url: '', t: now - 70 * 3600000, sample: true, text: 'Walleye were scattered and slow off Geneva after the cold front. Tough day, a few fish in 50 fow on stickbaits.' },
       ],
       buoys: [{ id: '45005', name: 'SAMPLE buoy', t: now - 40 * 60000, wind: 11, windDir: 250, gust: 15, wave: 1.4, pres: 1015, airT: 55, waterT: 61.5, sample: true }],
-      nws: { issued: new Date(now - 3 * 3600000).toISOString(), text: 'SAMPLE TEXT — Geneva-on-the-Lake to Conneaut OH: SW winds 10 to 15 kt becoming W 10 kt. Waves 1 to 3 ft. (This is demo text, not a real forecast.)' },
+      nws: { issued: new Date(now - 3 * 3600000).toISOString(), text: 'SAMPLE TEXT (not a real forecast) LEZ148: Geneva-on-the-Lake to Conneaut OH. .TODAY...Southwest winds 10 to 15 knots. Waves 1 to 3 feet.' },
     };
   };
 
@@ -101,10 +106,10 @@
       attempt('waves', () => getJSON(maUrl([FISH_CENTER.lat], [FISH_CENTER.lon], 'wave_height,wave_direction,wave_period'))),
       attempt('windfield', () => getJSON(fcUrl(gl, go, 'wind_speed_10m,wind_direction_10m,wind_gusts_10m'), 18000)),
       attempt('wavefield', () => getJSON(maUrl(gl, go, 'wave_height'), 18000)),
-      attempt('gauge', async () => { try { return await getJSON(coops('9063063', 'water_temperature')); } catch (e) { return await getJSON(coops('9063053', 'water_temperature')); } }),
-      attempt('gaugeWind', () => getJSON(coops('9063063', 'wind'))),
-      attempt('gaugeAir', () => getJSON(coops('9063063', 'air_temperature'))),
-      attempt('gaugePres', () => getJSON(coops('9063063', 'air_pressure'))),
+      attempt('gauge', () => coopsAny('water_temperature')),
+      attempt('gaugeWind', () => coopsAny('wind')),
+      attempt('gaugeAir', () => coopsAny('air_temperature')),
+      attempt('gaugePres', () => coopsAny('air_pressure')),
       attempt('alerts', () => getJSON(`https://api.weather.gov/alerts/active?point=${FISH_CENTER.lat},${FISH_CENTER.lon}`)),
       attempt('radar', () => getJSON('https://api.rainviewer.com/public/weather-maps.json')),
       attempt('models', () => getJSON(fcUrl([FISH_CENTER.lat], [FISH_CENTER.lon], 'wind_speed_10m,wind_gusts_10m', '&models=gfs_seamless,ecmwf_ifs025,icon_seamless'))),
@@ -168,17 +173,28 @@
     // reports file (from the scheduled fetcher), buoys, nws text
     D.reports = repR && repR.items ? repR : { items: [], sources: [], buoys: [], nws: null, missing: true };
     D.reports.items.forEach((it) => { if (!it.analysis && it.text) it.analysis = G.Reports.analyze(it.text); if (it.analysis && !it.analysis.snippet) it.analysis.snippet = ''; if (it.sample) it.analysis.walleye = true; });
-    D.nws = nwsP && nwsP.productText ? { issued: nwsP.issuanceTime, text: nwsP.productText } : D.reports.nws ? { issued: D.reports.nws.issued, text: D.reports.nws.text, fromFile: true } : null;
-    if (D.nws && !D.nws.fromFile && !demo) { const blocks = D.nws.text.split(/\n\s*\$\$\s*\n?/).map((b) => b.trim()).filter(Boolean); D.nws.text = (blocks.find((b) => /geneva|ashtabula|conneaut|fairport|ripley|painesville/i.test(b)) || blocks[0] || '').replace(/\n(?!\n)/g, ' ').replace(/\s{2,}/g, ' ').slice(0, 1400); }
+    const zre = /LEZ14[78]|geneva|conneaut/i, tidy = (t) => t.replace(/\n(?!\n)/g, ' ').replace(/\s{2,}/g, ' ').slice(0, 1800);
+    if (nwsP && nwsP.productText) { const blocks = nwsP.productText.split(/\n\s*\$\$\s*\n?/).map((b) => b.trim()).filter(Boolean), hit = blocks.filter((b) => zre.test(b)).slice(0, 2); D.nws = { issued: nwsP.issuanceTime, text: tidy((hit.length ? hit : blocks.slice(0, 1)).join('\n\n')) }; }
+    else if (D.reports.nws) D.nws = { issued: D.reports.nws.issued, text: D.reports.nws.text, fromFile: true }; else D.nws = null;
+    // NWS says "Waves 1 to 3 ft": where the marine model has no data, trust the forecaster over my wind-based guess (first ~36 h)
+    D.nwsWaves = null;
+    if (D.nws) { const pw = G.Reports.parseNwsText(D.nws.text); if (pw.waves) D.nwsWaves = pw.waves; }
+    if (D.nwsWaves && D.waveEst.some(Boolean)) {
+      const mid = (D.nwsWaves[0] + D.nwsWaves[1]) / 2, ni = times.findIndex((t) => Astro.etToDate(t).getTime() > Date.now() - 3600000), base = D.h.wave.slice(ni, ni + 24).reduce((a, b) => a + b, 0) / Math.max(1, D.h.wave.slice(ni, ni + 24).length) || 1;
+      const cal = Math.max(0.4, Math.min(2.5, mid / Math.max(0.2, base)));
+      for (let i = ni; i < Math.min(n, ni + 36); i++) if (D.waveEst[i]) { const f = 1 + (cal - 1) * (1 - (i - ni) / 36); D.h.wave[i] *= f; if (D.grid) D.grid.forEach((p) => (p.wave[i] *= f)); D.waveCal = true; }
+    }
     D.buoys = (D.reports.buoys || []).filter((b) => Date.now() - b.t < 4 * 3600000);
+    const gz = D.reports.gauge && Date.now() - D.reports.gauge.t < 6 * 3600000 ? D.reports.gauge : null;
 
     // live gauge (NOAA CO-OPS)
     const lastV = (j, key = 'v') => { const d = j && j.data && j.data[j.data.length - 1]; return d ? d : null; };
-    const obs = { station: 'NOAA Ashtabula gauge' };
+    const obs = { station: 'NOAA gauge' };
     const wt = lastV(wT); if (wt) { obs.waterT = +wt.v; obs.waterTime = wt.t; obs.station = (wT.metadata && wT.metadata.name) || obs.station; }
     const ww = lastV(wW); if (ww) { obs.wind = +ww.s * 1.15078; obs.windDir = +ww.d; obs.gust = ww.g != null ? +ww.g * 1.15078 : null; }
     const wa = lastV(wA); if (wa) obs.airT = +wa.v;
     const wp = lastV(wP); if (wp) obs.pres = +wp.v;
+    if (obs.waterT == null && gz && gz.waterT != null) { Object.assign(obs, { waterT: gz.waterT, station: 'NOAA ' + gz.name + ' (saved copy)' }); if (obs.wind == null && gz.wind != null) Object.assign(obs, { wind: gz.wind, windDir: gz.windDir, gust: gz.gust, airT: gz.airT, pres: gz.pres }); }
     if (demo) { const i = Astro.etDay(new Date()); Object.assign(obs, { waterT: Model.climoWaterT(i) + 0.4, wind: null, demo: true, station: 'demo' }); }
     D.obs = obs;
 
@@ -206,8 +222,11 @@
     D.sol = D.ms.map((m) => Astro.solunarAt(m + 1800000, moonEv));
     D.pTrend3 = D.h.pressure_msl.map((p, i) => (i >= 3 ? p - D.h.pressure_msl[i - 3] : 0));
     const today = Astro.etDay(new Date());
-    const bw = D.buoys.find((b) => b.waterT != null), baseW = obs.waterT != null ? obs.waterT : bw ? bw.waterT : Model.climoWaterT(today);
-    D.waterBase = baseW; D.waterLive = (obs.waterT != null || !!bw) && !demo; if (obs.waterT == null && bw) { obs.waterT = bw.waterT; obs.station = bw.name + ' (buoy)'; }
+    const bw = D.buoys.find((b) => b.waterT != null && b.central), gs = D.reports.glsea && Date.now() - D.reports.glsea.t < 6 * 864e5 ? D.reports.glsea : null;
+    // priority: harbor gauge > central-basin buoy > satellite lake-average > seasonal model
+    const baseW = obs.waterT != null ? obs.waterT : bw ? bw.waterT : gs ? gs.erieF : Model.climoWaterT(today);
+    D.waterBase = baseW; D.waterLive = (obs.waterT != null || !!bw) && !demo; D.waterSrc = obs.waterT != null ? obs.station : bw ? bw.name : gs ? 'satellite lake-avg' : 'seasonal model';
+    if (obs.waterT == null && bw) { obs.waterT = bw.waterT; obs.station = bw.name; }
     D.waterT = times.map((t) => Math.max(33, baseW + (Model.climoWaterT(t.slice(0, 10)) - Model.climoWaterT(today))));
     D.loadMs = Date.now() - t0;
     return D;

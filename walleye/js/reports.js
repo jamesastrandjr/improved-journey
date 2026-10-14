@@ -67,5 +67,28 @@
   }
   function label(sig) { return sig >= 0.5 ? ['🔥', 'HOT'] : sig >= 0.2 ? ['🙂', 'GOOD'] : sig > -0.2 ? ['😐', 'MIXED'] : sig > -0.5 ? ['🐌', 'SLOW'] : ['🥶', 'TOUGH']; }
 
-  return { analyze, aggregate, label, POS, NEG };
+  /* NWS marine text -> first-period wave range (ft) and wind (kt). Text looks like ".TODAY...SW winds 10 to 15 knots. Waves 1 to 3 feet." */
+  function parseNwsText(text) {
+    const t = String(text || '').replace(/\s+/g, ' ');
+    const m = /waves?\s+(?:around\s+|occasionally\s+)?(?:(\d+)\s*(?:to|-)\s*(\d+)|(\d+))\s*(?:feet|foot|ft)(\s+or less)?/i.exec(t);
+    const w = /winds?\s+(?:\w+\s+){0,3}?(\d+)(?:\s*(?:to|-)\s*(\d+))?\s*knots?/i.exec(t);
+    let waves = null;
+    if (m) { const a = m[1] ? +m[1] : +m[3], b = m[2] ? +m[2] : a; waves = m[4] ? [0, a] : [a, b]; }
+    return { waves, windKt: w ? [+w[1], w[2] ? +w[2] : +w[1]] : null };
+  }
+  /* GLERL ERDDAP csv (header row of names, optional units row) -> latest Erie value in °F */
+  function parseGlsea(csv) {
+    const lines = String(csv || '').trim().split(/\r?\n/).filter(Boolean); if (lines.length < 2) return null;
+    const cols = lines[0].split(',').map((c) => c.trim()), ei = cols.findIndex((c) => /^erie$/i.test(c)); if (ei < 0) return null;
+    const ti = cols.findIndex((c) => /^time$/i.test(c)), yi = cols.findIndex((c) => /^year$/i.test(c)), di = cols.findIndex((c) => /^day$/i.test(c));
+    let best = null;
+    lines.slice(1).forEach((l) => {
+      const v = l.split(','), c = parseFloat(v[ei]); if (!Number.isFinite(c)) return;
+      const t = ti >= 0 ? Date.parse(v[ti]) : yi >= 0 && di >= 0 ? Date.UTC(+v[yi], 0, 1) + (+v[di] - 1) * 864e5 : NaN; if (!Number.isFinite(t)) return;
+      if (!best || t > best.t) best = { t, erieF: +((c * 9) / 5 + 32).toFixed(1) };
+    });
+    return best;
+  }
+
+  return { analyze, aggregate, label, parseNwsText, parseGlsea, POS, NEG };
 });

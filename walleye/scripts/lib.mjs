@@ -28,7 +28,8 @@ export function parseNdbc(txt) {
   return { t, windDir: g('WDIR'), wind: mph(g('WSPD')), gust: mph(g('GST')), wave: ft(g('WVHT')), period: g('DPD'), pres: g('PRES'), airT: F(g('ATMP')), waterT: F(g('WTMP')) };
 }
 /* NWS nearshore/marine text: choose the zone block that mentions our towns */
-export function pickZone(text, re = /geneva|ashtabula|conneaut|fairport|ripley|willowick|painesville/i) {
+export function pickZone(text, re = /LEZ14[78]|geneva|conneaut/i) {
   const blocks = String(text).split(/\n\s*\$\$\s*\n?/).map((b) => b.trim()).filter(Boolean);
-  return (blocks.find((b) => re.test(b)) || blocks[0] || '').replace(/\n(?!\n)/g, ' ').replace(/\s{2,}/g, ' ').slice(0, 1400);
+  const hit = blocks.filter((b) => re.test(b)).slice(0, 2), use = hit.length ? hit : blocks.slice(0, 1);
+  return use.join('\n\n').replace(/\n(?!\n)/g, ' ').replace(/\s{2,}/g, ' ').slice(0, 1800);
 }

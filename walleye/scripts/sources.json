@@ -1,12 +1,14 @@
 {
-  "_note": "Edit freely. 'verify': true = I could not confirm this URL from my build sandbox - check it opens a report. Add RSS/Atom feeds of fishing blogs or guide services you like; always respect each site's terms.",
+  "_note": "Source plan, ranked by trust. Fishing-report sites are OFF until you verify a URL/feed and are comfortable with that site's terms. Commercial sites, forums and Facebook are deliberately NOT scraped - use the app's link-outs + 'Paste a report'.",
   "reports": [
-    { "id": "odnr-erie", "name": "ODNR Division of Wildlife — Lake Erie report", "type": "html", "url": "https://ohiodnr.gov/buy-and-apply/hunting-fishing-boating/fishing-resources/lake-erie-fishing-reports", "verify": true, "enabled": true },
+    { "id": "odnr-erie", "name": "ODNR Division of Wildlife - Lake Erie report", "type": "html", "url": "https://ohiodnr.gov/", "verify": true, "enabled": false, "_help": "Paste the exact ODNR Lake Erie fishing-report page URL here, then set enabled to true." },
     { "id": "example-rss", "name": "Example: a guide's blog feed", "type": "rss", "url": "https://example.com/feed/", "verify": true, "enabled": false }
   ],
   "buoys": [
-    { "id": "45005", "name": "West Lake Erie buoy" },
-    { "id": "45164", "name": "Cleveland (Lake Erie) buoy", "verify": true }
+    { "id": "45164", "name": "Cleveland central-basin buoy (15 mi offshore, 75 ft)", "central": true, "verify": true },
+    { "id": "45005", "name": "West Lake Erie buoy (reference only)", "central": false }
   ],
-  "nws": { "office": "CLE", "product": "NSH" }
+  "coops": { "stations": [ { "id": "9063053", "name": "Fairport Harbor" }, { "id": "9063063", "name": "Cleveland" } ] },
+  "nws": { "zones": ["lez147", "lez148"], "note": "LEZ147 Willowick to Geneva-on-the-Lake, LEZ148 Geneva-on-the-Lake to Conneaut (nearshore, within 5 nm)." },
+  "glsea": { "url": "https://apps.glerl.noaa.gov/erddap/tabledap/glsea_avgtemps_3.csv", "verify": true }
 }
