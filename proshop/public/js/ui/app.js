@@ -26,7 +26,8 @@ export function start() {
 
   // ---------- DOM refs ----------
   const R = {}; document.querySelectorAll('[id]').forEach((e) => { R[e.id] = e; });
-  document.documentElement.dataset.theme = store('lanelab.theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  if (store('lanelab.theme')) document.documentElement.dataset.theme = store('lanelab.theme');
+  if (window.__ARTIFACT) document.documentElement.classList.add('is-artifact');
   const ballR = new BallRenderer(170);
   const laneV = new LaneView(R.laneCanvas, ballR);
   const pinV = new PinView(R.pinCanvas);
@@ -263,7 +264,7 @@ export function start() {
     for (const c of list) {
       const row = h('div', { class: 'crow' + (c.id === S.clientId ? ' cur' : '') },
         h('div', { class: 'cmain', onclick: () => { loadFitting(c.id); R.bankDlg.close(); } }, h('b', null, c.profile.name || 'Unnamed'), h('span', { class: 'muted' }, ` ${c.profile.phone || ''} ${c.profile.email || ''}`), h('div', { class: 'muted small' }, `${c.fittingCount} fitting${c.fittingCount === 1 ? '' : 's'} · updated ${new Date(c.updatedAt).toLocaleDateString()}`)),
-        h('button', { class: 'btn small danger', onclick: () => { if (confirm(`Delete ${c.profile.name || 'this client'} and all their fittings?`)) { bank.deleteClient(c.id); if (c.id === S.clientId) newClient(); renderBank(); } } }, 'Delete'));
+        h('button', { class: 'btn small danger', onclick: (e) => { const b = e.currentTarget; if (b.dataset.arm !== '1') { b.dataset.arm = '1'; b.textContent = 'Click again to delete'; setTimeout(() => { b.dataset.arm = ''; b.textContent = 'Delete'; }, 3500); return; } bank.deleteClient(c.id); if (c.id === S.clientId) newClient(); renderBank(); } }, 'Delete'));
       R.clientList.append(row);
       if (c.id === S.clientId) for (const f of bank.listFittings(c.id)) R.clientList.append(h('div', { class: 'frow' + (f.id === S.fittingId ? ' cur' : ''), onclick: () => { loadFitting(c.id, f.id); R.bankDlg.close(); } }, `${new Date(f.updatedAt).toLocaleString()} · ${f.data?.ball?.name || ''} ${f.results ? `· entry b${f.results.entryBoard}, ${f.results.entryAngle}°` : ''}`));
     }
@@ -280,10 +281,11 @@ export function start() {
   R.btnExport.onclick = () => download(`lanelab-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(bank.exportAll(), null, 1), 'application/json');
   R.btnCsv.onclick = () => download('lanelab-clients.csv', bank.clientsCsv(), 'text/csv');
   R.fileImport.onchange = async () => { try { const f = R.fileImport.files[0]; const n = bank.importAll(JSON.parse(await f.text())); toast(`Imported ${n} record(s)`); renderBank(); } catch (e) { toast('Import failed: ' + e.message, true); } R.fileImport.value = ''; };
-  R.btnToken.onclick = () => { const t = prompt('Server access token (LANELAB_TOKEN):', bank.token || ''); if (t != null) { bank.token = t; store('lanelab.token', t); bank.connect(); } };
+  R.btnToken.onclick = () => { R.tokenRow.hidden = !R.tokenRow.hidden; R.tokenInput.value = bank.token || ''; };
+  R.btnTokenSave.onclick = () => { bank.token = R.tokenInput.value; store('lanelab.token', bank.token); R.tokenRow.hidden = true; bank.connect(); toast('Token saved'); };
 
   // ---------- header buttons ----------
-  R.btnTheme.onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store('lanelab.theme', t); renderCharts(); laneV.draw(UI.t); };
+  R.btnTheme.onclick = () => { const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); const t = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store('lanelab.theme', t); renderCharts(); laneV.draw(UI.t); };
   R.btnUnit.onclick = () => { UI.unit = UI.unit === 'in' ? 'mm' : 'in'; store('lanelab.unit', UI.unit); R.btnUnit.textContent = UI.unit; Object.values(forms).forEach((f) => f.refresh()); layout.refresh(); };
   R.btnUnit.textContent = UI.unit;
   R.btnPrint.onclick = () => { saveDebounced.flush(); buildSheet(); setTimeout(() => window.print(), 50); };

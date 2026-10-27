@@ -1,20 +1,21 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LaneLab - Pro Shop Ball Reaction Studio</title>
 <style>
-:root{--bg:#0b0f14;--panel:#121923;--panel2:#18212e;--ink:#e6edf5;--muted:#8aa0b8;--line:#25324a;--accent:#22d3ee;--accent2:#0e7490;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--r:12px}
-:root[data-theme=light]{--bg:#eef2f7;--panel:#fff;--panel2:#f3f6fa;--ink:#101828;--muted:#5b6b82;--line:#d5deea;--accent:#0e7490;--accent2:#0e7490}
+:root{--bg:#0b0f14;--panel:#121923;--panel2:#18212e;--ink:#e6edf5;--muted:#8aa0b8;--line:#25324a;--accent:#22d3ee;--accent2:#0e7490;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--r:12px;color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef2f7;--panel:#fff;--panel2:#f3f6fa;--ink:#101828;--muted:#5b6b82;--line:#d5deea;--accent:#0e7490;--accent2:#0e7490;color-scheme:light}}
+:root[data-theme="light"]{--bg:#eef2f7;--panel:#fff;--panel2:#f3f6fa;--ink:#101828;--muted:#5b6b82;--line:#d5deea;--accent:#0e7490;--accent2:#0e7490;color-scheme:light}
 *{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-.top{display:flex;align-items:center;gap:10px;padding:8px 14px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.artifact-only{display:none}.is-artifact .no-artifact{display:none!important}.top{display:flex;align-items:center;gap:10px;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px;letter-spacing:.3px}.grow{flex:1}
 .btn{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font:inherit;cursor:pointer}.btn:hover{border-color:var(--accent)}.btn.primary{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:700}.btn.ghost{background:transparent}.btn.small{padding:4px 9px;font-size:12px}.btn.danger{color:var(--bad)}.btn:disabled{opacity:.6}
 .chipbtn{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font:inherit;font-weight:600;cursor:pointer}
 .badge{font-size:12px;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.badge[data-m=online]{color:var(--good);border-color:var(--good)}.badge[data-m=offline]{color:var(--warn);border-color:var(--warn)}
 .savebox{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}.savebox i{width:9px;height:9px;border-radius:50%;background:var(--good)}.savebox[data-s=saving] i{background:var(--warn);animation:p 1s infinite}@keyframes p{50%{opacity:.3}}
-.app{display:grid;grid-template-columns:minmax(330px,400px) minmax(420px,1fr) minmax(330px,400px);gap:12px;padding:12px;align-items:start}
+.app{display:grid;grid-template-columns:minmax(330px,400px) minmax(420px,1fr) minmax(330px,400px);gap:12px;padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));align-items:start}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;min-width:0}
 .left{position:sticky;top:58px;max-height:calc(100vh - 70px);overflow:auto}
 .tabs{display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--line)}.tabs button{flex:1;background:none;border:0;color:var(--muted);padding:8px 4px;font:inherit;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}.tabs button.on{color:var(--accent);border-color:var(--accent)}
@@ -49,7 +50,7 @@ dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);bor
 #toasts{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:20}.toast{background:#111c2c;color:#fff;border:1px solid var(--accent);padding:9px 14px;border-radius:10px}.toast.bad{border-color:var(--bad)}
 #sheet{display:none}
 @media (max-width:1180px){.app{grid-template-columns:minmax(320px,400px) 1fr}.right{grid-column:1/-1}.left{position:static;max-height:none}}
-@media (max-width:760px){.app{grid-template-columns:1fr;padding:8px}.fgrid{grid-template-columns:1fr}.top .badge{display:none}.stage{height:56vh}}
+@media (max-width:760px){.app{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}.top .badge{display:none}.stage{height:56vh}}
 @media print{body>*:not(#sheet){display:none!important}#sheet{display:block!important;color:#000;background:#fff;font:12px system-ui;padding:10px}#sheet h1{margin:0;font-size:20px}#sheet h2{font-size:14px;border-bottom:1px solid #000;margin:12px 0 4px}#sheet table{width:100%;border-collapse:collapse}#sheet th{text-align:left;width:46%;padding:2px 4px;font-weight:600}#sheet td{padding:2px 4px;border-bottom:1px solid #ccc}#sheet .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}#sheet svg{width:260px;display:block;margin:10px auto}#sheet .sig{display:flex;justify-content:space-between;margin-top:50px}#sheet .sig span{border-top:1px solid #000;width:44%;padding-top:4px}}
 
 </style>
@@ -62,7 +63,7 @@ dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);bor
   <div class="savebox" id="saveState" data-s="saved" aria-live="polite"><i></i><span id="saveText">Ready</span></div>
   <span class="badge" id="bankMode" data-m="local">Browser storage</span>
   <button class="btn" id="btnBank2" onclick="document.getElementById('btnBank').click()">Data Bank</button>
-  <button class="btn" id="btnPrint">Print drill sheet</button>
+  <button class="btn no-artifact" id="btnPrint">Print drill sheet</button>
   <button class="btn ghost" id="btnUnit" title="Switch inches / mm">in</button>
   <button class="btn ghost" id="btnTheme" title="Light / dark">◐</button>
 </header>
@@ -126,7 +127,9 @@ dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);bor
   <div id="clientList" class="list"></div>
   <h3>Your ball library</h3><div id="ballList" class="list"></div>
   <h3>Backup &amp; sharing</h3>
-  <div class="bar wrap"><button class="btn" id="btnExport">Export backup (.json)</button><label class="btn">Import backup<input type="file" id="fileImport" accept=".json" hidden></label><button class="btn" id="btnCsv">Clients (.csv)</button><button class="btn ghost" id="btnToken">Server token…</button></div>
+  <div class="bar wrap"><button class="btn no-artifact" id="btnExport">Export backup (.json)</button><label class="btn">Import backup<input type="file" id="fileImport" accept=".json" hidden></label><button class="btn no-artifact" id="btnCsv">Clients (.csv)</button><button class="btn ghost no-artifact" id="btnToken">Server token…</button></div>
+  <div id="tokenRow" class="bar" hidden><input id="tokenInput" type="password" placeholder="LANELAB_TOKEN"><button class="btn" id="btnTokenSave">Save token</button></div>
+  <p class="muted small artifact-note" hidden>This online copy stores data in this browser only. Download the LaneLab HTML file or run the server to keep a backup file or a shared database.</p>
 </div></dialog>
 <dialog id="labDlg"><div class="dlg"><div class="dlghead"><h2>Layout lab</h2><button class="btn ghost" onclick="this.closest('dialog').close()">✕</button></div><div id="labResults"></div></div></dialog>
 <div id="sheet"></div>
@@ -2103,7 +2106,8 @@ function start() {
 
   // ---------- DOM refs ----------
   const R = {}; document.querySelectorAll('[id]').forEach((e) => { R[e.id] = e; });
-  document.documentElement.dataset.theme = store('lanelab.theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  if (store('lanelab.theme')) document.documentElement.dataset.theme = store('lanelab.theme');
+  if (window.__ARTIFACT) document.documentElement.classList.add('is-artifact');
   const ballR = new BallRenderer(170);
   const laneV = new LaneView(R.laneCanvas, ballR);
   const pinV = new PinView(R.pinCanvas);
@@ -2340,7 +2344,7 @@ function start() {
     for (const c of list) {
       const row = h('div', { class: 'crow' + (c.id === S.clientId ? ' cur' : '') },
         h('div', { class: 'cmain', onclick: () => { loadFitting(c.id); R.bankDlg.close(); } }, h('b', null, c.profile.name || 'Unnamed'), h('span', { class: 'muted' }, ` ${c.profile.phone || ''} ${c.profile.email || ''}`), h('div', { class: 'muted small' }, `${c.fittingCount} fitting${c.fittingCount === 1 ? '' : 's'} · updated ${new Date(c.updatedAt).toLocaleDateString()}`)),
-        h('button', { class: 'btn small danger', onclick: () => { if (confirm(`Delete ${c.profile.name || 'this client'} and all their fittings?`)) { bank.deleteClient(c.id); if (c.id === S.clientId) newClient(); renderBank(); } } }, 'Delete'));
+        h('button', { class: 'btn small danger', onclick: (e) => { const b = e.currentTarget; if (b.dataset.arm !== '1') { b.dataset.arm = '1'; b.textContent = 'Click again to delete'; setTimeout(() => { b.dataset.arm = ''; b.textContent = 'Delete'; }, 3500); return; } bank.deleteClient(c.id); if (c.id === S.clientId) newClient(); renderBank(); } }, 'Delete'));
       R.clientList.append(row);
       if (c.id === S.clientId) for (const f of bank.listFittings(c.id)) R.clientList.append(h('div', { class: 'frow' + (f.id === S.fittingId ? ' cur' : ''), onclick: () => { loadFitting(c.id, f.id); R.bankDlg.close(); } }, `${new Date(f.updatedAt).toLocaleString()} · ${f.data?.ball?.name || ''} ${f.results ? `· entry b${f.results.entryBoard}, ${f.results.entryAngle}°` : ''}`));
     }
@@ -2357,10 +2361,11 @@ function start() {
   R.btnExport.onclick = () => download(`lanelab-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(bank.exportAll(), null, 1), 'application/json');
   R.btnCsv.onclick = () => download('lanelab-clients.csv', bank.clientsCsv(), 'text/csv');
   R.fileImport.onchange = async () => { try { const f = R.fileImport.files[0]; const n = bank.importAll(JSON.parse(await f.text())); toast(`Imported ${n} record(s)`); renderBank(); } catch (e) { toast('Import failed: ' + e.message, true); } R.fileImport.value = ''; };
-  R.btnToken.onclick = () => { const t = prompt('Server access token (LANELAB_TOKEN):', bank.token || ''); if (t != null) { bank.token = t; store('lanelab.token', t); bank.connect(); } };
+  R.btnToken.onclick = () => { R.tokenRow.hidden = !R.tokenRow.hidden; R.tokenInput.value = bank.token || ''; };
+  R.btnTokenSave.onclick = () => { bank.token = R.tokenInput.value; store('lanelab.token', bank.token); R.tokenRow.hidden = true; bank.connect(); toast('Token saved'); };
 
   // ---------- header buttons ----------
-  R.btnTheme.onclick = () => { const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store('lanelab.theme', t); renderCharts(); laneV.draw(UI.t); };
+  R.btnTheme.onclick = () => { const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); const t = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store('lanelab.theme', t); renderCharts(); laneV.draw(UI.t); };
   R.btnUnit.onclick = () => { UI.unit = UI.unit === 'in' ? 'mm' : 'in'; store('lanelab.unit', UI.unit); R.btnUnit.textContent = UI.unit; Object.values(forms).forEach((f) => f.refresh()); layout.refresh(); };
   R.btnUnit.textContent = UI.unit;
   R.btnPrint.onclick = () => { saveDebounced.flush(); buildSheet(); setTimeout(() => window.print(), 50); };

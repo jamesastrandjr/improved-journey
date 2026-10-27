@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -14,7 +14,7 @@
   <div class="savebox" id="saveState" data-s="saved" aria-live="polite"><i></i><span id="saveText">Ready</span></div>
   <span class="badge" id="bankMode" data-m="local">Browser storage</span>
   <button class="btn" id="btnBank2" onclick="document.getElementById('btnBank').click()">Data Bank</button>
-  <button class="btn" id="btnPrint">Print drill sheet</button>
+  <button class="btn no-artifact" id="btnPrint">Print drill sheet</button>
   <button class="btn ghost" id="btnUnit" title="Switch inches / mm">in</button>
   <button class="btn ghost" id="btnTheme" title="Light / dark">◐</button>
 </header>
@@ -78,7 +78,9 @@
   <div id="clientList" class="list"></div>
   <h3>Your ball library</h3><div id="ballList" class="list"></div>
   <h3>Backup &amp; sharing</h3>
-  <div class="bar wrap"><button class="btn" id="btnExport">Export backup (.json)</button><label class="btn">Import backup<input type="file" id="fileImport" accept=".json" hidden></label><button class="btn" id="btnCsv">Clients (.csv)</button><button class="btn ghost" id="btnToken">Server token…</button></div>
+  <div class="bar wrap"><button class="btn no-artifact" id="btnExport">Export backup (.json)</button><label class="btn">Import backup<input type="file" id="fileImport" accept=".json" hidden></label><button class="btn no-artifact" id="btnCsv">Clients (.csv)</button><button class="btn ghost no-artifact" id="btnToken">Server token…</button></div>
+  <div id="tokenRow" class="bar" hidden><input id="tokenInput" type="password" placeholder="LANELAB_TOKEN"><button class="btn" id="btnTokenSave">Save token</button></div>
+  <p class="muted small artifact-note" hidden>This online copy stores data in this browser only. Download the LaneLab HTML file or run the server to keep a backup file or a shared database.</p>
 </div></dialog>
 <dialog id="labDlg"><div class="dlg"><div class="dlghead"><h2>Layout lab</h2><button class="btn ghost" onclick="this.closest('dialog').close()">✕</button></div><div id="labResults"></div></div></dialog>
 <div id="sheet"></div>

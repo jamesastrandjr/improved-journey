@@ -1,0 +1,2409 @@
+<title>LaneLab Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+body{margin:0;background:var(--bg);color:var(--ink)}
+
+:root{--bg:#0b0f14;--panel:#121923;--panel2:#18212e;--ink:#e6edf5;--muted:#8aa0b8;--line:#25324a;--accent:#22d3ee;--accent2:#0e7490;--good:#22c55e;--warn:#f59e0b;--bad:#ef4444;--r:12px;color-scheme:dark}
+@media (prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef2f7;--panel:#fff;--panel2:#f3f6fa;--ink:#101828;--muted:#5b6b82;--line:#d5deea;--accent:#0e7490;--accent2:#0e7490;color-scheme:light}}
+:root[data-theme="light"]{--bg:#eef2f7;--panel:#fff;--panel2:#f3f6fa;--ink:#101828;--muted:#5b6b82;--line:#d5deea;--accent:#0e7490;--accent2:#0e7490;color-scheme:light}
+*{box-sizing:border-box}html,body{margin:0}body{background:var(--bg);color:var(--ink);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.artifact-only{display:none}.is-artifact .no-artifact{display:none!important}.top{display:flex;align-items:center;gap:10px;padding:8px max(16px,env(safe-area-inset-right,0px)) 8px max(16px,env(safe-area-inset-left,0px));background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:8px;font-weight:800;font-size:18px;letter-spacing:.3px}.grow{flex:1}
+.btn{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:9px;padding:7px 12px;font:inherit;cursor:pointer}.btn:hover{border-color:var(--accent)}.btn.primary{background:var(--accent2);border-color:var(--accent2);color:#fff;font-weight:700}.btn.ghost{background:transparent}.btn.small{padding:4px 9px;font-size:12px}.btn.danger{color:var(--bad)}.btn:disabled{opacity:.6}
+.chipbtn{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:99px;padding:6px 14px;font:inherit;font-weight:600;cursor:pointer}
+.badge{font-size:12px;padding:3px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted)}.badge[data-m=online]{color:var(--good);border-color:var(--good)}.badge[data-m=offline]{color:var(--warn);border-color:var(--warn)}
+.savebox{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}.savebox i{width:9px;height:9px;border-radius:50%;background:var(--good)}.savebox[data-s=saving] i{background:var(--warn);animation:p 1s infinite}@keyframes p{50%{opacity:.3}}
+.app{display:grid;grid-template-columns:minmax(330px,400px) minmax(420px,1fr) minmax(330px,400px);gap:12px;padding:12px max(16px,env(safe-area-inset-right,0px)) 12px max(16px,env(safe-area-inset-left,0px));align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:12px;min-width:0}
+.left{position:sticky;top:58px;max-height:calc(100vh - 70px);overflow:auto}
+.tabs{display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--line)}.tabs button{flex:1;background:none;border:0;color:var(--muted);padding:8px 4px;font:inherit;font-weight:600;cursor:pointer;border-bottom:2px solid transparent}.tabs button.on{color:var(--accent);border-color:var(--accent)}
+.pane{display:none}.pane.on{display:block}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:3px;min-width:0}.field.wide{grid-column:1/-1}
+label{font-size:12px;color:var(--muted);font-weight:600}
+input,select,textarea{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;width:100%;min-width:0}input:focus,select:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+input[type=range]{padding:0;accent-color:var(--accent)}input[type=color]{padding:2px;height:34px}input[type=checkbox]{width:auto}label.chk{display:flex;gap:8px;align-items:center;color:var(--ink);font-weight:500;font-size:13px}
+.rangebox{display:flex;gap:8px;align-items:center}.rnum{width:76px}
+.lenbox{display:flex;gap:4px}.lenbox .len{text-align:center}.step{width:34px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);border-radius:8px;cursor:pointer;font-size:16px}
+.hint{font-size:11px;color:var(--muted)}.field.warn input{border-color:var(--warn)}.field.warn .hint{color:var(--warn)}
+.seg{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden}.seg button{flex:1;background:var(--panel2);color:var(--muted);border:0;padding:6px 8px;font:inherit;cursor:pointer;white-space:nowrap}.seg button.on{background:var(--accent2);color:#fff}
+.ballpick{display:flex;gap:6px}
+.layoutsvg{width:100%;max-width:300px;touch-action:none;display:block;margin:0 auto}.layoutsvg .drag{cursor:grab}.diagcap{font-size:12px;color:var(--muted);text-align:center}.diagcap .bad{color:var(--warn)}
+.bar{display:flex;gap:8px;align-items:center;margin-bottom:8px}.bar.wrap{flex-wrap:wrap}.inline{display:flex;align-items:center;gap:6px}.inline select{width:auto}
+.stagewrap{width:100%}.stage{position:relative;height:min(66vh,640px);min-height:340px;background:#0a0e14;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+#laneCanvas{display:block}
+#timeline{margin:8px 0 2px}.live{font:12px ui-monospace,Menlo,monospace;color:var(--muted);min-height:18px;margin-bottom:6px}
+.ghosts{display:flex;gap:6px;flex-wrap:wrap}.chip{font-size:11px;border:2px solid;border-radius:99px;padding:2px 9px}
+details.lane{margin-top:6px;border-top:1px solid var(--line);padding-top:8px}details.lane summary{cursor:pointer;font-weight:700;margin-bottom:8px}
+.title{font-weight:700;margin-bottom:8px}.vis{display:flex;gap:10px;align-items:flex-start}.ballbox{text-align:center}.ballbox canvas{width:150px;height:150px}.cap{font-size:10px;color:var(--muted);max-width:150px;margin:auto}
+.pinbox{flex:1;min-width:0}.pinwrap{height:150px;position:relative;border-radius:8px;overflow:hidden;border:1px solid var(--line)}.leave{font-weight:800;text-align:center;margin-top:4px;min-height:20px}.leave.strike{color:var(--good);font-size:18px}
+.carry{margin:8px 0;padding:8px 10px;background:var(--panel2);border-radius:9px;font-size:13px}.sub{font-size:11px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:8px}.card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px}.card.good{border-color:var(--good)}.card .k{font-size:11px;color:var(--muted)}.card .v{font-size:19px;font-weight:800}
+.rating{margin:10px 0}.rbar{display:grid;grid-template-columns:80px 1fr;gap:8px;align-items:center;font-size:12px;color:var(--muted);margin:3px 0}.rbar i{display:block;height:8px;background:var(--panel2);border-radius:9px;overflow:hidden}.rbar b{display:block;height:100%;background:linear-gradient(90deg,#22d3ee,#a78bfa)}
+h3{font-size:13px;margin:14px 0 6px}h3 small{color:var(--muted);font-weight:400}
+.advice{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}.advice li{padding:7px 9px;border-radius:8px;background:var(--panel2);border-left:4px solid var(--muted);font-size:12.5px}.advice .good{border-color:var(--good)}.advice .warn{border-color:var(--warn)}
+.chart{height:130px;position:relative}.fine{font-size:11px;color:var(--muted);margin-top:14px}.muted{color:var(--muted)}.small{font-size:12px}
+dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:0;width:min(780px,94vw);max-height:88vh}dialog::backdrop{background:#0009}.dlg{padding:16px}.dlghead{display:flex;justify-content:space-between;align-items:center}
+.list{display:flex;flex-direction:column;gap:6px;margin:10px 0}.crow{display:flex;gap:8px;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--panel2);border-radius:9px;border:1px solid var(--line)}.crow.cur{border-color:var(--accent)}.cmain{cursor:pointer;flex:1}.frow{margin-left:22px;padding:6px 10px;border-left:3px solid var(--accent2);cursor:pointer;font-size:12px;color:var(--muted)}.frow.cur{color:var(--ink)}
+.tbl{width:100%;border-collapse:collapse}.tbl th,.tbl td{padding:6px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}
+#toasts{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:20}.toast{background:#111c2c;color:#fff;border:1px solid var(--accent);padding:9px 14px;border-radius:10px}.toast.bad{border-color:var(--bad)}
+#sheet{display:none}
+@media (max-width:1180px){.app{grid-template-columns:minmax(320px,400px) 1fr}.right{grid-column:1/-1}.left{position:static;max-height:none}}
+@media (max-width:760px){.app{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}.top .badge{display:none}.stage{height:56vh}}
+@media print{body>*:not(#sheet){display:none!important}#sheet{display:block!important;color:#000;background:#fff;font:12px system-ui;padding:10px}#sheet h1{margin:0;font-size:20px}#sheet h2{font-size:14px;border-bottom:1px solid #000;margin:12px 0 4px}#sheet table{width:100%;border-collapse:collapse}#sheet th{text-align:left;width:46%;padding:2px 4px;font-weight:600}#sheet td{padding:2px 4px;border-bottom:1px solid #ccc}#sheet .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px}#sheet svg{width:260px;display:block;margin:10px auto}#sheet .sig{display:flex;justify-content:space-between;margin-top:50px}#sheet .sig span{border-top:1px solid #000;width:44%;padding-top:4px}}
+
+
+</style>
+
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#0e7490"/><circle cx="11" cy="11" r="2" fill="#0b0f14"/><circle cx="16" cy="9" r="2" fill="#0b0f14"/><circle cx="14" cy="15" r="2.4" fill="#0b0f14"/></svg><span>LaneLab</span></div>
+  <button class="chipbtn" id="btnBank" title="Open the Data Bank"><span id="clientChip">New client</span> <small>▾</small></button>
+  <div class="grow"></div>
+  <div class="savebox" id="saveState" data-s="saved" aria-live="polite"><i></i><span id="saveText">Ready</span></div>
+  <span class="badge" id="bankMode" data-m="local">Browser storage</span>
+  <button class="btn" id="btnBank2" onclick="document.getElementById('btnBank').click()">Data Bank</button>
+  <button class="btn no-artifact" id="btnPrint">Print drill sheet</button>
+  <button class="btn ghost" id="btnUnit" title="Switch inches / mm">in</button>
+  <button class="btn ghost" id="btnTheme" title="Light / dark">◐</button>
+</header>
+
+<main class="app">
+  <section class="panel left">
+    <nav class="tabs" id="tabs">
+      <button data-tab="client" class="on">Client</button><button data-tab="grip">Hand &amp; grip</button><button data-tab="delivery">Delivery</button><button data-tab="ball">Ball &amp; layout</button>
+    </nav>
+    <div id="formPanes">
+      <div class="pane on" data-pane="client"><div id="formClient"></div></div>
+      <div class="pane" data-pane="grip"><div id="formGrip"></div></div>
+      <div class="pane" data-pane="delivery"><div id="formDelivery"></div></div>
+      <div class="pane" data-pane="ball"><div id="formBall"></div></div>
+    </div>
+  </section>
+
+  <section class="panel center">
+    <div class="bar">
+      <div class="seg" id="viewSeg"><button data-v="overhead" class="on">Overhead</button><button data-v="chase">Chase cam</button></div>
+      <div class="seg" id="heatSeg"><button data-v="oil" class="on">Oil</button><button data-v="mu">Friction</button></div>
+      <div class="grow"></div>
+      <label class="inline">Speed <select id="speedSel"><option value="0.15">0.15×</option><option value="0.3">0.3×</option><option value="0.5" selected>0.5×</option><option value="1">1×</option></select></label>
+      <button class="btn" id="btnPlay">⏯</button>
+      <button class="btn primary" id="btnThrow">▶ Throw</button>
+    </div>
+    <div class="stagewrap"><div class="stage"><canvas id="laneCanvas"></canvas></div></div>
+    <input type="range" id="timeline" min="0" max="2500" value="0" aria-label="Timeline">
+    <div class="live" id="live"></div>
+    <div class="bar wrap">
+      <button class="btn" id="btnAim">Auto-aim to pocket</button>
+      <button class="btn" id="btnLayoutLab">Layout lab</button>
+      <button class="btn" id="btnPin">Pin line to compare</button>
+      <button class="btn ghost" id="btnClearGhosts">Clear</button>
+      <div id="ghosts" class="ghosts"></div>
+    </div>
+    <details class="lane" open><summary>Lane conditions</summary><div id="formLane"></div></details>
+  </section>
+
+  <section class="panel right">
+    <div class="title" id="titleLine"></div>
+    <div class="vis">
+      <div class="ballbox"><canvas id="ballCanvas" width="170" height="170"></canvas><div class="cap">Ball in 3-D · <span style="color:#22c55e">PAP</span> <span style="color:#ef4444">pin</span> · light band = oil track</div></div>
+      <div class="pinbox"><div class="pinwrap"><canvas id="pinCanvas"></canvas></div><div id="leave" class="leave"></div></div>
+    </div>
+    <div class="carry" id="carryBox">—</div>
+    <div class="cards" id="metrics"></div>
+    <div class="rating" id="rating"></div>
+    <h3>Pro-shop notes</h3><ul class="advice" id="advice"></ul>
+    <h3>Ball path <small>board vs distance</small></h3><div class="chart"><canvas id="chart1"></canvas></div>
+    <h3>Speed (mph) &amp; rev rate (rpm)</h3><div class="chart"><canvas id="chart2"></canvas></div>
+    <h3>Friction μ &amp; slip speed (m/s)</h3><div class="chart"><canvas id="chart3"></canvas></div>
+    <p class="fine">Educational simulation: a physics model with calibrated assumptions, not a guarantee of on-lane results. Final drilling decisions rest with the certified driller.</p>
+  </section>
+</main>
+
+<dialog id="bankDlg"><div class="dlg">
+  <div class="dlghead"><h2>Data Bank</h2><button class="btn ghost" onclick="this.closest('dialog').close()">✕</button></div>
+  <p class="muted" id="bankStatus"></p>
+  <div class="bar wrap"><input type="search" id="bankSearch" placeholder="Search name, phone, email, league…"><button class="btn primary" id="btnNewClient">+ New client</button><button class="btn" id="btnNewFitting">+ New fitting (same client)</button></div>
+  <div id="clientList" class="list"></div>
+  <h3>Your ball library</h3><div id="ballList" class="list"></div>
+  <h3>Backup &amp; sharing</h3>
+  <div class="bar wrap"><button class="btn no-artifact" id="btnExport">Export backup (.json)</button><label class="btn">Import backup<input type="file" id="fileImport" accept=".json" hidden></label><button class="btn no-artifact" id="btnCsv">Clients (.csv)</button><button class="btn ghost no-artifact" id="btnToken">Server token…</button></div>
+  <div id="tokenRow" class="bar" hidden><input id="tokenInput" type="password" placeholder="LANELAB_TOKEN"><button class="btn" id="btnTokenSave">Save token</button></div>
+  <p class="muted small artifact-note">This online copy stores data in this browser only. Download the LaneLab HTML file or run the server to keep a backup file or a shared database.</p>
+</div></dialog>
+<dialog id="labDlg"><div class="dlg"><div class="dlghead"><h2>Layout lab</h2><button class="btn ghost" onclick="this.closest('dialog').close()">✕</button></div><div id="labResults"></div></div></dialog>
+<div id="sheet"></div>
+<div id="toasts"></div>
+
+<script>window.__ARTIFACT=true;</script>
+<script>
+
+(function(){
+'use strict';
+/* ---- js/ui/dom.js ---- */
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(el.style, v);
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) el.append(k.nodeType ? k : document.createTextNode(k));
+  return el;
+}
+const $ = (s, r = document) => r.querySelector(s);
+
+const FR = ['', '1/16', '1/8', '3/16', '1/4', '5/16', '3/8', '7/16', '1/2', '9/16', '5/8', '11/16', '3/4', '13/16', '7/8', '15/16'];
+/** inches -> '4 1/8"' (nearest 1/16) or mm */
+function fmtLen(inches, unit = 'in') {
+  if (inches === '' || inches == null || isNaN(inches)) return '';
+  if (unit === 'mm') return (inches * 25.4).toFixed(1) + ' mm';
+  const neg = inches < 0; let v = Math.abs(inches);
+  let whole = Math.floor(v); let s16 = Math.round((v - whole) * 16);
+  if (s16 === 16) { whole++; s16 = 0; }
+  const f = FR[s16];
+  const txt = (whole ? whole : '') + (whole && f ? ' ' : '') + f || '0';
+  return (neg ? '-' : '') + txt + '"';
+}
+/** parse '4 1/8', '4-1/8', '4.125', '105mm', '1/4' -> inches (or NaN) */
+function parseLen(str) {
+  let s = String(str).trim().toLowerCase().replace(/["”]/g, '');
+  if (!s) return NaN;
+  let mm = false;
+  if (/mm$/.test(s)) { mm = true; s = s.replace(/mm$/, '').trim(); }
+  s = s.replace(/-(?=\d+\/)/, ' ');
+  let total = 0;
+  for (const part of s.split(/\s+/)) {
+    if (/^-?\d+\/\d+$/.test(part)) { const [a, b] = part.split('/').map(Number); total += (a / b) * (part.startsWith('-') ? 1 : 1); }
+    else if (/^-?\d*\.?\d+$/.test(part)) total += parseFloat(part);
+    else return NaN;
+  }
+  if (s.startsWith('-') && total > 0) total = -total;
+  return mm ? total / 25.4 : total;
+}
+const debounce = (fn, ms) => { let t; const d = (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; d.flush = (...a) => { clearTimeout(t); fn(...a); }; return d; };
+const getPath = (o, p) => p.split('.').reduce((a, k) => (a == null ? a : a[k]), o);
+function setPath(o, p, v) { const ks = p.split('.'); const last = ks.pop(); const t = ks.reduce((a, k) => a[k], o); t[last] = v; }
+
+/* ---- js/state.js ---- */
+// Default data shapes + migration. Everything here is plain JSON so it can be stored as-is in the data bank.
+
+const SCHEMA_VERSION = 1;
+
+function newId() {
+  if (globalThis.crypto?.randomUUID) return crypto.randomUUID();
+  return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
+}
+
+function defaultProfile() {
+  return {
+    name: '',
+    phone: '',
+    email: '',
+    hand: 'R', // dominant throwing hand
+    style: 'oneHand', // oneHand | twoHand
+    average: '',
+    yearsBowling: '',
+    level: 'league', // casual | league | competitive | pro
+    bodyWeightLb: '',
+    league: '',
+    goals: '',
+    health: '',
+    consent: false,
+  };
+}
+
+function defaultFitting() {
+  return {
+    v: SCHEMA_VERSION,
+    label: '',
+    hand: {
+      gripType: 'conventional', // conventional | semi | fingertip
+      span: 4.125,
+      fingerSpacing: 1.0,
+      bridge: 0.25,
+      thumbHole: 1.0,
+      middleHole: 0.8125,
+      ringHole: 0.8125,
+      thumbStyle: 'round', // round | ovalH | ovalV | slug | insert
+      fingerPitchFwd: 0.0,
+      fingerPitchLat: 0.0,
+      thumbPitchRev: 0.125,
+      thumbPitchLat: 0.0,
+      handLength: '',
+      palmWidth: '',
+      notes: '',
+    },
+    delivery: {
+      type: 'tweener', // stroker | tweener | cranker | twoHand | custom
+      source: 'estimated', // estimated | measured
+      speedMph: 17,
+      revRpm: 380,
+      axisTilt: 13,
+      axisRotation: 58,
+      papOver: 4.5,
+      papUp: 0.75,
+      loftFt: 3,
+      startBoard: 15,
+      targetBoard: 10,
+      releasePhase: 0,
+    },
+    ball: {
+      libId: 'a-pearl-asym',
+      name: 'Pearl reactive - asymmetric (angular)',
+      brand: 'Generic',
+      weightLb: 15,
+      cover: 'reactivePearl',
+      grit: 3000,
+      rg: 2.49,
+      diff: 0.056,
+      intDiff: 0.022,
+      coreAzimuth: 0,
+      color: '#c026d3',
+    },
+    layout: {
+      pinDistance: 4.5,
+      valAngle: 75,
+      notes: '',
+    },
+    lane: {
+      preset: 'house',
+      lengthFt: 40,
+      volumeMl: 24,
+      ratio: 10,
+      shape: 'house',
+      taper: 0.5,
+      surface: 'synthetic',
+      games: 0,
+      ballOil: 0,
+    },
+    ghosts: [],
+    notes: '',
+  };
+}
+
+/** typical delivery values by style. These are starting points for walk-ins that have not been measured. */
+const STYLE_PRESETS = {
+  stroker: { speedMph: 17.5, revRpm: 270, axisTilt: 5, axisRotation: 74, papOver: 5.0, papUp: 0.25, startBoard: 20, targetBoard: 12 },
+  tweener: { speedMph: 17, revRpm: 380, axisTilt: 13, axisRotation: 58, papOver: 4.5, papUp: 0.75, startBoard: 15, targetBoard: 10 },
+  cranker: { speedMph: 16, revRpm: 460, axisTilt: 17, axisRotation: 50, papOver: 4.0, papUp: 1.25, startBoard: 12, targetBoard: 8 },
+  twoHand: { speedMph: 17, revRpm: 480, axisTilt: 20, axisRotation: 38, papOver: 4.25, papUp: 1.5, startBoard: 15, targetBoard: 10 },
+};
+
+/** shallow-ish merge of stored data over defaults so older records keep working as fields are added */
+function migrateFitting(data) {
+  const d = defaultFitting();
+  const out = { ...d, ...(data || {}) };
+  for (const k of ['hand', 'delivery', 'ball', 'layout', 'lane']) out[k] = { ...d[k], ...((data && data[k]) || {}) };
+  out.ghosts = Array.isArray(out.ghosts) ? out.ghosts : [];
+  out.v = SCHEMA_VERSION;
+  return out;
+}
+function migrateProfile(p) {
+  return { ...defaultProfile(), ...(p || {}) };
+}
+
+/* ---- js/bank.js ---- */
+// The "data bank": local-first record store (browser localStorage) that mirrors to the LaneLab
+// server (SQLite) whenever one is reachable. Works completely offline from a plain .html file.
+
+
+const KEY = 'lanelab.bank.v1';
+const OUT = 'lanelab.outbox.v1';
+const KINDS = ['clients', 'fittings', 'balls'];
+
+const safeGet = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+const safeSet = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
+
+class Bank {
+  constructor() {
+    this.db = { clients: {}, fittings: {}, balls: {} };
+    try { const raw = safeGet(KEY); if (raw) this.db = { ...this.db, ...JSON.parse(raw) }; } catch { /* corrupt -> start fresh */ }
+    try { this.outbox = JSON.parse(safeGet(OUT) || '[]'); } catch { this.outbox = []; }
+    this.mode = 'local'; // local | online | offline
+    this.listeners = new Set();
+    this.token = safeGet('lanelab.token') || '';
+    this.persistOk = true;
+  }
+  on(fn) { this.listeners.add(fn); return () => this.listeners.delete(fn); }
+  emit() { for (const f of this.listeners) f(this.mode, this.outbox.length); }
+  _persist() {
+    this.persistOk = safeSet(KEY, JSON.stringify(this.db)) && safeSet(OUT, JSON.stringify(this.outbox));
+    return this.persistOk;
+  }
+
+  // ---- generic ----
+  _put(kind, rec) {
+    const now = new Date().toISOString();
+    rec.id = rec.id || newId();
+    rec.createdAt = rec.createdAt || now;
+    rec.updatedAt = now;
+    delete rec.deletedAt;
+    this.db[kind][rec.id] = rec;
+    this.outbox = this.outbox.filter((o) => !(o.kind === kind && o.id === rec.id));
+    this.outbox.push({ kind, id: rec.id, op: 'put' });
+    this._persist();
+    this.flushSoon();
+    return rec;
+  }
+  _del(kind, id) {
+    const r = this.db[kind][id];
+    if (!r) return;
+    r.deletedAt = new Date().toISOString();
+    r.updatedAt = r.deletedAt;
+    this.outbox = this.outbox.filter((o) => !(o.kind === kind && o.id === id));
+    this.outbox.push({ kind, id, op: 'put' });
+    this._persist();
+    this.flushSoon();
+  }
+  _live(kind) { return Object.values(this.db[kind]).filter((r) => !r.deletedAt); }
+
+  // ---- clients ----
+  listClients(q = '') {
+    const s = q.trim().toLowerCase();
+    return this._live('clients')
+      .filter((c) => !s || [c.profile.name, c.profile.phone, c.profile.email, c.profile.league].join(' ').toLowerCase().includes(s))
+      .map((c) => ({ ...c, fittingCount: this.listFittings(c.id).length }))
+      .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  }
+  getClient(id) { const c = this.db.clients[id]; return c && !c.deletedAt ? c : null; }
+  putClient(rec) { return this._put('clients', rec); }
+  deleteClient(id) { this.listFittings(id).forEach((f) => this._del('fittings', f.id)); this._del('clients', id); }
+
+  // ---- fittings ----
+  listFittings(clientId) {
+    return this._live('fittings').filter((f) => f.clientId === clientId).sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+  }
+  getFitting(id) { const f = this.db.fittings[id]; return f && !f.deletedAt ? f : null; }
+  putFitting(rec) { return this._put('fittings', rec); }
+  deleteFitting(id) { this._del('fittings', id); }
+
+  // ---- ball library ----
+  listBalls() { return this._live('balls').sort((a, b) => (a.name || '').localeCompare(b.name || '')); }
+  putBall(rec) { return this._put('balls', rec); }
+  deleteBall(id) { this._del('balls', id); }
+
+  // ---- backup ----
+  exportAll() { return { app: 'lanelab', version: 1, exportedAt: new Date().toISOString(), ...this.db }; }
+  importAll(obj, { merge = true } = {}) {
+    if (!obj || obj.app !== 'lanelab') throw new Error('Not a LaneLab backup file');
+    let n = 0;
+    for (const k of KINDS) {
+      for (const rec of Object.values(obj[k] || {})) {
+        const cur = this.db[k][rec.id];
+        if (!merge || !cur || (rec.updatedAt || '') > (cur.updatedAt || '')) {
+          this.db[k][rec.id] = rec; n++;
+          this.outbox.push({ kind: k, id: rec.id, op: 'put' });
+        }
+      }
+    }
+    this._persist(); this.flushSoon();
+    return n;
+  }
+  clientsCsv() {
+    const esc = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [['Name', 'Phone', 'Email', 'Hand', 'Average', 'League', 'Fittings', 'Last updated']];
+    for (const c of this.listClients()) rows.push([c.profile.name, c.profile.phone, c.profile.email, c.profile.hand, c.profile.average, c.profile.league, c.fittingCount, c.updatedAt]);
+    return rows.map((r) => r.map(esc).join(',')).join('\n');
+  }
+
+  // ---- server sync (optional) ----
+  _headers() { const h = { 'Content-Type': 'application/json' }; if (this.token) h['X-LaneLab-Token'] = this.token; return h; }
+  async connect() {
+    if (!/^https?:$/.test(location.protocol)) { this.mode = 'local'; this.emit(); return; }
+    try {
+      const r = await fetch('api/health', { headers: this._headers(), cache: 'no-store' });
+      if (r.status === 401) { this.mode = 'offline'; this.needsToken = true; this.emit(); return; }
+      if (!r.ok) throw new Error('bad status');
+      const ex = await (await fetch('api/export', { headers: this._headers() })).json();
+      this.importAll(ex, { merge: true });
+      this.mode = 'online';
+      await this.flush();
+    } catch { this.mode = 'local'; }
+    this.emit();
+    this._timer = this._timer || setInterval(() => { if (this.outbox.length || this.mode === 'offline') this.flush(); }, 15000);
+  }
+  flushSoon() { clearTimeout(this._ft); this._ft = setTimeout(() => this.flush(), 600); this.emit(); }
+  async flush() {
+    if (this.mode === 'local' || !/^https?:$/.test(location.protocol)) return;
+    const q = this.outbox.slice();
+    try {
+      for (const o of q) {
+        const rec = this.db[o.kind][o.id];
+        if (!rec) { this.outbox = this.outbox.filter((x) => x !== o); continue; }
+        const r = await fetch(`api/${o.kind}/${encodeURIComponent(o.id)}`, { method: 'PUT', headers: this._headers(), body: JSON.stringify(rec) });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        this.outbox = this.outbox.filter((x) => !(x.kind === o.kind && x.id === o.id && x === o));
+      }
+      this.mode = 'online';
+    } catch { this.mode = 'offline'; }
+    this._persist(); this.emit();
+  }
+}
+
+/* ---- js/physics/units.js ---- */
+// Unit conversions and fixed geometry. All physics runs in SI (m, kg, s, rad).
+
+const IN = 0.0254;
+const FT = 0.3048;
+const LB = 0.45359237;
+const MPH = 0.44704;
+const RPM = (2 * Math.PI) / 60;
+const G = 9.80665;
+
+const BALL_R = 4.25 * IN; // 8.5 in max diameter
+
+// Lane: 39 boards, 41.5 in wide, 60 ft foul line -> head pin
+const BOARDS = 39;
+const LANE_W = 41.5 * IN;
+const HALF_W = LANE_W / 2;
+const BOARD_W = LANE_W / BOARDS;
+const HEAD_PIN_Y = 60 * FT;
+const ARROWS_FT = 15;
+
+// Pins
+const PIN_R = 2.383 * IN; // base footprint radius used for the circle model
+const PIN_M = 1.55;
+const PIN_ROW = 10.392 * IN;
+const PIN_COL = 6 * IN;
+
+const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+const lerp = (a, b, t) => a + (b - a) * t;
+const deg = (r) => (r * 180) / Math.PI;
+const rad = (d) => (d * Math.PI) / 180;
+const smoothstep = (a, b, x) => {
+  const t = clamp((x - a) / (b - a), 0, 1);
+  return t * t * (3 - 2 * t);
+};
+
+/** continuous board coordinate u (0 = own gutter edge, 39 = far edge) -> metres from lane centre (+ = bowler's right edge side for a righty) */
+const uToX = (u) => HALF_W - u * BOARD_W;
+const xToU = (x) => (HALF_W - x) / BOARD_W;
+/** board number (1..39) <-> continuous u at the centre of that board */
+const boardToU = (b) => b - 0.5;
+const uToBoard = (u) => u + 0.5;
+
+const mphToMs = (v) => v * MPH;
+const msToMph = (v) => v / MPH;
+
+/* ---- js/physics/ball.js ---- */
+// Ball model: coverstock friction, mass properties (RG / differentials) and drilling layout geometry.
+//
+// Grip frame (G) - fixed in the ball, looking straight at the grip:
+//   +x : to the right      +y : up, toward the finger holes      +z : out of the grip centre
+// The origin of the grip is the midpoint between the thumb-hole centre and the finger-hole centre.
+//
+// Layout (dual-angle style):
+//   PAP            : positive axis point, given as arc distance "over" (x) and "up" (y) from grip centre
+//   pin-to-PAP     : arc distance from the PAP to the pin (the low-RG axis end)
+//   VAL angle      : angle at the PAP between the vertical axis line (toward the fingers) and the
+//                    line PAP -> pin, swinging toward the grip centre (90 = pin straight toward grip
+//                    centre, 180 = straight down toward the thumb)
+//   core azimuth   : where the high-RG axis sits around the pin, measured from the pin->PAP direction
+
+
+
+const COVERS = {
+  plastic: { label: 'Plastic / polyester (spare)', dry: 0.62, oil: 0.85 },
+  urethane: { label: 'Urethane', dry: 0.8, oil: 0.95 },
+  reactiveSolid: { label: 'Reactive resin - solid', dry: 1.05, oil: 1.15 },
+  reactiveHybrid: { label: 'Reactive resin - hybrid', dry: 1.0, oil: 1.0 },
+  reactivePearl: { label: 'Reactive resin - pearl', dry: 0.95, oil: 0.85 },
+  particle: { label: 'Particle / aggressive solid', dry: 1.1, oil: 1.3 },
+};
+
+const FINISHES = [
+  { label: 'Polished', grit: 10000 },
+  { label: '4000 grit', grit: 4000 },
+  { label: '3000 grit', grit: 3000 },
+  { label: '2000 grit', grit: 2000 },
+  { label: '1500 grit', grit: 1500 },
+  { label: '1000 grit', grit: 1000 },
+  { label: '500 grit', grit: 500 },
+];
+
+/** Generic ball archetypes. These are NOT real catalogue products - add your own with real specs in the Data Bank. */
+const BALL_ARCHETYPES = [
+  { id: 'a-plastic', name: 'Spare ball (plastic)', brand: 'Generic', cover: 'plastic', grit: 4000, rg: 2.66, diff: 0.01, intDiff: 0, weightLb: 15, color: '#3c78d8' },
+  { id: 'a-urethane', name: 'Urethane (benign)', brand: 'Generic', cover: 'urethane', grit: 2000, rg: 2.58, diff: 0.03, intDiff: 0, weightLb: 15, color: '#6b3fa0' },
+  { id: 'a-ent', name: 'Entry reactive (symmetric)', brand: 'Generic', cover: 'reactiveHybrid', grit: 2000, rg: 2.57, diff: 0.028, intDiff: 0, weightLb: 15, color: '#d14b3c' },
+  { id: 'a-solid-sym', name: 'Solid reactive - symmetric (smooth)', brand: 'Generic', cover: 'reactiveSolid', grit: 2000, rg: 2.56, diff: 0.04, intDiff: 0, weightLb: 15, color: '#1f8a5b' },
+  { id: 'a-solid-asym', name: 'Solid reactive - asymmetric (strong)', brand: 'Generic', cover: 'reactiveSolid', grit: 1500, rg: 2.5, diff: 0.052, intDiff: 0.02, weightLb: 15, color: '#0e7490' },
+  { id: 'a-pearl-asym', name: 'Pearl reactive - asymmetric (angular)', brand: 'Generic', cover: 'reactivePearl', grit: 3000, rg: 2.49, diff: 0.056, intDiff: 0.022, weightLb: 15, color: '#c026d3' },
+  { id: 'a-pearl-sym', name: 'Pearl reactive - symmetric (length)', brand: 'Generic', cover: 'reactivePearl', grit: 4000, rg: 2.6, diff: 0.036, intDiff: 0, weightLb: 15, color: '#e8a317' },
+  { id: 'a-particle', name: 'Particle - aggressive (heavy oil)', brand: 'Generic', cover: 'particle', grit: 500, rg: 2.52, diff: 0.048, intDiff: 0.012, weightLb: 15, color: '#111827' },
+];
+
+const v3 = {
+  dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+  cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]],
+  add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+  sub: (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
+  scale: (a, s) => [a[0] * s, a[1] * s, a[2] * s],
+  len: (a) => Math.hypot(a[0], a[1], a[2]),
+  norm: (a) => {
+    const l = Math.hypot(a[0], a[1], a[2]) || 1;
+    return [a[0] / l, a[1] / l, a[2] / l];
+  },
+};
+
+/** point on the ball surface at arc offset (over, up) in inches from grip centre */
+function surfacePoint(overIn, upIn) {
+  const s = Math.hypot(overIn, upIn);
+  if (s < 1e-9) return [0, 0, 1];
+  const a = (s * IN) / BALL_R;
+  return [(Math.sin(a) * overIn) / s, (Math.sin(a) * upIn) / s, Math.cos(a)];
+}
+
+/** unit tangent at point p (on sphere) pointing toward q along the great circle */
+function tangentToward(p, q) {
+  const t = v3.sub(q, v3.scale(p, v3.dot(q, p)));
+  return v3.len(t) < 1e-9 ? null : v3.norm(t);
+}
+
+/** pin position (unit vector, grip frame) from PAP + pin-to-PAP distance + VAL angle */
+function pinPosition(pap, pinDistIn, valDeg) {
+  const alpha = (pinDistIn * IN) / BALL_R;
+  let up = tangentToward(pap, [0, 1, 0]);
+  if (!up) up = tangentToward(pap, [0, 0, 1]) || [0, 1, 0];
+  let cen = tangentToward(pap, [0, 0, 1]);
+  if (!cen) cen = v3.norm(v3.cross(pap, up));
+  const val = rad(valDeg);
+  const dir = v3.add(v3.scale(up, Math.cos(val)), v3.scale(cen, Math.sin(val)));
+  const d = v3.norm(v3.sub(dir, v3.scale(pap, v3.dot(dir, pap))));
+  return v3.norm(v3.add(v3.scale(pap, Math.cos(alpha)), v3.scale(d, Math.sin(alpha))));
+}
+
+/** angle (rad) of the hole centres from the grip centre, for drawing + pin-buffer maths */
+function gripGeometry(h) {
+  const span = h.span ?? 4.125;
+  const thumbD = h.thumbHole ?? 1.0;
+  const fingerD = h.middleHole ?? 0.82;
+  const cc = span + (thumbD + fingerD) / 2; // centre-to-centre
+  const sp = (h.fingerSpacing ?? 1.0) / 2;
+  return {
+    cc,
+    fingers: [
+      { x: -sp, y: cc / 2, d: h.middleHole ?? 0.82 },
+      { x: sp, y: cc / 2, d: h.ringHole ?? 0.82 },
+    ],
+    thumb: h.style === 'twoHand' ? null : { x: 0, y: -cc / 2, d: thumbD },
+  };
+}
+
+/** pin buffer = distance (inches, along the surface) from the pin to the nearest finger-hole edge */
+function pinBuffer(pin, grip) {
+  let best = Infinity;
+  for (const f of grip.fingers) {
+    const c = surfacePoint(f.x, f.y);
+    const ang = Math.acos(clamp(v3.dot(c, pin), -1, 1));
+    const dist = (ang * BALL_R) / IN - f.d / 2;
+    if (dist < best) best = dist;
+  }
+  return best;
+}
+
+/**
+ * Build the physical ball used by the simulator.
+ * @param {object} b      ball spec  {weightLb,cover,grit,rg,diff,intDiff,coreAzimuth}
+ * @param {object} lay    layout     {pinDistance,valAngle}
+ * @param {object} d      delivery   {papOver,papUp}
+ */
+function buildBall(b, lay, d) {
+  const massKg = clamp(b.weightLb ?? 15, 6, 16) * LB;
+  const rg = clamp(b.rg ?? 2.55, 2.4, 2.85);
+  const diff = clamp(b.diff ?? 0.04, 0, 0.09);
+  const intDiff = clamp(b.intDiff ?? 0, 0, diff);
+  const cover = COVERS[b.cover] || COVERS.reactiveHybrid;
+  const grit = clamp(b.grit ?? 2000, 200, 12000);
+
+  const pap = surfacePoint(d.papOver ?? 4.5, d.papUp ?? 0.5);
+  const pin = pinPosition(pap, lay.pinDistance ?? 4.5, lay.valAngle ?? 45);
+
+  // principal axes: e1 = pin (low RG), e3 = high RG axis (90 deg from pin), e2 = intermediate
+  const tp = tangentToward(pin, pap) || v3.norm(v3.cross(pin, [1, 0, 0]));
+  const side = v3.cross(pin, tp);
+  const g = rad(b.coreAzimuth ?? 0);
+  const e3 = v3.add(v3.scale(tp, Math.cos(g)), v3.scale(side, Math.sin(g)));
+  const e2 = v3.cross(pin, e3);
+
+  const rgMin = rg * IN;
+  const rgMax = (rg + diff) * IN;
+  const rgInt = (rg + diff - intDiff) * IN; // intDiff = how far the intermediate axis sits BELOW the high axis
+  const I = [massKg * rgMin * rgMin, massKg * rgInt * rgInt, massKg * rgMax * rgMax];
+  const axes = [pin, e2, e3];
+  // inverse inertia tensor in the grip frame (row-major 3x3)
+  const Iinv = new Float64Array(9);
+  for (let k = 0; k < 3; k++) {
+    const e = axes[k];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) Iinv[r * 3 + c] += (e[r] * e[c]) / I[k];
+  }
+  const Imat = new Float64Array(9);
+  for (let k = 0; k < 3; k++) {
+    const e = axes[k];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) Imat[r * 3 + c] += I[k] * e[r] * e[c];
+  }
+
+  // friction scalars
+  const gritDry = clamp(Math.pow(2000 / grit, 0.18), 0.7, 1.35);
+  const gritOil = clamp(Math.pow(2000 / grit, 0.3), 0.6, 1.6);
+  return {
+    massKg,
+    rg,
+    diff,
+    intDiff,
+    cover: b.cover,
+    grit,
+    muDry: 0.14 * cover.dry * gritDry,
+    muOil: 0.004 * cover.oil * gritOil,
+    pap,
+    pin,
+    axes,
+    I,
+    Iinv,
+    Imat,
+    pinDistance: lay.pinDistance ?? 4.5,
+    valAngle: lay.valAngle ?? 45,
+    papOver: d.papOver ?? 4.5,
+    papUp: d.papUp ?? 0.5,
+  };
+}
+
+/** pin buffer (in) for a candidate layout given full app state */
+function gripBuffer(st, pinDist, val) {
+  const pap = surfacePoint(+st.fitting.delivery.papOver || 0, +st.fitting.delivery.papUp || 0);
+  return pinBuffer(pinPosition(pap, pinDist, val), gripGeometry({ ...st.fitting.hand, style: st.profile.style }));
+}
+
+/* ---- js/physics/lane.js ---- */
+// Lane + oil-pattern model.
+//
+// The oil pattern is a 2-D thickness field T(board, distance). 1.0 ~= the centre of a typical
+// 24 mL / 40 ft league "house" shot. Friction comes from how much of the ball's contact patch
+// is covered by oil: coverage = 1 - exp(-T / T0).  This is a deliberately simple, explainable
+// model - it is NOT a measurement of a real lane machine's output.
+
+
+
+const OIL_T0 = 0.4;
+const STEP_FT = 0.5;
+const NODES_U = BOARDS * 2 + 1; // half-board resolution
+const NODES_Y = Math.round(66 / STEP_FT) + 1; // 0..66 ft
+
+const PATTERN_PRESETS = [
+  {
+    id: 'house',
+    name: 'House shot (typical league)',
+    desc: 'Heavy in the middle, very little oil on the outside boards - forgiving, rewards hitting the "track" area.',
+    params: { lengthFt: 40, volumeMl: 24, ratio: 10, shape: 'house', taper: 0.8, bufferFt: 3 },
+  },
+  {
+    id: 'houseHeavy',
+    name: 'Heavy house (fresh, high volume)',
+    desc: 'More oil everywhere. Balls skid longer - typical of a freshly oiled lane.',
+    params: { lengthFt: 42, volumeMl: 30, ratio: 8, shape: 'house', taper: 0.72, bufferFt: 3 },
+  },
+  {
+    id: 'houseShort',
+    name: 'Short house (36 ft)',
+    desc: 'Shorter oil means an earlier and stronger reaction.',
+    params: { lengthFt: 36, volumeMl: 22, ratio: 10, shape: 'house', taper: 0.8, bufferFt: 3 },
+  },
+  {
+    id: 'sportShort',
+    name: 'Sport - short (35 ft, flat)',
+    desc: 'Flat pattern, little room for error. Ball must be played closer to the oil line.',
+    params: { lengthFt: 35, volumeMl: 22, ratio: 2, shape: 'flat', taper: 0.9, bufferFt: 2 },
+  },
+  {
+    id: 'sportMedium',
+    name: 'Sport - medium (39 ft, flat)',
+    desc: 'Flat pattern with a medium length.',
+    params: { lengthFt: 39, volumeMl: 25, ratio: 2, shape: 'flat', taper: 0.9, bufferFt: 2 },
+  },
+  {
+    id: 'sportLong',
+    name: 'Sport - long (45 ft, flat)',
+    desc: 'Long and flat. Needs a lot of ball speed/rev to get the ball to turn.',
+    params: { lengthFt: 45, volumeMl: 28, ratio: 2, shape: 'flat', taper: 0.92, bufferFt: 2 },
+  },
+  {
+    id: 'reverse',
+    name: 'Reverse block',
+    desc: 'More oil outside than inside - the "inside" lines are dry and grabby, outside lines skid.',
+    params: { lengthFt: 40, volumeMl: 26, ratio: 4, shape: 'reverse', taper: 0.8, bufferFt: 3 },
+  },
+  {
+    id: 'dry',
+    name: 'Bone-dry lane (no oil)',
+    desc: 'Worst case for a drilling check: a lane that has had no oil applied. Balls hook very early.',
+    params: { lengthFt: 0, volumeMl: 0, ratio: 1, shape: 'flat', taper: 1, bufferFt: 1 },
+  },
+  {
+    id: 'custom',
+    name: 'Custom pattern',
+    desc: 'Set your own length, volume, ratio and shape.',
+    params: { lengthFt: 40, volumeMl: 24, ratio: 10, shape: 'house', taper: 0.8, bufferFt: 3 },
+  },
+];
+
+const SURFACES = {
+  synthetic: { label: 'Synthetic (HPL / urethane-coated)', dry: 1.0 },
+  wood: { label: 'Wood', dry: 0.93 },
+};
+
+function plateauFor(shape) {
+  if (shape === 'flat') return [0.78, 1.0];
+  if (shape === 'reverse') return [0.28, 0.8];
+  return [0.3, 0.82]; // house
+}
+
+/** raw (un-normalised) oil thickness at continuous board position u and distance yFt */
+function rawThickness(p, u, yFt) {
+  if (p.lengthFt <= 0 || p.volumeMl <= 0) return 0;
+  const a = Math.abs((u - 19.5) / 19.5); // 0 centre .. 1 gutter
+  const [e0, e1] = plateauFor(p.shape);
+  const plateau = 1 - smoothstep(e0, e1, a);
+  const lo = 1 / Math.max(1, p.ratio);
+  let lat;
+  if (p.shape === 'reverse') lat = lo + (1 - lo) * (1 - plateau);
+  else lat = lo + (1 - lo) * plateau;
+  lat *= 1 - smoothstep(0.9, 1.0, a); // gutter boards never get much oil
+
+  // length: shorter oil on the outside (the "tree" shape)
+  const taper = clamp(p.taper ?? 0.5, 0.2, 1);
+  const plateauL = 1 - smoothstep(0.45, 0.95, a);
+  const endLen = p.lengthFt * (taper + (1 - taper) * plateauL);
+  if (yFt >= endLen + 0.5) return 0;
+  const buf = Math.max(0.5, p.bufferFt ?? 3);
+  const fade = 1 - smoothstep(endLen - buf, endLen + 0.5, yFt);
+  const front = yFt < endLen * 0.6 ? 1 : 1 - 0.45 * ((yFt - endLen * 0.6) / (endLen * 0.4));
+  return lat * front * fade;
+}
+
+let refIntegral = null;
+function integralOf(p) {
+  let s = 0;
+  for (let i = 0; i < NODES_U; i++) {
+    for (let j = 0; j < NODES_Y; j++) s += rawThickness(p, i / 2, j * STEP_FT);
+  }
+  return s;
+}
+function refInt() {
+  if (refIntegral == null) refIntegral = integralOf(PATTERN_PRESETS[0].params);
+  return refIntegral;
+}
+
+/**
+ * Build a lane model.
+ * @param {object} pattern  {lengthFt, volumeMl, ratio, shape, taper, bufferFt}
+ * @param {object} cond     {games, surface}
+ */
+function buildLane(pattern, cond = {}) {
+  const p = { ...PATTERN_PRESETS[0].params, ...pattern };
+  const games = Math.max(0, cond.games ?? 0);
+  const surface = SURFACES[cond.surface] ? cond.surface : 'synthetic';
+  const traffic = cond.trafficBoard ?? 10;
+
+  const grid = new Float32Array(NODES_U * NODES_Y);
+  const intg = integralOf(p);
+  const k = intg > 0 ? (p.volumeMl / 24) * (refInt() / intg) : 0;
+  const bd = 0.5 * (1 - Math.exp(-games / 8));
+  const cd = 0.3 * (1 - Math.exp(-games / 10));
+
+  for (let i = 0; i < NODES_U; i++) {
+    const u = i / 2;
+    const played = Math.exp(-(((u - traffic) / 4) ** 2));
+    const endC = p.lengthFt;
+    for (let j = 0; j < NODES_Y; j++) {
+      const y = j * STEP_FT;
+      let t = rawThickness(p, u, y) * k;
+      if (games > 0 && p.lengthFt > 0) {
+        t *= 1 - bd * played * (1 - smoothstep(endC * 0.85, endC + 6, y) * 0.5);
+        // carry-down: oil moved past the end of the pattern
+        const past = y - endC * (p.taper + (1 - p.taper) * 0.8);
+        if (past > 0 && past < 16) t += cd * played * Math.max(0, 1 - past / 16) * (p.volumeMl / 24);
+      }
+      grid[j * NODES_U + i] = t;
+    }
+  }
+
+  function thickness(u, yFt) {
+    const fu = clamp(u, 0, BOARDS) * 2;
+    const fy = clamp(yFt, 0, 66) / STEP_FT;
+    const i0 = Math.min(NODES_U - 2, Math.floor(fu));
+    const j0 = Math.min(NODES_Y - 2, Math.floor(fy));
+    const tu = fu - i0;
+    const ty = fy - j0;
+    const a = grid[j0 * NODES_U + i0];
+    const b = grid[j0 * NODES_U + i0 + 1];
+    const c = grid[(j0 + 1) * NODES_U + i0];
+    const d = grid[(j0 + 1) * NODES_U + i0 + 1];
+    return a * (1 - tu) * (1 - ty) + b * tu * (1 - ty) + c * (1 - tu) * ty + d * tu * ty;
+  }
+  const coverage = (u, yFt) => 1 - Math.exp(-thickness(u, yFt) / OIL_T0);
+
+  return {
+    pattern: p,
+    games,
+    surface,
+    surfaceDry: SURFACES[surface].dry,
+    thickness,
+    coverage,
+    grid,
+    nodesU: NODES_U,
+    nodesY: NODES_Y,
+    stepFt: STEP_FT,
+    /** summary numbers used in the UI */
+    stats() {
+      let sum = 0;
+      let max = 0;
+      for (let i = 0; i < grid.length; i++) {
+        sum += grid[i];
+        if (grid[i] > max) max = grid[i];
+      }
+      return { maxThickness: max, meanThickness: sum / grid.length };
+    },
+  };
+}
+
+/* ---- js/model.js ---- */
+// Turns the saved form data (profile + fitting) into a physics configuration.
+
+
+
+
+
+const laneCache = new Map();
+
+function laneFrom(l) {
+  const preset = PATTERN_PRESETS.find((p) => p.id === l.preset) || PATTERN_PRESETS[0];
+  const pattern = l.preset === 'custom'
+    ? { lengthFt: l.lengthFt, volumeMl: l.volumeMl, ratio: l.ratio, shape: l.shape, taper: l.taper, bufferFt: 3 }
+    : preset.params;
+  const key = JSON.stringify([pattern, l.surface, l.games]);
+  let lane = laneCache.get(key);
+  if (!lane) {
+    lane = buildLane(pattern, { games: l.games, surface: l.surface });
+    if (laneCache.size > 24) laneCache.clear();
+    laneCache.set(key, lane);
+  }
+  return lane;
+}
+
+function buildConfig(profile, f, overrides = {}) {
+  const d = { ...f.delivery, ...(overrides.delivery || {}) };
+  const layout = { ...f.layout, ...(overrides.layout || {}) };
+  const ballSpec = { ...f.ball, ...(overrides.ball || {}) };
+  const ball = buildBall(ballSpec, layout, d);
+  const lane = laneFrom({ ...f.lane, ...(overrides.lane || {}) });
+  return {
+    hand: profile.hand === 'L' ? 'L' : 'R',
+    ball,
+    lane,
+    ballOil: clamp(f.lane.ballOil ?? 0, 0, 1),
+    delivery: {
+      speedMph: clamp(+d.speedMph || 17, 5, 30),
+      revRpm: clamp(+d.revRpm || 300, 20, 800),
+      tiltDeg: clamp(+d.axisTilt || 0, 0, 80),
+      rotDeg: clamp(+d.axisRotation || 0, 0, 90),
+      loftFt: clamp(+d.loftFt || 3, 0.5, 8),
+      startBoard: clamp(+d.startBoard || 15, 1, 39),
+      targetBoard: clamp(+d.targetBoard || 10, 1, 39),
+      phaseDeg: +d.releasePhase || 0,
+    },
+  };
+}
+
+/* ---- js/physics/sim.js ---- */
+// Ball-on-lane simulator.
+//
+// The ball is a 3-D rigid body (orientation quaternion + world-frame angular momentum) whose
+// principal moments come from RG / differential / intermediate differential, so flare ("axis
+// migration") is a natural result of the physics instead of a fudge factor.  The only external
+// force is Coulomb-style sliding friction at the contact point; the friction coefficient depends
+// on the oil under the ball and on how much oil the ball itself has picked up on that part of its
+// surface (that is what makes a wide, flaring track "fresher" than a narrow, stacked one).
+//
+// Frame: x to the bowler's right, y down-lane, z up.  A right-hander is simulated directly; a
+// left-hander is the exact mirror image (the UI mirrors the drawing).
+
+
+
+
+const NZ = 24;
+const NLON = 48;
+const OILMAP = { NZ, NLON };
+
+// tunable model constants (see README "Physics model")
+const EPS_SLIP = 0.02; // m/s - friction regularisation
+const PICK_RATE = 26; // ball surface oil pickup rate
+const SHED_RATE = 3.5; // ball surface oil shed rate on dry lane
+const LOAD_FRIC = 0.42; // max friction reduction from oil on the ball
+const SPIN_DAMP = 0.002; // N m s - tiny damping of spin about the vertical axis
+
+function qmul(a, b) {
+  return [
+    a[0] * b[0] - a[1] * b[1] - a[2] * b[2] - a[3] * b[3],
+    a[0] * b[1] + a[1] * b[0] + a[2] * b[3] - a[3] * b[2],
+    a[0] * b[2] - a[1] * b[3] + a[2] * b[0] + a[3] * b[1],
+    a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + a[3] * b[0],
+  ];
+}
+function qnorm(q) {
+  const l = Math.hypot(q[0], q[1], q[2], q[3]);
+  q[0] /= l;
+  q[1] /= l;
+  q[2] /= l;
+  q[3] /= l;
+  return q;
+}
+function qRot(w, dt) {
+  const mag = Math.hypot(w[0], w[1], w[2]);
+  const a = mag * dt * 0.5;
+  if (mag < 1e-12) return [1, 0, 0, 0];
+  const s = Math.sin(a) / mag;
+  return [Math.cos(a), w[0] * s, w[1] * s, w[2] * s];
+}
+function quatToMat(q, m = new Float64Array(9)) {
+  const [w, x, y, z] = q;
+  m[0] = 1 - 2 * (y * y + z * z);
+  m[1] = 2 * (x * y - w * z);
+  m[2] = 2 * (x * z + w * y);
+  m[3] = 2 * (x * y + w * z);
+  m[4] = 1 - 2 * (x * x + z * z);
+  m[5] = 2 * (y * z - w * x);
+  m[6] = 2 * (x * z - w * y);
+  m[7] = 2 * (y * z + w * x);
+  m[8] = 1 - 2 * (x * x + y * y);
+  return m;
+}
+function matToQuat(m) {
+  const t = m[0] + m[4] + m[8];
+  let q;
+  if (t > 0) {
+    const s = Math.sqrt(t + 1) * 2;
+    q = [0.25 * s, (m[7] - m[5]) / s, (m[2] - m[6]) / s, (m[3] - m[1]) / s];
+  } else if (m[0] > m[4] && m[0] > m[8]) {
+    const s = Math.sqrt(1 + m[0] - m[4] - m[8]) * 2;
+    q = [(m[7] - m[5]) / s, 0.25 * s, (m[1] + m[3]) / s, (m[2] + m[6]) / s];
+  } else if (m[4] > m[8]) {
+    const s = Math.sqrt(1 + m[4] - m[0] - m[8]) * 2;
+    q = [(m[2] - m[6]) / s, (m[1] + m[3]) / s, 0.25 * s, (m[5] + m[7]) / s];
+  } else {
+    const s = Math.sqrt(1 + m[8] - m[0] - m[4]) * 2;
+    q = [(m[3] - m[1]) / s, (m[2] + m[6]) / s, (m[5] + m[7]) / s, 0.25 * s];
+  }
+  return qnorm(q);
+}
+
+/** world-frame unit rotation axis for the given delivery (direction of omega) */
+function releaseAxis(rotDeg, tiltDeg, launchAngle) {
+  const phi = rad(rotDeg);
+  const tau = rad(tiltDeg);
+  // launch frame: n = right, t = down-lane.  Forward roll => omega points LEFT (-n).
+  const ax = -Math.sin(phi) * Math.cos(tau);
+  const ay = -Math.cos(phi) * Math.cos(tau);
+  const az = -Math.sin(tau); // positive tilt = hand-side pole is raised
+  const t = [Math.sin(launchAngle), Math.cos(launchAngle)];
+  const n = [Math.cos(launchAngle), -Math.sin(launchAngle)];
+  return [ax * n[0] + ay * t[0], ax * n[1] + ay * t[1], az];
+}
+
+function initialOrientation(ball, aWorld, phaseDeg) {
+  // body basis: b1 = PAP, b2 = pin projected perpendicular to PAP
+  const b1 = ball.pap;
+  let b2 = v3.sub(ball.pin, v3.scale(b1, v3.dot(ball.pin, b1)));
+  if (v3.len(b2) < 1e-6) b2 = v3.sub([0, 1, 0], v3.scale(b1, b1[1]));
+  b2 = v3.norm(b2);
+  const b3 = v3.cross(b1, b2);
+  // world basis: w1 = hand-side pole = -axis
+  const w1 = v3.scale(aWorld, -1);
+  let w2 = v3.sub([0, 0, 1], v3.scale(w1, w1[2]));
+  if (v3.len(w2) < 1e-6) w2 = v3.sub([1, 0, 0], v3.scale(w1, w1[0]));
+  w2 = v3.norm(w2);
+  const ph = rad(phaseDeg || 0);
+  const w3p = v3.cross(w1, w2);
+  w2 = v3.add(v3.scale(w2, Math.cos(ph)), v3.scale(w3p, Math.sin(ph)));
+  const w3 = v3.cross(w1, w2);
+  // R = W * B^T
+  const m = new Float64Array(9);
+  const W = [w1, w2, w3];
+  const B = [b1, b2, b3];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) m[r * 3 + c] = W[0][r] * B[0][c] + W[1][r] * B[1][c] + W[2][r] * B[2][c];
+  return matToQuat(m);
+}
+
+/**
+ * Run one throw.
+ * @param {{ball:object, delivery:object, lane:object, ballOil?:number}} cfg
+ */
+function simulate(cfg, opts = {}) {
+  const dt = opts.dt ?? 0.0005;
+  const recEvery = opts.recordEvery ?? 4;
+  const { ball, delivery: dv, lane } = cfg;
+  const R = BALL_R;
+  const m = ball.massKg;
+  const Iinv = ball.Iinv;
+  const N = m * G;
+
+  // ---------- release ----------
+  const uS = dv.startBoard - 0.5;
+  const uT = dv.targetBoard - 0.5;
+  const slope = -((uT - uS) * BOARD_W) / (ARROWS_FT * FT); // dx/dy
+  const theta = Math.atan(slope);
+  const yLand = clamp(dv.loftFt ?? 3, 0.5, 8) * FT;
+  let x = HALF_W - uS * BOARD_W + slope * yLand;
+  let y = yLand;
+  const v0 = dv.speedMph * MPH;
+  let vx = v0 * Math.sin(theta);
+  let vy = v0 * Math.cos(theta);
+
+  const aW = releaseAxis(dv.rotDeg, dv.tiltDeg, theta);
+  const Om = dv.revRpm * RPM;
+  let q = initialOrientation(ball, aW, dv.phaseDeg);
+  const Rm = new Float64Array(9);
+  quatToMat(q, Rm);
+  // angular momentum: omega_body0 = -Om * pap  (pap is the hand-side pole)
+  const wb0 = v3.scale(ball.pap, -Om);
+  const Lb0 = [0, 0, 0];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) Lb0[r] += ball.Imat[r * 3 + c] * wb0[c];
+  let L = [0, 0, 0];
+  for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) L[r] += Rm[r * 3 + c] * Lb0[c];
+
+  // ball surface oil map (equal-area lat-lon on the grip frame)
+  const oilMap = new Float32Array(NZ * NLON).fill(clamp(cfg.ballOil ?? 0, 0, 1) * 0.5);
+
+  const muDryBall = ball.muDry * lane.surfaceDry;
+  const muOilBall = ball.muOil;
+
+  // scratch
+  const Rt = new Float64Array(9);
+  const out = { ax: 0, ay: 0, tx: 0, ty: 0, tz: 0, w: [0, 0, 0], wb: [0, 0, 0], ux: 0, uy: 0, mu: 0, phi: 0, load: 0, cz: 0, cx: 0, cy: 0 };
+
+  function cellIndex(cx, cy, cz) {
+    const i = Math.min(NZ - 1, Math.max(0, Math.floor(((cz + 1) / 2) * NZ)));
+    let lon = Math.atan2(cy, cx);
+    let j = Math.floor(((lon + Math.PI) / (2 * Math.PI)) * NLON);
+    if (j >= NLON) j = NLON - 1;
+    return [i, j];
+  }
+
+  // derivatives for state (x,y,vx,vy,R,L); R given as matrix
+  function deriv(px, py, pvx, pvy, Rmat, Lw) {
+    // body angular momentum  Lb = R^T L ; wb = Iinv Lb ; w = R wb
+    const Lbx = Rmat[0] * Lw[0] + Rmat[3] * Lw[1] + Rmat[6] * Lw[2];
+    const Lby = Rmat[1] * Lw[0] + Rmat[4] * Lw[1] + Rmat[7] * Lw[2];
+    const Lbz = Rmat[2] * Lw[0] + Rmat[5] * Lw[1] + Rmat[8] * Lw[2];
+    const wbx = Iinv[0] * Lbx + Iinv[1] * Lby + Iinv[2] * Lbz;
+    const wby = Iinv[3] * Lbx + Iinv[4] * Lby + Iinv[5] * Lbz;
+    const wbz = Iinv[6] * Lbx + Iinv[7] * Lby + Iinv[8] * Lbz;
+    const wx = Rmat[0] * wbx + Rmat[1] * wby + Rmat[2] * wbz;
+    const wy = Rmat[3] * wbx + Rmat[4] * wby + Rmat[5] * wbz;
+    const wz = Rmat[6] * wbx + Rmat[7] * wby + Rmat[8] * wbz;
+    out.w[0] = wx;
+    out.w[1] = wy;
+    out.w[2] = wz;
+    out.wb[0] = wbx;
+    out.wb[1] = wby;
+    out.wb[2] = wbz;
+    // contact point (body frame) = R^T (0,0,-1)
+    const cx = -Rmat[6];
+    const cy = -Rmat[7];
+    const cz = -Rmat[8];
+    out.cx = cx;
+    out.cy = cy;
+    out.cz = cz;
+    // slip velocity at contact
+    const ux = pvx - R * wy;
+    const uy = pvy + R * wx;
+    out.ux = ux;
+    out.uy = uy;
+    // friction
+    const u = xToU(px);
+    const yFt = py / FT;
+    const phi = lane.coverage(u, yFt);
+    const [ci, cj] = cellIndex(cx, cy, cz);
+    const load = oilMap[ci * NLON + cj];
+    let mu = muDryBall * (1 - phi) + muOilBall * phi;
+    mu *= 1 - LOAD_FRIC * load;
+    out.mu = mu;
+    out.phi = phi;
+    out.load = load;
+    const sm = Math.sqrt(ux * ux + uy * uy + EPS_SLIP * EPS_SLIP);
+    const Fx = (-mu * N * ux) / sm;
+    const Fy = (-mu * N * uy) / sm;
+    out.ax = Fx / m;
+    out.ay = Fy / m;
+    out.tx = R * Fy;
+    out.ty = -R * Fx;
+    out.tz = -SPIN_DAMP * wz;
+    return out;
+  }
+
+  // ---------- integrate ----------
+  const maxSteps = Math.ceil(5 / dt);
+  const yStop = HEAD_PIN_Y - (R + PIN_R);
+  const nRec = Math.ceil(maxSteps / recEvery) + 2;
+  const rec = {
+    t: new Float32Array(nRec),
+    x: new Float32Array(nRec),
+    y: new Float32Array(nRec),
+    vx: new Float32Array(nRec),
+    vy: new Float32Array(nRec),
+    u: new Float32Array(nRec),
+    slip: new Float32Array(nRec),
+    rev: new Float32Array(nRec),
+    revFwd: new Float32Array(nRec),
+    mu: new Float32Array(nRec),
+    phi: new Float32Array(nRec),
+    load: new Float32Array(nRec),
+    q: new Float32Array(nRec * 4),
+    axis: new Float32Array(nRec * 3), // omega direction in grip frame
+    contact: new Float32Array(nRec * 3), // contact point in grip frame
+  };
+  let nr = 0;
+  let t = 0;
+  let status = 'timeout';
+  const Rb = new Float64Array(9);
+  const Rmid = new Float64Array(9);
+  const axis0 = v3.norm(wb0);
+  let maxAxisArc = 0;
+
+  function record() {
+    quatToMat(q, Rb);
+    const d = deriv(x, y, vx, vy, Rb, L);
+    rec.t[nr] = t;
+    rec.x[nr] = x;
+    rec.y[nr] = y;
+    rec.vx[nr] = vx;
+    rec.vy[nr] = vy;
+    rec.u[nr] = xToU(x);
+    rec.slip[nr] = Math.hypot(d.ux, d.uy);
+    const wmag = Math.hypot(d.w[0], d.w[1], d.w[2]);
+    rec.rev[nr] = wmag / RPM;
+    // forward-roll component (about the axis perpendicular to travel)
+    const sp = Math.hypot(vx, vy) || 1;
+    rec.revFwd[nr] = (-(d.w[0] * vy - d.w[1] * vx) / sp) / RPM;
+    rec.mu[nr] = d.mu;
+    rec.phi[nr] = d.phi;
+    rec.load[nr] = d.load;
+    rec.q.set(q, nr * 4);
+    const ab = v3.norm(d.wb.slice());
+    rec.axis[nr * 3] = ab[0];
+    rec.axis[nr * 3 + 1] = ab[1];
+    rec.axis[nr * 3 + 2] = ab[2];
+    rec.contact[nr * 3] = d.cx;
+    rec.contact[nr * 3 + 1] = d.cy;
+    rec.contact[nr * 3 + 2] = d.cz;
+    const arc = Math.acos(clamp(v3.dot(ab, axis0), -1, 1));
+    if (arc > maxAxisArc) maxAxisArc = arc;
+    nr++;
+  }
+
+  let step = 0;
+  while (step < maxSteps) {
+    if (step % recEvery === 0) record();
+    // midpoint (RK2)
+    quatToMat(q, Rb);
+    const d1 = deriv(x, y, vx, vy, Rb, L);
+    // ball surface oil update (explicit, from step-start state)
+    {
+      const [ci, cj] = cellIndex(d1.cx, d1.cy, d1.cz);
+      const phi = d1.phi;
+      const pk = PICK_RATE * dt * phi;
+      const sh = SHED_RATE * dt * (1 - phi);
+      for (let di = -1; di <= 1; di++) {
+        const ii = ci + di;
+        if (ii < 0 || ii >= NZ) continue;
+        for (let dj = -1; dj <= 1; dj++) {
+          const jj = (cj + dj + NLON) % NLON;
+          const w = (di === 0 ? 0.5 : 0.25) * (dj === 0 ? 0.5 : 0.25) * 4;
+          const idx = ii * NLON + jj;
+          const cur = oilMap[idx];
+          oilMap[idx] = clamp(cur + pk * w * (1 - cur) - sh * w * cur, 0, 1);
+        }
+      }
+    }
+    const hx = x + 0.5 * dt * vx;
+    const hy = y + 0.5 * dt * vy;
+    const hvx = vx + 0.5 * dt * d1.ax;
+    const hvy = vy + 0.5 * dt * d1.ay;
+    const hL = [L[0] + 0.5 * dt * d1.tx, L[1] + 0.5 * dt * d1.ty, L[2] + 0.5 * dt * d1.tz];
+    const hq = qnorm(qmul(qRot(d1.w, 0.5 * dt), q));
+    quatToMat(hq, Rmid);
+    const d2 = deriv(hx, hy, hvx, hvy, Rmid, hL);
+    x += dt * hvx;
+    y += dt * hvy;
+    vx += dt * d2.ax;
+    vy += dt * d2.ay;
+    L[0] += dt * d2.tx;
+    L[1] += dt * d2.ty;
+    L[2] += dt * d2.tz;
+    q = qnorm(qmul(qRot(d2.w, dt), q));
+    t += dt;
+    step++;
+    if (Math.abs(x) > HALF_W) {
+      status = x > 0 ? 'gutterOwn' : 'gutterFar';
+      record();
+      break;
+    }
+    if (y >= yStop) {
+      status = 'pins';
+      record();
+      break;
+    }
+    if (vy < 0.2) {
+      status = 'stalled';
+      record();
+      break;
+    }
+  }
+
+  const n = nr;
+  const sl = (a, c = 1) => a.subarray(0, n * c);
+  const samples = {
+    n,
+    t: sl(rec.t),
+    x: sl(rec.x),
+    y: sl(rec.y),
+    vx: sl(rec.vx),
+    vy: sl(rec.vy),
+    u: sl(rec.u),
+    slip: sl(rec.slip),
+    rev: sl(rec.rev),
+    revFwd: sl(rec.revFwd),
+    mu: sl(rec.mu),
+    phi: sl(rec.phi),
+    load: sl(rec.load),
+    q: sl(rec.q, 4),
+    axis: sl(rec.axis, 3),
+    contact: sl(rec.contact, 3),
+  };
+  const result = { status, samples, oilMap, launchAngle: theta, flareIn: (maxAxisArc * R) / 0.0254 };
+  result.metrics = computeMetrics(result, cfg);
+  return result;
+}
+
+function computeMetrics(res, cfg) {
+  const s = res.samples;
+  const n = s.n;
+  const m = { status: res.status };
+  const last = n - 1;
+  const ftOf = (i) => s.y[i] / FT;
+
+  // breakpoint = farthest-outside board after the ball has settled into its line (y > 8 ft)
+  let bpI = 0;
+  let minU = Infinity;
+  for (let i = 0; i < n; i++) {
+    if (ftOf(i) < 6) continue;
+    if (s.u[i] < minU) {
+      minU = s.u[i];
+      bpI = i;
+    }
+  }
+  m.breakBoard = minU + 0.5;
+  m.breakFt = ftOf(bpI);
+
+  // arrows (15 ft)
+  const arrowsI = indexAtFt(s, 15);
+  m.arrowsBoard = s.u[arrowsI] + 0.5;
+
+  // entry at head pin y
+  const speed = Math.hypot(s.vx[last], s.vy[last]);
+  m.pinSpeedMph = speed / MPH;
+  m.revAtPins = s.rev[last];
+  if (res.status === 'pins') {
+    const dy = HEAD_PIN_Y - s.y[last];
+    const xh = s.x[last] + (s.vx[last] / s.vy[last]) * dy;
+    m.entryBoard = xToU(xh) + 0.5;
+    m.entryX = xh;
+    // inward (toward the lane centre / hook direction) positive
+    m.entryAngle = -deg(Math.atan(s.vx[last] / s.vy[last]));
+  } else {
+    m.entryBoard = s.u[last] + 0.5;
+    m.entryAngle = -deg(Math.atan(s.vx[last] / s.vy[last]));
+  }
+  m.totalHook = m.entryBoard - m.breakBoard;
+
+  // phases by slip speed relative to the initial slip
+  const s0 = Math.max(0.3, s.slip[0]);
+  let hookStart = -1;
+  let rollStart = -1;
+  for (let i = 0; i < n; i++) {
+    const r = s.slip[i] / s0;
+    if (hookStart < 0 && r < 0.8) hookStart = i;
+    if (rollStart < 0 && r < 0.12) {
+      rollStart = i;
+      break;
+    }
+  }
+  if (hookStart < 0) hookStart = last;
+  if (rollStart < 0) rollStart = last;
+  m.skidFt = ftOf(hookStart);
+  m.rollFt = ftOf(rollStart);
+  m.hookFt = Math.max(0, m.rollFt - m.skidFt);
+  m.hookStartIdx = hookStart;
+  m.rollStartIdx = rollStart;
+  m.initialSlip = s0;
+
+  // heading change over a 10 ft window ("backend angle")
+  let best = 0;
+  let bestFt = 0;
+  const head = (i) => -deg(Math.atan2(s.vx[i], s.vy[i]));
+  for (let i = 0; i < n; i++) {
+    const j = indexAtFt(s, ftOf(i) + 10);
+    if (j <= i) break;
+    const d = head(j) - head(i);
+    if (d > best) {
+      best = d;
+      bestFt = ftOf(i);
+    }
+  }
+  m.backendAngle = best;
+  m.backendStartFt = bestFt;
+  m.launchHeading = head(0);
+  m.totalTurn = head(last) - head(0);
+  m.flareIn = res.flareIn;
+  m.timeS = s.t[last];
+  m.speedLossPct = (1 - speed / Math.hypot(s.vx[0], s.vy[0])) * 100;
+  m.maxMu = 0;
+  for (let i = 0; i < n; i++) if (s.mu[i] > m.maxMu) m.maxMu = s.mu[i];
+  return m;
+}
+
+function indexAtFt(s, ft) {
+  const target = ft * FT;
+  let lo = 0;
+  let hi = s.n - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (s.y[mid] < target) lo = mid + 1;
+    else hi = mid;
+  }
+  return lo;
+}
+
+/* ---- js/physics/pins.js ---- */
+// 2-D pin-deck simulation (top view). Circles + impulses: approximate, meant for a believable
+// "what would this entry do" picture, not a certified carry predictor.
+
+
+const PIN_LAYOUT = (() => {
+  const out = [];
+  let n = 1;
+  for (let row = 0; row < 4; row++) for (let j = 0; j <= row; j++) out.push({ n: n++, x: (-row + 2 * j) * PIN_COL, y: HEAD_PIN_Y + row * PIN_ROW });
+  return out;
+})();
+const ADJ = { 1: [2, 3], 2: [1, 3, 4, 5], 3: [1, 2, 5, 6], 4: [2, 5, 7, 8], 5: [2, 3, 4, 6, 8, 9], 6: [3, 5, 9, 10], 7: [4, 8], 8: [4, 5, 7, 9], 9: [5, 6, 8, 10], 10: [6, 9] };
+
+function mulberry(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0; a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** entry: {x,y,vx,vy} ball centre state when it reaches the pins (y ~ head pin - contact distance) */
+function simulatePins(entry, ballMassKg, seed = 1, record = false) {
+  const rnd = mulberry(seed);
+  const jit = () => (rnd() - 0.5) * 0.006;
+  const bodies = PIN_LAYOUT.map((p) => ({ n: p.n, x: p.x + jit(), y: p.y + jit(), vx: 0, vy: 0, r: PIN_R, m: PIN_M, down: false, gone: false, hit: false }));
+  const ball = { n: 0, x: entry.x + jit(), y: entry.y, vx: entry.vx, vy: entry.vy, r: BALL_R, m: ballMassKg, ball: true };
+  const all = [ball, ...bodies];
+  const dt = 0.0005;
+  const frames = [];
+  const KNOCK = 0.45;
+  const E_BALL = 0.6, E_PIN = 0.8, DECEL = 1.2;
+  const pitY = HEAD_PIN_Y + 3 * PIN_ROW + 0.32;
+  for (let step = 0; step < 5200; step++) {
+    if (record && step % 20 === 0) frames.push(all.map((b) => [b.x, b.y, b.down ? 1 : 0, b.gone ? 1 : 0]));
+    for (const b of all) {
+      if (b.gone) continue;
+      b.x += b.vx * dt; b.y += b.vy * dt;
+      if (!b.ball) {
+        const sp = Math.hypot(b.vx, b.vy);
+        if (sp > 0) { const ns = Math.max(0, sp - DECEL * dt); b.vx *= ns / sp; b.vy *= ns / sp; }
+        if (b.y > pitY || Math.abs(b.x) > HALF_W + 0.1) { b.gone = true; b.down = true; }
+        else if (b.down && b.r < PIN_R * 2.3) b.r += 0.00035; // a fallen pin sweeps wider
+      }
+    }
+    for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++) {
+      const a = all[i], b = all[j];
+      if (a.gone || b.gone) continue;
+      const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), md = a.r + b.r;
+      if (d >= md || d === 0) continue;
+      const nx = dx / d, ny = dy / d;
+      const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+      const pen = md - d, im = 1 / a.m + 1 / b.m;
+      a.x -= nx * pen * (1 / a.m) / im; a.y -= ny * pen * (1 / a.m) / im;
+      b.x += nx * pen * (1 / b.m) / im; b.y += ny * pen * (1 / b.m) / im;
+      if (rel >= 0) continue;
+      const e = a.ball || b.ball ? E_BALL : E_PIN;
+      const jn = (-(1 + e) * rel) / im;
+      a.vx -= (jn * nx) / a.m; a.vy -= (jn * ny) / a.m;
+      b.vx += (jn * nx) / b.m; b.vy += (jn * ny) / b.m;
+      const speed = -rel;
+      for (const p of [a, b]) if (!p.ball) { p.hit = true; if (speed > KNOCK || (a.down || b.down) && speed > KNOCK * 0.5) p.down = true; }
+    }
+    if (step > 1200 && all.every((b) => b.gone || Math.hypot(b.vx, b.vy) < 0.02)) break;
+  }
+  const standing = bodies.filter((b) => !b.down).map((b) => b.n);
+  if (record) frames.push(all.map((b) => [b.x, b.y, b.down ? 1 : 0, b.gone ? 1 : 0]));
+  return { standing, down: 10 - standing.length, leave: leaveName(standing), frames, strike: standing.length === 0 };
+}
+
+function isSplit(standing) {
+  if (standing.length < 2 || standing.includes(1)) return false;
+  const seen = new Set([standing[0]]); const q = [standing[0]];
+  while (q.length) { const c = q.pop(); for (const n of ADJ[c]) if (standing.includes(n) && !seen.has(n)) { seen.add(n); q.push(n); } }
+  return seen.size < standing.length || standing.some((s) => !ADJ[s].some((n) => standing.includes(n)) );
+}
+function leaveName(standing) {
+  if (!standing.length) return 'Strike';
+  const s = standing.slice().sort((a, b) => a - b).join('-');
+  return (isSplit(standing) ? 'Split ' : '') + (standing.length === 1 ? s + ' pin' : s);
+}
+
+/** Monte Carlo strike odds + common leaves. */
+function carryStats(entry, massKg, trials = 24) {
+  let strikes = 0, pins = 0; const leaves = {};
+  for (let i = 0; i < trials; i++) {
+    const r = simulatePins(entry, massKg, 101 + i * 7919);
+    if (r.strike) strikes++;
+    pins += r.down; leaves[r.leave] = (leaves[r.leave] || 0) + 1;
+  }
+  const top = Object.entries(leaves).filter(([k]) => k !== 'Strike').sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => ({ leave: k, pct: (v / trials) * 100 }));
+  return { strikePct: (strikes / trials) * 100, avgPins: pins / trials, top };
+}
+
+function entryFromRun(res) {
+  const s = res.samples, i = s.n - 1;
+  return { x: s.x[i], y: s.y[i], vx: s.vx[i], vy: s.vy[i] };
+}
+
+/* ---- js/physics/analysis.js ---- */
+
+
+
+const POCKET_BOARD = 17.5;
+
+/** find target board at the arrows that puts the ball in the pocket. Returns {target, result} or null. */
+function autoAim(makeCfg, startBoard, { step = 1 } = {}) {
+  const run = (t) => { const cfg = makeCfg(t); return simulate(cfg, { dt: 0.001, recordEvery: 8 }); };
+  const score = (r) => (r.status === 'pins' ? r.metrics.entryBoard - POCKET_BOARD : r.status === 'gutterFar' ? 30 : -30);
+  let best = null;
+  let prev = null;
+  for (let t = 2; t <= 30; t += step) {
+    const r = run(t); const sc = score(r);
+    if (prev && Math.sign(prev.sc) !== Math.sign(sc) && Math.abs(prev.sc) < 30 && Math.abs(sc) < 30) {
+      let lo = prev.t, hi = t, slo = prev.sc;
+      for (let k = 0; k < (step > 1 ? 5 : 7); k++) { const mid = (lo + hi) / 2; const sm = score(run(mid)); if (Math.sign(sm) === Math.sign(slo)) { lo = mid; slo = sm; } else hi = mid; }
+      const tt = Math.round(((lo + hi) / 2) * 10) / 10; const rr = run(tt);
+      const cand = { target: tt, result: rr, err: Math.abs(score(rr)) };
+      if (!best || cand.result.metrics.entryAngle > best.result.metrics.entryAngle + 0.3) best = cand;
+    }
+    prev = { t, sc };
+  }
+  if (!best) return null;
+  return { target: best.target, err: best.err };
+}
+
+/* ---- js/ui/form.js ---- */
+
+
+
+
+
+// ---- field definitions. path roots: "profile." and "fitting." ----
+const opt = (arr) => arr.map(([v, l]) => ({ v, l }));
+
+function sections(S, bank) {
+  const two = () => S.profile.style === 'twoHand';
+  return {
+    client: [
+      { path: 'profile.name', label: 'Full name', type: 'text', ph: 'e.g. Pat Smith', wide: true },
+      { path: 'profile.phone', label: 'Phone', type: 'tel' },
+      { path: 'profile.email', label: 'Email', type: 'email' },
+      { path: 'profile.hand', label: 'Throwing hand', type: 'seg', options: opt([['R', 'Right'], ['L', 'Left']]) },
+      { path: 'profile.style', label: 'Delivery', type: 'seg', options: opt([['oneHand', 'One-handed'], ['twoHand', 'Two-handed']]) },
+      { path: 'profile.average', label: 'League average', type: 'number', min: 0, max: 300, step: 1 },
+      { path: 'profile.yearsBowling', label: 'Years bowling', type: 'number', min: 0, max: 80, step: 1 },
+      { path: 'profile.level', label: 'Level', type: 'select', options: opt([['casual', 'Casual / recreational'], ['league', 'League bowler'], ['competitive', 'Tournament / competitive'], ['pro', 'Professional']]) },
+      { path: 'profile.bodyWeightLb', label: 'Body weight (lb)', type: 'number', min: 40, max: 450, step: 1, hint: () => { const w = +S.profile.bodyWeightLb; return w ? `Rule of thumb ~10% of body weight -> about ${Math.min(16, Math.max(6, Math.round(w / 10)))} lb ball (max 16). Let comfort decide.` : 'Optional: used for a ball-weight suggestion.'; } },
+      { path: 'profile.league', label: 'League / home house', type: 'text' },
+      { path: 'profile.goals', label: 'Goals / what they want from a new ball', type: 'textarea', wide: true },
+      { path: 'profile.health', label: 'Hand / wrist / injury notes', type: 'textarea', wide: true, ph: 'Thumb swelling, carpal tunnel, brace, etc.' },
+      { path: 'profile.consent', label: 'Customer agrees to us storing these details', type: 'check', wide: true },
+    ],
+    grip: [
+      { path: 'fitting.hand.gripType', label: 'Grip type', type: 'seg', options: opt([['conventional', 'Conventional'], ['semi', 'Semi-fingertip'], ['fingertip', 'Fingertip']]), wide: true },
+      { path: 'fitting.hand.span', label: 'Span (thumb to fingers)', type: 'len', min: 2.5, max: 6.5, typical: [3.5, 5.0], hint: () => 'Inside edge of thumb hole to inside edge of finger holes, fit with hand relaxed.' },
+      { path: 'fitting.hand.fingerSpacing', label: 'Finger hole spacing (centre to centre)', type: 'len', min: 0.5, max: 1.75, typical: [0.8, 1.3] },
+      { path: 'fitting.hand.bridge', label: 'Bridge (between finger holes)', type: 'len', min: 0, max: 1, typical: [0.125, 0.5] },
+      { path: 'fitting.hand.middleHole', label: 'Middle finger hole', type: 'len', min: 0.5, max: 1.2, typical: [0.7, 1.0] },
+      { path: 'fitting.hand.ringHole', label: 'Ring finger hole', type: 'len', min: 0.5, max: 1.2, typical: [0.7, 1.0] },
+      { path: 'fitting.hand.thumbHole', label: 'Thumb hole', type: 'len', min: 0.6, max: 1.8, typical: [0.85, 1.4], show: () => !two() },
+      { path: 'fitting.hand.thumbStyle', label: 'Thumb style', type: 'select', options: opt([['round', 'Round'], ['ovalH', 'Oval (horizontal)'], ['ovalV', 'Oval (vertical)'], ['slug', 'Slug / insert'], ['insert', 'Adjustable insert']]), show: () => !two() },
+      { path: 'fitting.hand.fingerPitchFwd', label: 'Finger pitch (+ forward / - reverse)', type: 'len', min: -0.75, max: 0.75, typical: [0, 0.5] },
+      { path: 'fitting.hand.fingerPitchLat', label: 'Finger lateral pitch (+ right)', type: 'len', min: -0.5, max: 0.5, typical: [-0.25, 0.25] },
+      { path: 'fitting.hand.thumbPitchRev', label: 'Thumb pitch (+ reverse / - forward)', type: 'len', min: -0.5, max: 0.75, typical: [0, 0.375], show: () => !two() },
+      { path: 'fitting.hand.thumbPitchLat', label: 'Thumb lateral pitch (+ right)', type: 'len', min: -0.5, max: 0.5, typical: [-0.25, 0.25], show: () => !two() },
+      { path: 'fitting.hand.handLength', label: 'Hand length (wrist to middle fingertip)', type: 'len', min: 5, max: 10, typical: [6.5, 9] },
+      { path: 'fitting.hand.palmWidth', label: 'Palm width (across knuckles)', type: 'len', min: 2.5, max: 5, typical: [3, 4.5] },
+      { path: 'fitting.hand.notes', label: 'Fit notes', type: 'textarea', wide: true, ph: 'Callus areas, finger fit feel, hole shape requests...' },
+    ],
+    delivery: [
+      { path: 'fitting.delivery.type', label: 'Bowler style', type: 'seg', wide: true, options: opt([['stroker', 'Stroker'], ['tweener', 'Tweener'], ['cranker', 'Cranker'], ['twoHand', 'Two-hander'], ['custom', 'Custom']]), hint: () => 'Picking a style fills in TYPICAL numbers - replace them with measured values (Specto, camera, radar) when you have them.' },
+      { path: 'fitting.delivery.source', label: 'Numbers are', type: 'seg', options: opt([['estimated', 'Estimated'], ['measured', 'Measured']]) },
+      { path: 'fitting.delivery.speedMph', label: 'Ball speed at release (mph)', type: 'range', min: 8, max: 24, step: 0.1 },
+      { path: 'fitting.delivery.revRpm', label: 'Rev rate (rpm)', type: 'range', min: 60, max: 600, step: 5 },
+      { path: 'fitting.delivery.axisTilt', label: 'Axis tilt (deg)', type: 'range', min: 0, max: 40, step: 0.5, hint: () => 'How far the axis tips from horizontal. 0-8 low, 10-18 medium, 20+ high.' },
+      { path: 'fitting.delivery.axisRotation', label: 'Axis rotation (deg)', type: 'range', min: 0, max: 90, step: 1, hint: () => '90 = pure forward roll (no side roll). Strokers 65-90, tweeners 50-70, crankers 30-55.' },
+      { path: 'fitting.delivery.papOver', label: 'PAP - over (in)', type: 'len', min: 0.5, max: 7, typical: [3, 6], hint: () => 'Distance from grip centre toward the bowling-hand side.' },
+      { path: 'fitting.delivery.papUp', label: 'PAP - up (in)', type: 'len', min: -3, max: 3.5, typical: [-1, 2.25], hint: () => '+ toward the finger holes, - toward the thumb.' },
+      { path: 'fitting.delivery.loftFt', label: 'Loft - landing distance (ft)', type: 'number', min: 0.5, max: 8, step: 0.5 },
+      { path: 'fitting.delivery.startBoard', label: 'Start board at foul line', type: 'number', min: 1, max: 39, step: 1, hint: () => 'Counted from the bowler\'s own side (1 = own gutter).' },
+      { path: 'fitting.delivery.targetBoard', label: 'Target board at arrows (15 ft)', type: 'number', min: 1, max: 39, step: 0.5 },
+    ],
+    ball: [
+      { path: 'fitting.ball.libId', label: 'Ball library', type: 'ballpick', wide: true },
+      { path: 'fitting.ball.name', label: 'Ball name', type: 'text' },
+      { path: 'fitting.ball.brand', label: 'Brand', type: 'text' },
+      { path: 'fitting.ball.weightLb', label: 'Weight (lb)', type: 'number', min: 6, max: 16, step: 1 },
+      { path: 'fitting.ball.cover', label: 'Coverstock', type: 'select', options: Object.entries(COVERS).map(([v, c]) => ({ v, l: c.label })) },
+      { path: 'fitting.ball.grit', label: 'Surface finish', type: 'select', num: true, options: FINISHES.map((f) => ({ v: f.grit, l: f.label })) },
+      { path: 'fitting.ball.rg', label: 'RG (low)', type: 'number', min: 2.4, max: 2.85, step: 0.01 },
+      { path: 'fitting.ball.diff', label: 'Differential', type: 'number', min: 0, max: 0.09, step: 0.001 },
+      { path: 'fitting.ball.intDiff', label: 'Intermediate diff (0 = symmetric)', type: 'number', min: 0, max: 0.06, step: 0.001, hint: () => 'In this model: how far the intermediate axis sits below the high-RG axis.' },
+      { path: 'fitting.ball.coreAzimuth', label: 'Core orientation (deg)', type: 'number', min: 0, max: 90, step: 5, hint: () => 'Advanced. Where the high-RG axis sits around the pin (matters for asymmetric cores only).' },
+      { path: 'fitting.ball.color', label: 'Display colour', type: 'color' },
+      { path: 'layout', type: 'layout', wide: true },
+      { path: 'fitting.layout.pinDistance', label: 'Pin to PAP (in)', type: 'len', min: 0, max: 6.5, typical: [2, 6] },
+      { path: 'fitting.layout.valAngle', label: 'VAL angle (deg)', type: 'number', min: 0, max: 180, step: 1, hint: () => '0 = pin straight above the PAP, 90 = toward the grip centre, 180 = below. VAL sets pin buffer and hole/core interaction; flare comes from pin-to-PAP distance and core orientation.' },
+      { path: 'fitting.layout.notes', label: 'Layout / driller notes', type: 'textarea', wide: true },
+    ],
+    lane: [
+      { path: 'fitting.lane.preset', label: 'Oil pattern', type: 'select', wide: true, options: PATTERN_PRESETS.map((p) => ({ v: p.id, l: p.name })), hint: () => (PATTERN_PRESETS.find((p) => p.id === S.fitting.lane.preset) || {}).desc },
+      { path: 'fitting.lane.lengthFt', label: 'Length (ft)', type: 'range', min: 20, max: 55, step: 1, show: () => S.fitting.lane.preset === 'custom' },
+      { path: 'fitting.lane.volumeMl', label: 'Volume (mL)', type: 'range', min: 8, max: 40, step: 1, show: () => S.fitting.lane.preset === 'custom' },
+      { path: 'fitting.lane.ratio', label: 'Ratio (middle : outside)', type: 'range', min: 1, max: 15, step: 0.5, show: () => S.fitting.lane.preset === 'custom' },
+      { path: 'fitting.lane.shape', label: 'Shape', type: 'select', options: opt([['house', 'House (crowned)'], ['flat', 'Flat'], ['reverse', 'Reverse block']]), show: () => S.fitting.lane.preset === 'custom' },
+      { path: 'fitting.lane.surface', label: 'Lane surface', type: 'select', options: Object.entries(SURFACES).map(([v, s]) => ({ v, l: s.label })) },
+      { path: 'fitting.lane.games', label: 'Lane transition: games bowled', type: 'range', min: 0, max: 40, step: 1, hint: () => 'Oil breaks down where balls roll and carries down the lane.' },
+      { path: 'fitting.lane.ballOil', label: 'Ball surface: clean -> oil-soaked', type: 'range', min: 0, max: 1, step: 0.05 },
+    ],
+  };
+}
+
+function buildForm(container, defs, S, { onChange, bank, ctx = {} }) {
+  container.textContent = '';
+  const rows = [];
+  const grid = h('div', { class: 'fgrid' });
+  container.append(grid);
+
+  const commit = (path, val, redraw = false) => {
+    setPath(S, path, val);
+    onChange(path, val);
+    if (redraw) refresh();
+  };
+
+  for (const d of defs) {
+    const wrap = h('div', { class: 'field' + (d.wide ? ' wide' : '') });
+    const label = d.label ? h('label', null, d.label) : null;
+    const hintEl = h('div', { class: 'hint' });
+    let input, sync;
+    const get = () => getPath(S, d.path);
+    if (d.type === 'text' || d.type === 'tel' || d.type === 'email') {
+      input = h('input', { type: d.type, placeholder: d.ph || '', autocomplete: 'off', oninput: (e) => commit(d.path, e.target.value) });
+      sync = () => { if (document.activeElement !== input) input.value = get() ?? ''; };
+    } else if (d.type === 'textarea') {
+      input = h('textarea', { rows: 2, placeholder: d.ph || '', oninput: (e) => commit(d.path, e.target.value) });
+      sync = () => { if (document.activeElement !== input) input.value = get() ?? ''; };
+    } else if (d.type === 'number') {
+      input = h('input', { type: 'number', min: d.min, max: d.max, step: d.step, inputmode: 'decimal', oninput: (e) => { const v = e.target.value === '' ? '' : +e.target.value; commit(d.path, v); } });
+      sync = () => { if (document.activeElement !== input) input.value = get() ?? ''; };
+    } else if (d.type === 'range') {
+      const num = h('input', { type: 'number', min: d.min, max: d.max, step: d.step, class: 'rnum' });
+      const rng = h('input', { type: 'range', min: d.min, max: d.max, step: d.step });
+      rng.oninput = () => { num.value = rng.value; commit(d.path, +rng.value); };
+      num.oninput = () => { if (num.value !== '') { rng.value = num.value; commit(d.path, +num.value); } };
+      input = h('div', { class: 'rangebox' }, rng, num);
+      sync = () => { const v = get(); rng.value = v; if (document.activeElement !== num) num.value = v; };
+    } else if (d.type === 'len') {
+      const inp = h('input', { type: 'text', inputmode: 'decimal', class: 'len', autocomplete: 'off' });
+      const step = (dir) => { const cur = +get() || 0; const v = Math.round((cur + dir / 16) * 16) / 16; commit(d.path, clampv(v, d)); inp.value = fmtLen(get(), ctx.unit()); };
+      inp.onchange = () => { const v = parseLen(inp.value); if (!isNaN(v)) commit(d.path, clampv(v, d)); else if (inp.value.trim() === '') commit(d.path, ''); inp.value = fmtLen(get(), ctx.unit()); check(); };
+      inp.onkeydown = (e) => { if (e.key === 'ArrowUp') { e.preventDefault(); step(1); } if (e.key === 'ArrowDown') { e.preventDefault(); step(-1); } };
+      input = h('div', { class: 'lenbox' }, h('button', { type: 'button', class: 'step', 'aria-label': 'decrease 1/16', onclick: () => step(-1) }, '-'), inp, h('button', { type: 'button', class: 'step', 'aria-label': 'increase 1/16', onclick: () => step(1) }, '+'));
+      sync = () => { if (document.activeElement !== inp) inp.value = fmtLen(get(), ctx.unit()); };
+    } else if (d.type === 'select') {
+      input = h('select', { onchange: (e) => commit(d.path, d.num ? +e.target.value : e.target.value, true) }, d.options.map((o) => h('option', { value: o.v }, o.l)));
+      sync = () => { input.value = get(); };
+    } else if (d.type === 'seg') {
+      const btns = d.options.map((o) => h('button', { type: 'button', 'data-v': o.v, onclick: () => commit(d.path, o.v, true) }, o.l));
+      input = h('div', { class: 'seg' }, btns);
+      sync = () => btns.forEach((b) => b.classList.toggle('on', b.dataset.v === String(get())));
+    } else if (d.type === 'check') {
+      input = h('input', { type: 'checkbox', onchange: (e) => commit(d.path, e.target.checked) });
+      sync = () => { input.checked = !!get(); };
+      wrap.classList.add('check');
+    } else if (d.type === 'color') {
+      input = h('input', { type: 'color', oninput: (e) => commit(d.path, e.target.value) });
+      sync = () => { input.value = get() || '#0e7490'; };
+    } else if (d.type === 'ballpick') {
+      const sel = h('select', { onchange: (e) => ctx.pickBall(e.target.value) });
+      sync = () => {
+        const saved = bank.listBalls();
+        sel.textContent = '';
+        sel.append(h('option', { value: '' }, '- choose from library or edit fields below -'));
+        sel.append(h('optgroup', { label: 'Generic archetypes' }, BALL_ARCHETYPES.map((b) => h('option', { value: b.id }, b.name))));
+        if (saved.length) sel.append(h('optgroup', { label: 'Your ball library' }, saved.map((b) => h('option', { value: b.id }, `${b.brand ? b.brand + ' ' : ''}${b.name}`))));
+        sel.value = get() || '';
+      };
+      const save = h('button', { type: 'button', class: 'btn small', onclick: () => ctx.saveBallToLibrary() }, 'Save to library');
+      input = h('div', { class: 'ballpick' }, sel, save);
+    } else if (d.type === 'layout') {
+      input = ctx.layoutHost;
+      sync = () => ctx.layoutRefresh?.();
+    }
+    const check = () => {
+      if (d.typical) { const v = +get(); const bad = !isNaN(v) && get() !== '' && (v < d.typical[0] || v > d.typical[1]); wrap.classList.toggle('warn', bad); hintEl.textContent = bad ? `Unusual - typical range ${fmtLen(d.typical[0], ctx.unit())} to ${fmtLen(d.typical[1], ctx.unit())}. Double-check the measurement.` : (d.hint ? d.hint() || '' : ''); }
+      else hintEl.textContent = d.hint ? d.hint() || '' : '';
+    };
+    wrap.append(...[label, input, hintEl].filter(Boolean));
+    if (d.type === 'check') { wrap.textContent = ''; wrap.append(h('label', { class: 'chk' }, input, d.label)); }
+    grid.append(wrap);
+    rows.push({ d, wrap, sync, check });
+    input.addEventListener?.('input', check);
+    input.addEventListener?.('change', check);
+  }
+  function refresh() {
+    for (const r of rows) {
+      r.wrap.style.display = r.d.show && !r.d.show() ? 'none' : '';
+      r.sync();
+      r.check();
+    }
+  }
+  refresh();
+  return { refresh };
+}
+function clampv(v, d) { return Math.min(d.max ?? Infinity, Math.max(d.min ?? -Infinity, v)); }
+
+/* ---- js/ui/layoutDiagram.js ---- */
+
+
+
+
+const NS = 'http://www.w3.org/2000/svg';
+const S = 30; // px per inch
+const RPX = 4.25 * S;
+const el = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); parent?.append(e); return e; };
+const proj = (p) => [p[0] * RPX, -p[1] * RPX];
+
+/** draws the grip-face layout into svg. Returns geometry used for hit-testing. */
+function drawLayout(svg, st, { interactive = false, mono = false } = {}) {
+  svg.textContent = '';
+  const f = st.fitting;
+  const grip = gripGeometry({ ...f.hand, style: st.profile.style });
+  const pap = surfacePoint(+f.delivery.papOver || 0, +f.delivery.papUp || 0);
+  const pin = pinPosition(pap, +f.layout.pinDistance || 0, +f.layout.valAngle || 0);
+  const ink = mono ? '#111' : 'var(--ink)';
+  const g = el('g', { transform: `translate(${RPX + 14},${RPX + 14})` }, svg);
+  svg.setAttribute('viewBox', `0 0 ${RPX * 2 + 28} ${RPX * 2 + 28}`);
+  el('circle', { r: RPX, fill: mono ? '#fff' : f.ball.color || '#0e7490', 'fill-opacity': mono ? 1 : 0.9, stroke: ink, 'stroke-width': 2 }, g);
+  if (!mono) el('circle', { r: RPX, fill: 'url(#shade)' }, g);
+  // track (great circle 90 deg from PAP)
+  const pts = [];
+  const u1 = v3.norm(v3.cross(pap, [0, 0, 1].map((x, i) => x + 0.001 * i)));
+  const u2 = v3.cross(pap, u1);
+  for (let a = 0; a <= 360; a += 4) { const c = v3.add(v3.scale(u1, Math.cos(rad(a))), v3.scale(u2, Math.sin(rad(a)))); if (c[2] > 0) pts.push(proj(c).join(',')); }
+  el('polyline', { points: pts.join(' '), fill: 'none', stroke: mono ? '#555' : '#fff', 'stroke-opacity': 0.55, 'stroke-dasharray': '4 4' }, g);
+  // holes
+  const hole = (x, y, d, label) => { const [px, py] = proj(surfacePoint(x, y)); el('ellipse', { cx: px, cy: py, rx: (d / 2) * S, ry: (d / 2) * S * 0.96, fill: mono ? '#ddd' : '#0b0f14', stroke: ink, 'stroke-width': 1.5 }, g); if (label) { const t = el('text', { x: px, y: py + 4, 'text-anchor': 'middle', 'font-size': 10, fill: mono ? '#000' : '#9fb3c8' }, g); t.textContent = label; } };
+  grip.fingers.forEach((fg, i) => hole(fg.x, fg.y, fg.d, i ? 'R' : 'M'));
+  if (grip.thumb) hole(grip.thumb.x, grip.thumb.y, grip.thumb.d, 'T');
+  // grip centre
+  el('circle', { r: 3, fill: ink }, g);
+  // VAL (vertical axis line through PAP) and pin line
+  const [px, py] = proj(pap); const [qx, qy] = proj(pin);
+  el('line', { x1: px, y1: py - RPX * 0.55, x2: px, y2: py + RPX * 0.55, stroke: ink, 'stroke-opacity': 0.5, 'stroke-dasharray': '2 4' }, g);
+  el('line', { x1: px, y1: py, x2: qx, y2: qy, stroke: '#ffd166', 'stroke-width': 2 }, g);
+  const papDot = el('circle', { cx: px, cy: py, r: 8, fill: '#22c55e', stroke: '#fff', 'stroke-width': 2, class: interactive ? 'drag' : '' }, g);
+  const pinDot = el('circle', { cx: qx, cy: qy, r: 8, fill: '#ef4444', stroke: '#fff', 'stroke-width': 2, class: interactive ? 'drag' : '' }, g);
+  for (const [x, y, t] of [[px, py, 'PAP'], [qx, qy, 'PIN']]) { const tx = el('text', { x: x + 11, y: y - 9, 'font-size': 11, 'font-weight': 700, fill: mono ? '#000' : '#fff', stroke: mono ? '#fff' : '#000', 'stroke-width': 3, 'paint-order': 'stroke' }, g); tx.textContent = t; }
+  return { g, papDot, pinDot, pap, pin, grip, buffer: pinBuffer(pin, grip), origin: RPX + 14 };
+}
+
+function createLayoutDiagram(host, st, onChange, unit) {
+  const svg = el('svg', { class: 'layoutsvg', role: 'img', 'aria-label': 'Grip layout diagram' });
+  const defs = el('defs', {}, svg);
+  const rg = el('radialGradient', { id: 'shade', cx: '35%', cy: '30%', r: '75%' }, defs);
+  el('stop', { offset: '0', 'stop-color': '#fff', 'stop-opacity': 0.28 }, rg);
+  el('stop', { offset: '1', 'stop-color': '#000', 'stop-opacity': 0.35 }, rg);
+  const cap = document.createElement('div'); cap.className = 'diagcap';
+  host.append(svg, cap);
+  let geo, drag = null;
+  const render = () => {
+    const old = svg.querySelector('g'); const keepDefs = defs;
+    const tmp = document.createElementNS(NS, 'svg');
+    geo = drawLayout(tmp, st, { interactive: true });
+    old?.remove(); svg.append(geo.g);
+    const buf = geo.buffer;
+    cap.innerHTML = `<b>Grip face</b> (fingers up). Drag the <span style="color:#22c55e">PAP</span> or the <span style="color:#ef4444">pin</span>.<br>Pin buffer: <b>${fmtLen(Math.max(0, buf), unit())}</b>${buf < 0.75 ? ' <span class="bad">- under 3/4" is tight</span>' : ''} &middot; PAP over/up: ${fmtLen(+st.fitting.delivery.papOver, unit())} / ${fmtLen(+st.fitting.delivery.papUp, unit())} &middot; Pin-PAP ${fmtLen(+st.fitting.layout.pinDistance, unit())} @ ${Math.round(+st.fitting.layout.valAngle)}&deg;`;
+  };
+  const toFace = (e) => {
+    const r = svg.getBoundingClientRect(); const k = (RPX * 2 + 28) / r.width;
+    const x = ((e.clientX - r.left) * k - (RPX + 14)) / RPX, y = -((e.clientY - r.top) * k - (RPX + 14)) / RPX;
+    const m = Math.hypot(x, y); const s = m > 0.98 ? 0.98 / m : 1;
+    const X = x * s, Y = y * s; return [X, Y, Math.sqrt(Math.max(0, 1 - X * X - Y * Y))];
+  };
+  svg.addEventListener('pointerdown', (e) => {
+    const t = e.target; if (t.classList?.contains('drag')) { drag = t === geo.papDot ? 'pap' : 'pin'; svg.setPointerCapture(e.pointerId); e.preventDefault(); }
+  });
+  svg.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    const p = toFace(e);
+    if (drag === 'pap') {
+      const over = Math.asin(clamp(p[0], -1, 1)) * BALL_R / IN, up = Math.asin(clamp(p[1], -1, 1)) * BALL_R / IN;
+      st.fitting.delivery.papOver = Math.round(clamp(over, 0.5, 7) * 16) / 16; st.fitting.delivery.papUp = Math.round(clamp(up, -3, 3.5) * 16) / 16;
+      onChange('fitting.delivery.papOver'); 
+    } else {
+      const pap = geo.pap; const dist = Math.acos(clamp(v3.dot(p, pap), -1, 1)) * BALL_R / IN;
+      const tang = (a, b) => { const t = v3.sub(b, v3.scale(a, v3.dot(a, b))); return v3.norm(t); };
+      const up = tang(pap, [0, 1, 0]), cen = tang(pap, [0, 0, 1]);
+      const dir = tang(pap, p);
+      let val = deg(Math.atan2(v3.dot(dir, cen), v3.dot(dir, up))); val = Math.abs(val);
+      st.fitting.layout.pinDistance = Math.round(clamp(dist, 0, 6.5) * 16) / 16; st.fitting.layout.valAngle = Math.round(val);
+      onChange('fitting.layout.pinDistance');
+    }
+    render();
+  });
+  const end = () => { drag = null; };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
+  render();
+  return { refresh: render };
+}
+
+/* ---- js/ui/ballView.js ---- */
+
+
+
+
+
+const hex = (c) => { const n = parseInt((c || '#0e7490').slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+
+/** Software sphere renderer: draws the ball in its true 3-D orientation with holes, pin, PAP and the oil track. */
+class BallRenderer {
+  constructor(size) {
+    this.size = size;
+    this.canvas = document.createElement('canvas');
+    this.canvas.width = this.canvas.height = size;
+    this.ctx = this.canvas.getContext('2d');
+    this.img = this.ctx.createImageData(size, size);
+    this.R = new Float64Array(9);
+    this.setSpec(null);
+  }
+  setSpec(st, ball) {
+    if (!st) { this.spec = null; return; }
+    const g = gripGeometry({ ...st.fitting.hand, style: st.profile.style });
+    const toC = (x, y, d) => ({ c: surfacePoint(x, y), cos: Math.cos((d / 2) / 4.25) });
+    this.holes = [...g.fingers.map((f) => toC(f.x, f.y, f.d)), ...(g.thumb ? [toC(g.thumb.x, g.thumb.y, g.thumb.d)] : [])];
+    this.pap = ball.pap; this.pin = ball.pin;
+    this.rgb = hex(st.fitting.ball.color);
+    this.spec = true;
+  }
+  /** q: grip->world quaternion. view: pitch (rad) of camera looking down-lane from behind. */
+  render(q, oilMap, { pitch = 0.35, mirror = false } = {}) {
+    const n = this.size, d = this.img.data; const R = quatToMat(q, this.R);
+    const cp = Math.cos(pitch), sp = Math.sin(pitch);
+    const [br, bg, bb] = this.rgb || [14, 116, 144];
+    const holes = this.holes || [];
+    const NZ = OILMAP.NZ, NL = OILMAP.NLON;
+    for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) {
+      const a = ((i + 0.5) / n) * 2 - 1, b = 1 - ((j + 0.5) / n) * 2, r2 = a * a + b * b;
+      const o = (j * n + i) * 4;
+      if (r2 > 1) { d[o + 3] = 0; continue; }
+      const c = Math.sqrt(1 - r2);
+      // camera frame: right=x, up (tilted), toward-camera = -y(rotated by pitch)
+      const nx = mirror ? -a : a, ny = -(c * cp - b * sp), nz = c * sp + b * cp;
+      // grip-frame normal = R^T n
+      const gx = R[0] * nx + R[3] * ny + R[6] * nz, gy = R[1] * nx + R[4] * ny + R[7] * nz, gz = R[2] * nx + R[5] * ny + R[8] * nz;
+      let cr = br, cg = bg, cb = bb;
+      if (oilMap) {
+        const zi = Math.min(NZ - 1, Math.floor(((gz + 1) / 2) * NZ));
+        let jj = Math.floor(((Math.atan2(gy, gx) + Math.PI) / (2 * Math.PI)) * NL); if (jj >= NL) jj = NL - 1;
+        const L = oilMap[zi * NL + jj];
+        if (L > 0.02) { const k = Math.min(1, L * 1.4) * 0.55; cr += (200 - cr) * k; cg += (235 - cg) * k; cb += (255 - cb) * k; }
+      }
+      let dark = false, mark = 0;
+      for (const h of holes) if (gx * h.c[0] + gy * h.c[1] + gz * h.c[2] > h.cos) { dark = true; break; }
+      if (!dark && this.pap) {
+        if (gx * this.pap[0] + gy * this.pap[1] + gz * this.pap[2] > 0.9975) mark = 1;
+        else if (gx * this.pin[0] + gy * this.pin[1] + gz * this.pin[2] > 0.9975) mark = 2;
+      }
+      const lum = 0.35 + 0.65 * Math.max(0, 0.45 * (-ny) * -1 + 0.6 * nz * 0 + (c * 0.7 + b * 0.5 - a * 0.25));
+      const spec = Math.pow(Math.max(0, c * 0.75 + b * 0.45 - a * 0.3 - 0.45), 3) * 90;
+      if (dark) { cr = 12; cg = 14; cb = 18; }
+      else if (mark === 1) { cr = 34; cg = 197; cb = 94; }
+      else if (mark === 2) { cr = 239; cg = 68; cb = 68; }
+      d[o] = Math.min(255, cr * lum + spec); d[o + 1] = Math.min(255, cg * lum + spec); d[o + 2] = Math.min(255, cb * lum + spec); d[o + 3] = 255;
+    }
+    this.ctx.putImageData(this.img, 0, 0);
+    return this.canvas;
+  }
+}
+
+/* ---- js/ui/laneView.js ---- */
+
+
+
+
+const PHASE = { skid: '#38bdf8', hook: '#fb923c', roll: '#4ade80' };
+const GHOST_COLORS = ['#f472b6', '#a78bfa', '#fbbf24'];
+
+class LaneView {
+  constructor(canvas, ballRenderer) {
+    this.c = canvas; this.ctx = canvas.getContext('2d'); this.br = ballRenderer;
+    this.mode = 'overhead'; this.heat = 'oil'; this.hand = 'R';
+    this.run = null; this.lane = null; this.ghosts = []; this.ballCfg = null; this._heatKey = '';
+    this.resize();
+    new ResizeObserver(() => this.resize()).observe(canvas.parentElement);
+  }
+  resize() {
+    const p = this.c.parentElement, dpr = Math.min(2, window.devicePixelRatio || 1);
+    this.W = Math.max(200, p.clientWidth); this.H = Math.max(260, p.clientHeight);
+    this.c.width = this.W * dpr; this.c.height = this.H * dpr; this.c.style.width = this.W + 'px'; this.c.style.height = this.H + 'px';
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); this.dirty = true;
+  }
+  set(run, lane, ballCfg, hand, ghosts) { this.run = run; this.lane = lane; this.ballCfg = ballCfg; this.hand = hand; this.ghosts = ghosts || []; this._heatKey = ''; }
+
+  // ------- oil / friction heat texture (cached) -------
+  heatCanvas() {
+    const lane = this.lane; const key = this.heat + '|' + (this.ballCfg?.ball.muDry) + '|' + (this.ballCfg?.ball.muOil) + '|' + lane.grid[1000] + lane.grid[2500] + lane.pattern.lengthFt + lane.games + lane.pattern.volumeMl;
+    if (key === this._heatKey && this._heat) return this._heat;
+    const cols = lane.nodesU, rows = lane.nodesY; const cv = document.createElement('canvas'); cv.width = cols; cv.height = rows; const x = cv.getContext('2d'); const im = x.createImageData(cols, rows);
+    const b = this.ballCfg?.ball;
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) {
+      const T = lane.grid[j * cols + i]; const phi = 1 - Math.exp(-T / 0.4); const o = (j * cols + i) * 4;
+      if (this.heat === 'oil') { im.data[o] = 30; im.data[o + 1] = 120; im.data[o + 2] = 255; im.data[o + 3] = Math.min(210, T * 200); }
+      else { const mu = b ? (b.muDry * lane.surfaceDry * (1 - phi) + b.muOil * phi) : 0.05; const t = Math.min(1, mu / (b ? b.muDry * 1.05 : 0.1)); im.data[o] = 40 + 215 * t; im.data[o + 1] = 90 + 40 * (1 - Math.abs(t - 0.5) * 2); im.data[o + 2] = 255 - 215 * t; im.data[o + 3] = 170; }
+    }
+    x.putImageData(im, 0, 0); this._heat = cv; this._heatKey = key; return cv;
+  }
+
+  // ------- main draw -------
+  draw(tSec, pinFrame) {
+    if (!this.lane) return;
+    const ctx = this.ctx; ctx.clearRect(0, 0, this.W, this.H);
+    if (this.mode === 'chase') this.drawChase(tSec); else this.drawOverhead(tSec);
+  }
+  idx(tSec) { const s = this.run.samples; let lo = 0, hi = s.n - 1; while (lo < hi) { const m = (lo + hi) >> 1; if (s.t[m] < tSec) lo = m + 1; else hi = m; } return lo; }
+
+  drawOverhead(tSec) {
+    const { ctx, W, H } = this; const s = this.run.samples; const mir = this.hand === 'L';
+    const top = 26, bot = 34; const ftPx = (H - top - bot) / 64;
+    const laneW = Math.min(W - 70, 360); const bpx = laneW / 39; const cx = W / 2 - 6;
+    const sx = (u) => cx + (mir ? u - 19.5 : 19.5 - u) * bpx;
+    const sy = (ft) => H - bot - ft * ftPx;
+    const L = sx(mir ? 0 : 39), Rr = sx(mir ? 39 : 0);
+    // gutters & lane
+    ctx.fillStyle = '#1b2230'; ctx.fillRect(L - 14, sy(66), laneW + 28, (66) * ftPx + 6);
+    const g = ctx.createLinearGradient(0, 0, laneW, 0); g.addColorStop(0, '#d9b57c'); g.addColorStop(0.5, '#e6c68f'); g.addColorStop(1, '#d9b57c');
+    ctx.fillStyle = g; ctx.fillRect(L, sy(64), laneW, 64 * ftPx);
+    const hc = this.heatCanvas(); ctx.imageSmoothingEnabled = true;
+    ctx.save(); ctx.beginPath(); ctx.rect(L, sy(64), laneW, 64 * ftPx); ctx.clip();
+    ctx.translate(mir ? L + laneW : L, sy(0)); ctx.scale(mir ? -1 : 1, -1); ctx.drawImage(hc, 0, 0, laneW, 66 * ftPx); ctx.restore();
+    // boards
+    ctx.strokeStyle = 'rgba(70,45,10,.28)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let b = 0; b <= 39; b++) { const x = L + b * bpx; ctx.moveTo(x, sy(0)); ctx.lineTo(x, sy(62)); } ctx.stroke();
+    // arrows, dots, foul line
+    ctx.fillStyle = 'rgba(60,35,10,.8)';
+    for (const b of [5, 10, 15, 20, 25, 30, 35]) { const x = sx(b - 0.5), y = sy(ARROWS_FT + (b < 20 ? b : 40 - b) * 0.0 + Math.abs(20 - b) * 0.35 - 1.4 * 0); ctx.beginPath(); ctx.moveTo(x, y - 7); ctx.lineTo(x - 4, y + 5); ctx.lineTo(x + 4, y + 5); ctx.fill(); ctx.beginPath(); ctx.arc(x, sy(7), 1.8, 0, 7); ctx.fill(); }
+    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(L, sy(0)); ctx.lineTo(L + laneW, sy(0)); ctx.stroke();
+    // labels
+    ctx.fillStyle = 'rgba(160,175,195,.9)'; ctx.font = '10px system-ui'; ctx.textAlign = 'right';
+    for (let ft = 0; ft <= 60; ft += 10) { ctx.fillText(ft + ' ft', L - 18, sy(ft) + 3); }
+    ctx.textAlign = 'center'; for (const b of [1, 5, 10, 15, 20, 25, 30, 35, 39]) ctx.fillText(b, sx(b - 0.5), sy(0) + 14);
+    ctx.fillText(mir ? 'boards from LEFT' : 'boards from RIGHT', cx, sy(0) + 27);
+    // pins
+    for (const p of PIN_LAYOUT) { const bx = cx + (x2u(p.x) - 19.5) * bpx * (mir ? 1 : -1) * 1; ctx.fillStyle = '#f8fafc'; ctx.strokeStyle = '#475569'; ctx.beginPath(); ctx.arc(bx, sy(p.y / FT), 3.6, 0, 7); ctx.fill(); ctx.stroke(); }
+    // ghosts
+    this.ghosts.forEach((gh, k) => { ctx.strokeStyle = GHOST_COLORS[k % 3]; ctx.setLineDash([5, 4]); ctx.lineWidth = 2; ctx.beginPath(); gh.path.forEach(([u, ft], i) => { const X = sx(u), Y = sy(ft); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.stroke(); ctx.setLineDash([]); });
+    // path to current time
+    const cur = Math.min(s.n - 1, this.idx(tSec)); const hs = this.run.metrics.hookStartIdx, rs = this.run.metrics.rollStartIdx;
+    ctx.lineWidth = 3; ctx.lineCap = 'round';
+    for (const [a, b, col] of [[0, hs, PHASE.skid], [hs, rs, PHASE.hook], [rs, s.n - 1, PHASE.roll]]) {
+      const e = Math.min(b, cur); if (e <= a) continue; ctx.strokeStyle = col; ctx.beginPath();
+      for (let i = a; i <= e; i += 2) { const X = sx(s.u[i]), Y = sy(s.y[i] / FT); i === a ? ctx.moveTo(X, Y) : ctx.lineTo(X, Y); } ctx.lineTo(sx(s.u[e]), sy(s.y[e] / FT)); ctx.stroke();
+    }
+    // breakpoint marker
+    const m = this.run.metrics; if (cur >= s.n - 2 || s.y[cur] / FT > m.breakFt) { ctx.strokeStyle = '#fff'; ctx.fillStyle = '#0b0f14'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(sx(m.breakBoard - 0.5), sy(m.breakFt), 4, 0, 7); ctx.fill(); ctx.stroke(); }
+    // ball
+    const bx = sx(s.u[cur]), by = sy(s.y[cur] / FT), bs = 30;
+    if (this.br && this.br.spec) { const q = [s.q[cur * 4], s.q[cur * 4 + 1], s.q[cur * 4 + 2], s.q[cur * 4 + 3]]; ctx.drawImage(this.br.render(q, null, { pitch: 1.2, mirror: mir }), bx - bs / 2, by - bs / 2, bs, bs); }
+    else { ctx.fillStyle = '#0e7490'; ctx.beginPath(); ctx.arc(bx, by, 7, 0, 7); ctx.fill(); }
+    ctx.fillStyle = 'rgba(160,175,195,.7)'; ctx.textAlign = 'left'; ctx.fillText('lateral scale exaggerated', 8, 14);
+  }
+
+  drawChase(tSec) {
+    const { ctx, W, H } = this; const s = this.run.samples; const mir = this.hand === 'L';
+    const cur = Math.min(s.n - 1, this.idx(tSec));
+    const bxW = (mir ? -1 : 1) * s.x[cur], byW = s.y[cur];
+    const camY = byW - 2.2, camX = bxW * 0.6, camZ = 1.15, f = W * 1.5, hor = H * 0.3;
+    // sky/room
+    const sky = ctx.createLinearGradient(0, 0, 0, hor); sky.addColorStop(0, '#0b1020'); sky.addColorStop(1, '#1f2a44'); ctx.fillStyle = sky; ctx.fillRect(0, 0, W, hor);
+    ctx.fillStyle = '#10151f'; ctx.fillRect(0, hor, W, H - hor);
+    const projX = (x, dy) => W / 2 + (f * (x - camX)) / dy; const projY = (z, dy) => hor + (f * (camZ - z)) / dy;
+    const mx = mir ? -1 : 1; const hc = this.heatCanvas(); const rowsPerFt = 2; const hcW = hc.width, hcH = hc.height;
+    for (let r = Math.ceil(hor) + 1; r < H; r += 2) {
+      const dy = (f * camZ) / (r - hor); const y = camY + dy; if (y < -4.5 || y > HEAD_PIN_Y + 1.2) continue;
+      const xl = projX(-HALF_W, dy), xr = projX(HALF_W, dy), gw = (xr - xl) * 0.12;
+      ctx.fillStyle = '#0a0d14'; ctx.fillRect(xl - gw, r, gw, 2); ctx.fillRect(xr, r, gw, 2);
+      if (y < 0) { ctx.fillStyle = '#7a5a34'; ctx.fillRect(xl, r, xr - xl, 2); continue; }
+      ctx.fillStyle = Math.floor(y / 0.3) % 2 ? '#dcb97f' : '#d6b177'; ctx.fillRect(xl, r, xr - xl, 2);
+      const row = Math.min(hcH - 1, Math.round((y / FT) * rowsPerFt));
+      ctx.save(); if (mir) { ctx.translate(xl + xr, 0); ctx.scale(-1, 1); ctx.drawImage(hc, 0, row, hcW, 1, xl, r, xr - xl, 2); } else ctx.drawImage(hc, 0, row, hcW, 1, xl, r, xr - xl, 2); ctx.restore();
+    }
+    // board lines
+    ctx.strokeStyle = 'rgba(70,45,10,.3)'; ctx.lineWidth = 1; ctx.beginPath();
+    for (let b = 0; b <= 39; b += 1) { const x = -HALF_W + b * BOARD_W; const y0 = Math.max(camY + 0.5, 0), y1 = Math.min(HEAD_PIN_Y + 1, camY + 30); const d0 = y0 - camY, d1 = y1 - camY; ctx.moveTo(projX(x, d0), projY(0, d0)); ctx.lineTo(projX(x, d1), projY(0, d1)); } ctx.stroke();
+    // arrows + foul line
+    const poly = (pts, col) => { ctx.fillStyle = col; ctx.beginPath(); pts.forEach(([x, y], i) => { const dy = y - camY; if (dy < 0.3) return; i ? ctx.lineTo(projX(x, dy), projY(0, dy)) : ctx.moveTo(projX(x, dy), projY(0, dy)); }); ctx.fill(); };
+    for (const b of [5, 10, 15, 20, 25, 30, 35]) { const x = -HALF_W + (b - 0.5) * BOARD_W, y = ARROWS_FT * FT; poly([[x, y + 0.25], [x - 0.03, y - 0.1], [x + 0.03, y - 0.1]], 'rgba(60,35,10,.85)'); }
+    if (camY < -0.1) poly([[-HALF_W, 0], [HALF_W, 0], [HALF_W, 0.04], [-HALF_W, 0.04]], '#ef4444');
+    // pins
+    for (const p of [...PIN_LAYOUT].sort((a, b) => b.y - a.y)) { const dy = p.y - camY; if (dy < 0.5) continue; const X = projX(mx * p.x, dy), Y0 = projY(0, dy), Y1 = projY(0.38, dy), w = (f * PIN_R) / dy; ctx.fillStyle = '#f1f5f9'; ctx.strokeStyle = '#334155'; ctx.beginPath(); ctx.roundRect(X - w * 0.9, Y1, w * 1.8, Y0 - Y1, w * 0.8); ctx.fill(); ctx.stroke(); ctx.fillStyle = '#dc2626'; ctx.fillRect(X - w * 0.85, Y1 + (Y0 - Y1) * 0.16, w * 1.7, (Y0 - Y1) * 0.07); }
+    // trail
+    const trail = (a, b, col) => { const e = Math.min(b, cur); if (e <= a) return; ctx.strokeStyle = col; ctx.lineWidth = 3; ctx.beginPath(); let st = false; for (let i = a; i <= e; i += 3) { const dy = s.y[i] - camY; if (dy < 0.4) { st = false; continue; } const X = projX(mx * s.x[i], dy), Y = projY(0, dy); st ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); st = true; } ctx.stroke(); };
+    const hs = this.run.metrics.hookStartIdx, rs = this.run.metrics.rollStartIdx; trail(0, hs, PHASE.skid); trail(hs, rs, PHASE.hook); trail(rs, s.n - 1, PHASE.roll);
+    // ball
+    const dy = Math.max(0.6, byW - camY), X = projX(mx * s.x[cur], dy), Y = projY(BALL_R, dy), rr = (f * BALL_R) / dy;
+    ctx.fillStyle = 'rgba(0,0,0,.35)'; ctx.beginPath(); ctx.ellipse(X, projY(0, dy), rr * 0.9, rr * 0.28, 0, 0, 7); ctx.fill();
+    if (this.br?.spec) { const q = [s.q[cur * 4], s.q[cur * 4 + 1], s.q[cur * 4 + 2], s.q[cur * 4 + 3]]; ctx.drawImage(this.br.render(q, null, { pitch: 0.25, mirror: mir }), X - rr, Y - rr, rr * 2, rr * 2); }
+    ctx.fillStyle = 'rgba(200,210,225,.8)'; ctx.font = '12px system-ui'; ctx.textAlign = 'left'; ctx.fillText(`${(byW / FT).toFixed(0)} ft  ·  board ${(s.u[cur] + 0.5).toFixed(1)}`, 10, 18);
+  }
+}
+const x2u = (x) => (HALF_W - x) / BOARD_W; // pin x (right-positive) -> u for a righty
+void LANE_W; void indexAtFt;
+
+class PinView {
+  constructor(canvas) { this.c = canvas; this.ctx = canvas.getContext('2d'); this.frames = null; this.size(); new ResizeObserver(() => this.size()).observe(canvas.parentElement); }
+  size() { const p = this.c.parentElement, dpr = Math.min(2, devicePixelRatio || 1); this.W = p.clientWidth; this.H = p.clientHeight; this.c.width = this.W * dpr; this.c.height = this.H * dpr; this.c.style.width = this.W + 'px'; this.c.style.height = this.H + 'px'; this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0); this.draw(0, true); }
+  load(frames, hand) { this.frames = frames; this.hand = hand; }
+  draw(k, standing) {
+    const { ctx, W, H } = this; ctx.clearRect(0, 0, W, H);
+    const sc = Math.min(W / 1.1, H / 0.95), cx = W / 2, mir = this.hand === 'L' ? -1 : 1, y0 = HEAD_PIN_Y - 0.22;
+    const X = (x) => cx + mir * x * sc, Y = (y) => H - 12 - (y0 + 0.95 - y) * sc * 1 + 0;
+    const Yf = (y) => 14 + (y - y0) * sc;
+    ctx.fillStyle = '#d9b57c'; ctx.fillRect(cx - HALF_W * sc, 0, LANE_W * sc, H); ctx.fillStyle = '#0a0d14'; ctx.fillRect(0, 0, cx - HALF_W * sc, H); ctx.fillRect(cx + HALF_W * sc, 0, W, H);
+    ctx.fillStyle = '#090b10'; ctx.fillRect(cx - HALF_W * sc, Yf(HEAD_PIN_Y + 0.9), LANE_W * sc, H);
+    if (!this.frames) { for (const p of PIN_LAYOUT) { ctx.fillStyle = '#f8fafc'; ctx.strokeStyle = '#475569'; ctx.beginPath(); ctx.arc(X(p.x), Yf(p.y), PIN_R * sc, 0, 7); ctx.fill(); ctx.stroke(); } return; }
+    const fr = this.frames[Math.min(k, this.frames.length - 1)];
+    fr.forEach(([x, y, down, gone], i) => {
+      if (gone && i) return;
+      if (i === 0) { ctx.fillStyle = '#0e7490'; ctx.beginPath(); ctx.arc(X(x), Yf(y), BALL_R * sc, 0, 7); ctx.fill(); return; }
+      ctx.fillStyle = down ? 'rgba(248,250,252,.35)' : '#f8fafc'; ctx.strokeStyle = down ? '#94a3b8' : '#334155'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(X(x), Yf(y), PIN_R * sc, 0, 7); ctx.fill(); ctx.stroke();
+      if (!down) { ctx.fillStyle = '#dc2626'; ctx.beginPath(); ctx.arc(X(x), Yf(y), PIN_R * sc * 0.45, 0, 7); ctx.fill(); }
+      ctx.fillStyle = down ? '#475569' : '#0f172a'; ctx.font = '10px system-ui'; ctx.textAlign = 'center'; ctx.fillText(i, X(x), Yf(y) + 3.5);
+    });
+  }
+}
+
+/* ---- js/ui/charts.js ---- */
+/** minimal line chart on canvas. series: [{y:[], color, label, axis:0|1}], x: [] */
+function lineChart(canvas, x, series, { xLabel = '', yLabels = ['', ''], marks = [], xMax } = {}) {
+  const p = canvas.parentElement, dpr = Math.min(2, devicePixelRatio || 1), W = p.clientWidth, H = p.clientHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const c = canvas.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H);
+  const css = getComputedStyle(document.documentElement); const grid = css.getPropertyValue('--line').trim() || '#2a3547', txt = css.getPropertyValue('--muted').trim() || '#8aa0b8';
+  const L = 38, R = 34, T = 8, B = 20, w = W - L - R, h = H - T - B; const xm = xMax || x[x.length - 1] || 1;
+  const rng = [0, 1].map((ax) => { const ys = series.filter((s) => (s.axis || 0) === ax).flatMap((s) => Array.from(s.y)); if (!ys.length) return null; let lo = Math.min(...ys), hi = Math.max(...ys); if (hi - lo < 1e-6) hi = lo + 1; const pad = (hi - lo) * 0.08; return [lo - pad, hi + pad]; });
+  c.strokeStyle = grid; c.lineWidth = 1; c.font = '10px system-ui'; c.fillStyle = txt;
+  for (let i = 0; i <= 4; i++) { const yy = T + (h * i) / 4; c.beginPath(); c.moveTo(L, yy); c.lineTo(L + w, yy); c.stroke(); }
+  c.textAlign = 'center'; for (let ft = 0; ft <= xm; ft += 10) { const xx = L + (ft / xm) * w; c.fillText(ft, xx, H - 6); }
+  [0, 1].forEach((ax) => { const r = rng[ax]; if (!r) return; c.textAlign = ax ? 'left' : 'right'; for (let i = 0; i <= 4; i++) { const v = r[1] - ((r[1] - r[0]) * i) / 4; c.fillText(v >= 100 ? v.toFixed(0) : v.toFixed(v < 1 ? 2 : 1), ax ? L + w + 4 : L - 4, T + (h * i) / 4 + 3); } });
+  for (const m of marks) { const xx = L + (m.x / xm) * w; c.strokeStyle = m.color; c.setLineDash([3, 3]); c.beginPath(); c.moveTo(xx, T); c.lineTo(xx, T + h); c.stroke(); c.setLineDash([]); }
+  for (const s of series) {
+    const r = rng[s.axis || 0]; c.strokeStyle = s.color; c.lineWidth = 2; c.beginPath();
+    for (let i = 0; i < x.length; i += 2) { const xx = L + (x[i] / xm) * w, yy = T + h - ((s.y[i] - r[0]) / (r[1] - r[0])) * h; i ? c.lineTo(xx, yy) : c.moveTo(xx, yy); } c.stroke();
+  }
+}
+
+/* ---- js/advice.js ---- */
+// Plain-English pro-shop notes derived from the measurements and the simulated throw.
+
+
+
+function advise(S, run, ball) {
+  const out = []; const add = (level, title, text) => out.push({ level, title, text });
+  const { profile: p, fitting: f } = S; const m = run?.metrics; const d = f.delivery;
+
+  // ---- fit / measurement sanity ----
+  const two = p.style === 'twoHand';
+  const wt = +p.bodyWeightLb;
+  if (wt) { const rec = Math.min(16, Math.max(6, Math.round(wt / 10))); if (f.ball.weightLb > rec + 1) add('warn', 'Ball weight', `${f.ball.weightLb} lb is heavier than the ~10%-of-body-weight guideline (${rec} lb). A lighter ball can improve speed and reduce strain.`); }
+  const h = f.hand;
+  if (!two && h.span && h.thumbHole && h.thumbHole > 1.5) add('info', 'Thumb hole', 'Large thumb hole - consider a slug/insert so the thumb releases cleanly without swelling gaps.');
+  if (h.gripType === 'fingertip' && h.span < 3.9) add('info', 'Span', 'Fingertip grips normally measure a longer span than conventional. Re-check the span.');
+  if (h.fingerSpacing && h.middleHole && h.ringHole && h.fingerSpacing - (h.middleHole + h.ringHole) / 2 < 0.12) add('warn', 'Bridge', 'Finger holes are almost touching (thin bridge). Confirm spacing before drilling.');
+  const grip = gripGeometry({ ...h, style: p.style });
+  if (ball) { const pb = pinBuffer(ball.pin, grip); if (pb < 0.75) add('warn', 'Pin buffer', `Pin buffer is only ${pb.toFixed(2)}" - under 3/4" the pin sits close to the finger holes (core is weakened and ball may be unstable).`); }
+  if (d.source === 'estimated') add('info', 'Estimated numbers', 'Speed, revs, axis and PAP are typical values for this style. Measure them (Specto / camera / radar / PAP finding) for a trustworthy layout.');
+
+  if (!m) return out;
+  // ---- reaction ----
+  if (run.status === 'gutterOwn') add('warn', 'Line', 'This line puts the ball in the gutter before it can hook. Move the target inside or start further in.');
+  else if (run.status === 'gutterFar') add('warn', 'Over-hook', 'The ball hooks across the whole lane and falls off the far side - too much traction for this condition. Consider a weaker surface/cover, or play deeper in the oil.');
+  else if (run.status === 'stalled') add('warn', 'Stalled', 'Ball speed is too low to reach the pins.');
+  if (run.status === 'pins') {
+    const miss = m.entryBoard - POCKET_BOARD;
+    if (Math.abs(miss) <= 1) add('good', 'Pocket', `Entry on board ${m.entryBoard.toFixed(1)} - right in the pocket (17.5).`);
+    else add('info', 'Line', `Entry on board ${m.entryBoard.toFixed(1)}: ${miss > 0 ? 'high (hits the headpin)' : 'light (3-pin first, 10-pin leaves)'}. Use Auto-aim to find the target that hits the pocket.`);
+    if (m.entryAngle < 3) add('warn', 'Entry angle', `Entry angle ${m.entryAngle.toFixed(1)}° is on the low side - weaker carry. A stronger ball, stronger surface, or a more angular layout would add backend.`);
+    else if (m.entryAngle > 7.5) add('info', 'Entry angle', `Entry angle ${m.entryAngle.toFixed(1)}° is very high - great carry potential but the ball may be overreacting (less forgiving).`);
+    else add('good', 'Entry angle', `Entry angle ${m.entryAngle.toFixed(1)}° is in the productive 4-7° window.`);
+  }
+  if (m.rollFt > 55) add('warn', 'Length', `Ball does not finish rolling until ~${m.rollFt.toFixed(0)} ft - very long/skiddy. Consider a stronger surface or lower-RG, higher-diff ball.`);
+  if (m.skidFt < 14 && f.lane.preset !== 'dry') add('warn', 'Early reaction', `Ball starts hooking by ${m.skidFt.toFixed(0)} ft - it will feel early and may burn up. A weaker/polished surface would give more length.`);
+  if (m.flareIn < 2 && ball && ball.diff > 0.02) add('info', 'Flare', `Only ${m.flareIn.toFixed(1)}" of flare. A different pin-to-PAP distance (try 3.25"-4.5") would increase it.`);
+  if (m.flareIn > 6.5) add('info', 'Flare', `${m.flareIn.toFixed(1)}" of flare is a lot - good on long patterns, but the ball can lose energy through the lane.`);
+  if (d.revRpm / d.speedMph > 28) add('info', 'Rev-to-speed', 'High rev-to-speed ratio - the ball reads the lane early. Slow the ball less or use a smoother cover.');
+  if (d.revRpm / d.speedMph < 12) add('info', 'Rev-to-speed', 'Low rev-to-speed ratio - the ball will skid long. Look for more length-friendly traction (strong surface) or a flatter pattern.');
+  if (m.speedLossPct > 26) add('warn', 'Speed loss', `The ball loses ${m.speedLossPct.toFixed(0)}% of its speed before the pins - a sign of heavy skidding drag.`);
+  return out;
+}
+
+/* ---- js/ui/app.js ---- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch { return null; } };
+
+function start() {
+  const bank = new Bank();
+  const S = { profile: defaultProfile(), fitting: defaultFitting(), clientId: null, fittingId: null };
+  const UI = { unit: store('lanelab.unit') || 'in', speed: 0.5, t: 0, playing: false, pinK: 0, pinSeed: 1, dirty: false };
+  let run = null, cfg = null, pinRun = null, carry = null;
+  const tabs = ['client', 'grip', 'delivery', 'ball'];
+  let tab = 'client';
+
+  // ---------- DOM refs ----------
+  const R = {}; document.querySelectorAll('[id]').forEach((e) => { R[e.id] = e; });
+  if (store('lanelab.theme')) document.documentElement.dataset.theme = store('lanelab.theme');
+  if (window.__ARTIFACT) document.documentElement.classList.add('is-artifact');
+  const ballR = new BallRenderer(170);
+  const laneV = new LaneView(R.laneCanvas, ballR);
+  const pinV = new PinView(R.pinCanvas);
+  const ballCanvasCtx = R.ballCanvas.getContext('2d');
+
+  // ---------- form construction ----------
+  const defs = sections(S, bank);
+  const layoutHost = h('div', { class: 'layouthost' });
+  const ctx = {
+    unit: () => UI.unit, layoutHost,
+    pickBall: (id) => pickBall(id),
+    saveBallToLibrary: () => { const b = { ...S.fitting.ball }; delete b.libId; const rec = bank.putBall({ ...b, id: S.fitting.ball.libId && bank.db.balls[S.fitting.ball.libId] ? S.fitting.ball.libId : undefined }); S.fitting.ball.libId = rec.id; forms.ball.refresh(); toast('Ball saved to your library'); },
+    layoutRefresh: () => layout?.refresh(),
+  };
+  let layout;
+  const forms = {};
+  const onChange = (path) => {
+    if (path === 'fitting.delivery.type') applyStyle();
+    else if (path.startsWith('fitting.delivery.') && !['type', 'source'].includes(path.split('.').pop()) && S.fitting.delivery.type !== 'custom' && !['startBoard', 'targetBoard', 'loftFt'].includes(path.split('.').pop())) { S.fitting.delivery.type = 'custom'; S.fitting.delivery.source = 'measured'; }
+    if (path === 'profile.style' && S.profile.style === 'twoHand' && S.fitting.delivery.type !== 'twoHand') { S.fitting.delivery.type = 'twoHand'; applyStyle(); forms.delivery?.refresh(); }
+    if (path === 'profile.hand') laneV.hand = S.profile.hand;
+    UI.dirty = true; scheduleSim(); scheduleSave(); updateChips();
+    if (path.includes('delivery.pap') || path.includes('layout.') || path.includes('ball.color') || path.includes('hand.')) layout?.refresh();
+    Object.values(forms).forEach((f) => f.refresh());
+  };
+  function applyStyle() {
+    const pr = STYLE_PRESETS[S.fitting.delivery.type]; if (!pr) return;
+    Object.assign(S.fitting.delivery, pr); S.fitting.delivery.source = 'estimated';
+    forms.delivery?.refresh(); layout?.refresh();
+  }
+  function pickBall(id) {
+    const b = BALL_ARCHETYPES.find((x) => x.id === id) || bank.db.balls[id]; if (!b) return;
+    const keep = S.fitting.ball.weightLb;
+    Object.assign(S.fitting.ball, { libId: id, name: b.name, brand: b.brand || '', cover: b.cover, grit: b.grit, rg: b.rg, diff: b.diff, intDiff: b.intDiff, color: b.color || '#0e7490', weightLb: b.weightLb && b.id !== undefined && bank.db.balls[id] ? b.weightLb : keep });
+    onChange('fitting.ball.libId');
+  }
+  function buildAllForms() {
+    const d = sections(S, bank);
+    layout = null; layoutHost.textContent = '';
+    forms.client = buildForm(R.formClient, d.client, S, { onChange, bank, ctx });
+    forms.grip = buildForm(R.formGrip, d.grip, S, { onChange, bank, ctx });
+    forms.delivery = buildForm(R.formDelivery, d.delivery, S, { onChange, bank, ctx });
+    forms.ball = buildForm(R.formBall, d.ball, S, { onChange, bank, ctx });
+    forms.lane = buildForm(R.formLane, d.lane, S, { onChange, bank, ctx });
+    layout = createLayoutDiagram(layoutHost, S, onChange, () => UI.unit);
+  }
+  R.tabs.addEventListener('click', (e) => { const b = e.target.closest('button[data-tab]'); if (b) setTab(b.dataset.tab); });
+  function setTab(t) { tab = t; R.tabs.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.tab === t)); R.formPanes.querySelectorAll('.pane').forEach((p) => p.classList.toggle('on', p.dataset.pane === t)); }
+
+  // ---------- simulation ----------
+  const scheduleSim = debounce(() => simulateNow(false), 90);
+  function simulateNow(animate) {
+    cfg = buildConfig(S.profile, S.fitting);
+    run = simulate(cfg);
+    ballR.setSpec(S, cfg.ball);
+    laneV.hand = S.profile.hand;
+    laneV.set(run, cfg.lane, cfg, S.profile.hand, ghostsToDraw());
+    pinRun = null; carry = null;
+    if (run.status === 'pins') pinRun = simulatePins(entryFromRun(run), cfg.ball.massKg, UI.pinSeed, true);
+    pinV.load(null, S.profile.hand); pinV.draw(0);
+    UI.pinK = 0;
+    renderMetrics(); renderCharts(); renderAdvice();
+    if (animate) { UI.t = 0; UI.playing = true; } else { UI.t = run.samples.t[run.samples.n - 1]; UI.playing = false; if (pinRun) { pinV.load(pinRun.frames, S.profile.hand); UI.pinK = pinRun.frames.length - 1; } }
+    R.timeline.max = String(Math.round(run.samples.t[run.samples.n - 1] * 1000));
+    clearTimeout(simulateNow._c); simulateNow._c = setTimeout(computeCarry, 500);
+    kick();
+  }
+  function computeCarry() {
+    if (!run || run.status !== 'pins') { R.carryBox.textContent = '—'; return; }
+    carry = carryStats(entryFromRun(run), cfg.ball.massKg, 24);
+    R.carryBox.innerHTML = `<b>${carry.strikePct.toFixed(0)}%</b> strike odds · avg ${carry.avgPins.toFixed(1)} pins` + (carry.top.length ? `<div class="sub">Common leaves: ${carry.top.map((t) => `${t.leave} (${t.pct.toFixed(0)}%)`).join(', ')}</div>` : '');
+  }
+  function ghostsToDraw() { return (S.fitting.ghosts || []).map((g, i) => ({ ...g, color: GHOST_COLORS[i % 3] })); }
+
+  // ---------- animation ----------
+  let raf = 0, last = 0;
+  function kick() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+  function frame(now) {
+    raf = 0; if (!run) return;
+    const dt = (now - last) / 1000; last = now;
+    const end = run.samples.t[run.samples.n - 1];
+    if (UI.playing) {
+      UI.t += dt * UI.speed;
+      if (UI.t >= end) { UI.t = end; UI.playing = false; if (pinRun) { pinV.load(pinRun.frames, S.profile.hand); UI.pinK = 0; UI.pinPlay = true; } }
+    }
+    if (UI.pinPlay && pinRun) { UI.pinK += Math.max(1, Math.round(dt * 60 * UI.speed * 2)); if (UI.pinK >= pinRun.frames.length - 1) { UI.pinK = pinRun.frames.length - 1; UI.pinPlay = false; showLeave(); } }
+    laneV.draw(UI.t); pinV.draw(UI.pinK);
+    const i = Math.min(run.samples.n - 1, laneV.idx(UI.t)); drawBall(i); R.timeline.value = String(Math.round(UI.t * 1000));
+    const s = run.samples; R.live.textContent = `${(s.y[i] / FT).toFixed(0)} ft · board ${(s.u[i] + 0.5).toFixed(1)} · ${(Math.hypot(s.vx[i], s.vy[i]) / MPH).toFixed(1)} mph · ${s.rev[i].toFixed(0)} rpm · slip ${s.slip[i].toFixed(1)} m/s`;
+    if (UI.playing || UI.pinPlay) raf = requestAnimationFrame(frame);
+  }
+  function drawBall(i) {
+    const s = run.samples; const q = [s.q[i * 4], s.q[i * 4 + 1], s.q[i * 4 + 2], s.q[i * 4 + 3]];
+    const cv = ballR.render(q, run.oilMap, { pitch: 0.35, mirror: S.profile.hand === 'L' });
+    const c = ballCanvasCtx; c.clearRect(0, 0, 170, 170); c.drawImage(cv, 0, 0);
+  }
+  function showLeave() { R.leave.textContent = pinRun.strike ? 'STRIKE!' : `${pinRun.down} pins · leave ${pinRun.leave}`; R.leave.className = 'leave ' + (pinRun.strike ? 'strike' : ''); }
+  function throwBall() { UI.pinSeed = (Math.random() * 1e9) | 0; simulateNow(true); R.leave.textContent = ''; }
+
+  // ---------- metrics / charts / advice ----------
+  function renderMetrics() {
+    const m = run.metrics, pins = run.status === 'pins';
+    const card = (k, v, sub, cls = '') => h('div', { class: 'card ' + cls }, h('div', { class: 'k' }, k), h('div', { class: 'v' }, v), sub ? h('div', { class: 'sub' }, sub) : null);
+    const miss = m.entryBoard - POCKET_BOARD;
+    const statusTxt = { pins: '', gutterOwn: 'Gutter (own side)', gutterFar: 'Gutter (over-hooked)', stalled: 'Stalled', timeout: 'Timed out' }[run.status];
+    R.metrics.textContent = '';
+    R.metrics.append(
+      card('Entry board', pins ? m.entryBoard.toFixed(1) : '—', pins ? (Math.abs(miss) <= 1 ? 'in the pocket' : miss > 0 ? 'high' : 'light') : statusTxt, pins && Math.abs(miss) <= 1 ? 'good' : ''),
+      card('Entry angle', pins ? m.entryAngle.toFixed(1) + '°' : '—', 'goal 4–7°', pins && m.entryAngle >= 4 && m.entryAngle <= 7.5 ? 'good' : ''),
+      card('Breakpoint', `b${m.breakBoard.toFixed(1)}`, `at ${m.breakFt.toFixed(0)} ft`),
+      card('Total hook', pins ? m.totalHook.toFixed(1) + ' bd' : '—', 'break → entry'),
+      card('Skid / Hook / Roll', `${m.skidFt.toFixed(0)} / ${m.hookFt.toFixed(0)} / ${m.rollFt.toFixed(0)}`, 'ft where each phase ends'),
+      card('Speed at pins', m.pinSpeedMph.toFixed(1) + ' mph', `−${m.speedLossPct.toFixed(0)}% from release`),
+      card('Flare', m.flareIn.toFixed(1) + '"', 'axis migration'),
+      card('Backend angle', m.backendAngle.toFixed(1) + '°', `max turn in 10 ft @ ${m.backendStartFt.toFixed(0)} ft`),
+    );
+    const bar = (label, val, max) => h('div', { class: 'rbar' }, h('span', null, label), h('i', null, h('b', { style: { width: Math.max(2, Math.min(100, (val / max) * 100)) + '%' } })));
+    R.rating.textContent = ''; R.rating.append(bar('Length', m.skidFt, 45), bar('Hook', Math.abs(m.totalTurn), 14), bar('Angularity', m.backendAngle, 8), bar('Flare', m.flareIn, 8));
+    R.titleLine.textContent = `${S.fitting.ball.name || 'Ball'} · ${S.fitting.ball.weightLb} lb · ${cfg.lane.pattern.lengthFt ? cfg.lane.pattern.lengthFt + ' ft pattern' : 'dry lane'}`;
+  }
+  function renderCharts() {
+    const s = run.samples; const ft = Array.from(s.y, (v) => v / FT);
+    lineChart(R.chart1, ft, [{ y: Array.from(s.u, (u) => u + 0.5), color: '#38bdf8', label: 'board' }], { marks: [{ x: run.metrics.skidFt, color: '#fb923c' }, { x: run.metrics.rollFt, color: '#4ade80' }], xMax: 60 });
+    lineChart(R.chart2, ft, [{ y: Array.from(s.vy, (v) => Math.hypot(v, 0) / MPH), color: '#fbbf24', axis: 0 }, { y: s.rev, color: '#f472b6', axis: 1 }], { xMax: 60 });
+    lineChart(R.chart3, ft, [{ y: s.mu, color: '#ef4444', axis: 0 }, { y: s.slip, color: '#a78bfa', axis: 1 }], { xMax: 60 });
+  }
+  function renderAdvice() {
+    const list = advise(S, run, cfg.ball); R.advice.textContent = '';
+    for (const a of list) R.advice.append(h('li', { class: a.level }, h('b', null, a.title + ': '), a.text));
+    if (!list.length) R.advice.append(h('li', { class: 'info' }, 'No flags.'));
+  }
+
+  // ---------- toolbar actions ----------
+  R.btnThrow.onclick = throwBall;
+  R.btnAim.onclick = () => {
+    R.btnAim.disabled = true; R.btnAim.textContent = 'Aiming…';
+    setTimeout(() => {
+      const res = autoAim((t) => buildConfig(S.profile, S.fitting, { delivery: { targetBoard: t } }), S.fitting.delivery.startBoard);
+      R.btnAim.disabled = false; R.btnAim.textContent = 'Auto-aim to pocket';
+      if (!res) { toast('No line from this start board reaches the pocket on this condition.', true); return; }
+      S.fitting.delivery.targetBoard = res.target; forms.delivery.refresh(); onChange('fitting.delivery.targetBoard'); throwBall(); toast(`Target ${res.target} at the arrows puts it in the pocket`);
+    }, 20);
+  };
+  R.btnPin.onclick = () => {
+    if (!run) return; const g = S.fitting.ghosts; if (g.length >= 3) g.shift();
+    const s = run.samples; const path = []; for (let i = 0; i < s.n; i += 3) path.push([s.u[i] + 0.5 - 0.5, s.y[i] / FT]);
+    g.push({ label: `${S.fitting.ball.name} (${S.fitting.lane.preset})`, path, entry: run.metrics.entryBoard, angle: run.metrics.entryAngle });
+    laneV.ghosts = ghostsToDraw(); renderGhosts(); UI.dirty = true; scheduleSave(); laneV.draw(UI.t);
+  };
+  R.btnClearGhosts.onclick = () => { S.fitting.ghosts = []; laneV.ghosts = []; renderGhosts(); scheduleSave(); laneV.draw(UI.t); };
+  function renderGhosts() { R.ghosts.textContent = ''; S.fitting.ghosts.forEach((g, i) => R.ghosts.append(h('span', { class: 'chip', style: { borderColor: GHOST_COLORS[i % 3] } }, `${g.label} → b${g.entry.toFixed(1)} / ${g.angle.toFixed(1)}°`))); }
+  R.viewSeg.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; laneV.mode = b.dataset.v; R.viewSeg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); laneV.draw(UI.t); });
+  R.heatSeg.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; laneV.heat = b.dataset.v; laneV._heatKey = ''; R.heatSeg.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b)); laneV.draw(UI.t); });
+  R.speedSel.onchange = () => { UI.speed = +R.speedSel.value; };
+  R.timeline.oninput = () => { UI.playing = false; UI.t = +R.timeline.value / 1000; UI.pinPlay = false; laneV.draw(UI.t); drawBall(Math.min(run.samples.n - 1, laneV.idx(UI.t))); };
+  R.btnPlay.onclick = () => { if (UI.playing) { UI.playing = false; } else { if (UI.t >= run.samples.t[run.samples.n - 1] - 0.01) UI.t = 0; UI.playing = true; kick(); } };
+  R.btnLayoutLab.onclick = () => layoutLab();
+  window.addEventListener('resize', debounce(() => { if (run) { renderCharts(); laneV.draw(UI.t); } }, 120));
+
+  // ---------- layout lab ----------
+  async function layoutLab() {
+    const box = R.labResults; box.textContent = 'Testing layouts…'; R.labDlg.showModal();
+    const base = JSON.parse(JSON.stringify(S.fitting)); const asym = base.ball.intDiff > 0.004;
+    const pins = [2.5, 3.25, 4, 4.75, 5.5], cores = asym ? [0, 45, 90] : [0]; const rows = []; const total = pins.length * cores.length;
+    for (const pd of pins) for (const ca of cores) {
+      await new Promise((r) => setTimeout(r, 0));
+      // choose the VAL (nearest the current one) that keeps a healthy pin buffer
+      let va = null; for (const cand of [base.layout.valAngle, ...[75, 90, 60, 105, 45, 120, 30, 135, 15, 150].filter((v) => v !== base.layout.valAngle)]) if (gripBuffer(S, pd, cand) >= 1) { va = cand; break; }
+      if (va == null) { rows.push({ ok: false }); continue; }
+      const mk = (t) => buildConfig(S.profile, base, { layout: { pinDistance: pd, valAngle: va }, ball: { coreAzimuth: ca }, delivery: { targetBoard: t } });
+      const aim = autoAim(mk, base.delivery.startBoard, { step: 3 });
+      if (!aim) { rows.push({ ok: false }); continue; }
+      const m = simulate(mk(aim.target), { dt: 0.001, recordEvery: 8 }).metrics;
+      rows.push({ pd, va, ca, ok: true, target: aim.target, angle: m.entryAngle, flare: m.flareIn, bp: m.breakFt, bb: m.breakBoard });
+      box.textContent = `Testing layouts… ${rows.length}/${total}`;
+    }
+    const good = rows.filter((r) => r.ok).sort((a, b) => Math.abs(a.angle - 6) - Math.abs(b.angle - 6));
+    box.textContent = '';
+    box.append(h('p', { class: 'muted' }, `Each layout is thrown on the current lane with Auto-aim to the pocket from start board ${base.delivery.startBoard}, ranked by entry angle closest to 6°. VAL is auto-chosen to keep at least 1" of pin buffer.${asym ? '' : ' (This ball is symmetric, so core orientation is not scanned.)'}`));
+    const tb = h('table', { class: 'tbl' }, h('thead', null, h('tr', null, ['Pin–PAP', 'Core', 'VAL', 'Target', 'Break', 'Entry angle', 'Flare', ''].map((t) => h('th', null, t)))));
+    const body = h('tbody'); tb.append(body);
+    for (const r of good.slice(0, 12)) body.append(h('tr', null, h('td', null, fmtLen(r.pd, UI.unit)), h('td', null, r.ca + '°'), h('td', null, r.va + '°'), h('td', null, r.target), h('td', null, `b${r.bb.toFixed(0)} @ ${r.bp.toFixed(0)}ft`), h('td', null, r.angle.toFixed(1) + '°'), h('td', null, r.flare.toFixed(1) + '"'), h('td', null, h('button', { class: 'btn small', onclick: () => { S.fitting.layout.pinDistance = r.pd; S.fitting.layout.valAngle = r.va; S.fitting.ball.coreAzimuth = r.ca; S.fitting.delivery.targetBoard = r.target; R.labDlg.close(); forms.ball.refresh(); forms.delivery.refresh(); onChange('fitting.layout.pinDistance'); } }, 'Apply'))));
+    box.append(good.length ? tb : h('p', null, 'No tested layout reached the pocket from this start board.'));
+  }
+
+  // ---------- persistence ----------
+  function results() { const m = run?.metrics; return m ? { entryBoard: +m.entryBoard.toFixed(1), entryAngle: +m.entryAngle.toFixed(1), breakBoard: +m.breakBoard.toFixed(1), breakFt: +m.breakFt.toFixed(0), flareIn: +m.flareIn.toFixed(1), pinSpeedMph: +m.pinSpeedMph.toFixed(1), status: run.status } : null; }
+  function saveNow() {
+    if (!UI.dirty) return;
+    const blank = !S.profile.name && !S.clientId && JSON.stringify(S.fitting) === JSON.stringify(UI.pristine);
+    if (blank) return;
+    const now = bank.getClient(S.clientId);
+    const crec = bank.putClient({ id: S.clientId || undefined, createdAt: now?.createdAt, profile: { ...S.profile } });
+    S.clientId = crec.id;
+    const old = bank.getFitting(S.fittingId);
+    const frec = bank.putFitting({ id: S.fittingId || undefined, createdAt: old?.createdAt, clientId: crec.id, label: S.fitting.label || '', data: JSON.parse(JSON.stringify(S.fitting)), results: results() });
+    S.fittingId = frec.id; UI.dirty = false; store('lanelab.last', JSON.stringify({ c: S.clientId, f: S.fittingId }));
+    R.saveState.dataset.s = 'saved'; setSaveText();
+    updateChips();
+  }
+  const saveDebounced = debounce(saveNow, 700);
+  function scheduleSave() { R.saveState.dataset.s = 'saving'; R.saveText.textContent = 'Saving…'; saveDebounced(); }
+  function setSaveText() {
+    const t = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const where = bank.mode === 'online' ? 'saved to data bank' : bank.mode === 'offline' ? 'saved on this device — will sync' : 'saved in this browser';
+    if (R.saveState.dataset.s === 'saving') return;
+    R.saveText.textContent = `${S.profile.name || 'Unnamed'} · ${where} ${t}`;
+  }
+  bank.on((mode, pending) => { R.bankMode.dataset.m = mode; R.bankMode.textContent = mode === 'online' ? 'Server connected' : mode === 'offline' ? `Offline (${pending} queued)` : 'Browser storage'; if (R.saveState.dataset.s !== 'saving') setSaveText(); });
+  window.addEventListener('beforeunload', () => saveDebounced.flush());
+  document.addEventListener('visibilitychange', () => { if (document.hidden) saveDebounced.flush(); });
+
+  function updateChips() { R.clientChip.textContent = S.profile.name || 'New client'; }
+  function loadFitting(clientId, fittingId) {
+    const c = bank.getClient(clientId); if (!c) return;
+    const f = bank.getFitting(fittingId) || bank.listFittings(clientId)[0];
+    S.clientId = c.id; S.profile = migrateProfile(c.profile); S.fitting = f ? migrateFitting(f.data) : defaultFitting(); S.fittingId = f ? f.id : null;
+    afterLoad();
+  }
+  function newClient() {
+    saveDebounced.flush(); S.clientId = null; S.fittingId = null; S.profile = defaultProfile(); S.fitting = defaultFitting(); afterLoad(); setTab('client');
+  }
+  function newFitting() { saveDebounced.flush(); const keep = S.clientId; S.fittingId = null; S.fitting = defaultFitting(); S.fitting.hand = { ...S.fitting.hand }; afterLoad(); UI.dirty = true; if (keep) saveNow(); }
+  function afterLoad() {
+    UI.pristine = JSON.parse(JSON.stringify(defaultFitting())); UI.dirty = false;
+    for (const k of Object.keys(S)) {} 
+    Object.assign(defs, {}); buildAllForms(); renderGhosts(); updateChips(); simulateNow(true); setSaveText(); R.saveState.dataset.s = 'saved';
+  }
+
+  // ---------- data bank dialog ----------
+  function renderBank() {
+    const q = R.bankSearch.value; const list = bank.listClients(q); R.clientList.textContent = '';
+    if (!list.length) R.clientList.append(h('p', { class: 'muted' }, q ? 'No matches.' : 'No saved clients yet. Fill in the form and it saves itself.'));
+    for (const c of list) {
+      const row = h('div', { class: 'crow' + (c.id === S.clientId ? ' cur' : '') },
+        h('div', { class: 'cmain', onclick: () => { loadFitting(c.id); R.bankDlg.close(); } }, h('b', null, c.profile.name || 'Unnamed'), h('span', { class: 'muted' }, ` ${c.profile.phone || ''} ${c.profile.email || ''}`), h('div', { class: 'muted small' }, `${c.fittingCount} fitting${c.fittingCount === 1 ? '' : 's'} · updated ${new Date(c.updatedAt).toLocaleDateString()}`)),
+        h('button', { class: 'btn small danger', onclick: (e) => { const b = e.currentTarget; if (b.dataset.arm !== '1') { b.dataset.arm = '1'; b.textContent = 'Click again to delete'; setTimeout(() => { b.dataset.arm = ''; b.textContent = 'Delete'; }, 3500); return; } bank.deleteClient(c.id); if (c.id === S.clientId) newClient(); renderBank(); } }, 'Delete'));
+      R.clientList.append(row);
+      if (c.id === S.clientId) for (const f of bank.listFittings(c.id)) R.clientList.append(h('div', { class: 'frow' + (f.id === S.fittingId ? ' cur' : ''), onclick: () => { loadFitting(c.id, f.id); R.bankDlg.close(); } }, `${new Date(f.updatedAt).toLocaleString()} · ${f.data?.ball?.name || ''} ${f.results ? `· entry b${f.results.entryBoard}, ${f.results.entryAngle}°` : ''}`));
+    }
+    R.ballList.textContent = '';
+    const balls = bank.listBalls(); if (!balls.length) R.ballList.append(h('p', { class: 'muted' }, 'No custom balls yet - use "Save this ball to library" on the Ball tab.'));
+    for (const b of balls) R.ballList.append(h('div', { class: 'crow' }, h('div', { class: 'cmain', onclick: () => { pickBall(b.id); R.bankDlg.close(); setTab('ball'); } }, h('b', null, `${b.brand || ''} ${b.name}`), h('span', { class: 'muted small' }, ` RG ${b.rg} · diff ${b.diff} · int ${b.intDiff}`)), h('button', { class: 'btn small danger', onclick: () => { bank.deleteBall(b.id); renderBank(); } }, 'Remove')));
+    R.bankStatus.textContent = bank.mode === 'online' ? 'Connected to the LaneLab server — every save is also written to the SQLite database.' : bank.mode === 'offline' ? `Server unreachable — ${bank.outbox.length} change(s) queued and will sync automatically.` : 'Data is stored in this browser (localStorage). Run the LaneLab server to also keep it in a shared SQLite database — see README.';
+  }
+  R.btnBank.onclick = () => { saveDebounced.flush(); renderBank(); R.bankDlg.showModal(); };
+  R.bankSearch.oninput = renderBank;
+  R.btnNewClient.onclick = () => { newClient(); R.bankDlg.close(); };
+  R.btnNewFitting.onclick = () => { newFitting(); R.bankDlg.close(); toast('Started a new fitting for this client'); };
+  const download = (name, text, type) => { const a = h('a', { href: URL.createObjectURL(new Blob([text], { type })), download: name }); document.body.append(a); a.click(); a.remove(); };
+  R.btnExport.onclick = () => download(`lanelab-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(bank.exportAll(), null, 1), 'application/json');
+  R.btnCsv.onclick = () => download('lanelab-clients.csv', bank.clientsCsv(), 'text/csv');
+  R.fileImport.onchange = async () => { try { const f = R.fileImport.files[0]; const n = bank.importAll(JSON.parse(await f.text())); toast(`Imported ${n} record(s)`); renderBank(); } catch (e) { toast('Import failed: ' + e.message, true); } R.fileImport.value = ''; };
+  R.btnToken.onclick = () => { R.tokenRow.hidden = !R.tokenRow.hidden; R.tokenInput.value = bank.token || ''; };
+  R.btnTokenSave.onclick = () => { bank.token = R.tokenInput.value; store('lanelab.token', bank.token); R.tokenRow.hidden = true; bank.connect(); toast('Token saved'); };
+
+  // ---------- header buttons ----------
+  R.btnTheme.onclick = () => { const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'); const t = cur === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = t; store('lanelab.theme', t); renderCharts(); laneV.draw(UI.t); };
+  R.btnUnit.onclick = () => { UI.unit = UI.unit === 'in' ? 'mm' : 'in'; store('lanelab.unit', UI.unit); R.btnUnit.textContent = UI.unit; Object.values(forms).forEach((f) => f.refresh()); layout.refresh(); };
+  R.btnUnit.textContent = UI.unit;
+  R.btnPrint.onclick = () => { saveDebounced.flush(); buildSheet(); setTimeout(() => window.print(), 50); };
+
+  function buildSheet() {
+    const f = S.fitting, p = S.profile, hnd = f.hand, d = f.delivery, L = fmtLen, u = UI.unit;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); const geo = drawLayout(svg, S, { mono: true });
+    const row = (k, v) => h('tr', null, h('th', null, k), h('td', null, v ?? ''));
+    R.sheet.textContent = '';
+    R.sheet.append(
+      h('h1', null, 'Ball Drilling Work Order'), h('div', { class: 'sub' }, `Date ${new Date().toLocaleDateString()} · ${p.name || 'Unnamed'} · ${p.phone || ''} ${p.email || ''}`),
+      h('div', { class: 'cols' },
+        h('div', null, h('h2', null, 'Grip'), h('table', null, row('Hand', p.hand === 'R' ? 'Right' : 'Left'), row('Grip type', hnd.gripType), row('Span', L(hnd.span, u)), row('Finger spacing (c-c)', L(hnd.fingerSpacing, u)), row('Bridge', L(hnd.bridge, u)), row('Middle hole', L(hnd.middleHole, u)), row('Ring hole', L(hnd.ringHole, u)), p.style === 'twoHand' ? null : row('Thumb hole', `${L(hnd.thumbHole, u)} (${hnd.thumbStyle})`), row('Finger pitch fwd / lat', `${L(hnd.fingerPitchFwd, u)} / ${L(hnd.fingerPitchLat, u)}`), p.style === 'twoHand' ? null : row('Thumb pitch rev / lat', `${L(hnd.thumbPitchRev, u)} / ${L(hnd.thumbPitchLat, u)}`)),
+          h('h2', null, 'Layout'), h('table', null, row('PAP over / up', `${L(d.papOver, u)} / ${L(d.papUp, u)}`), row('Pin to PAP', L(f.layout.pinDistance, u)), row('VAL angle', f.layout.valAngle + '°'), row('Pin buffer', L(Math.max(0, geo.buffer), u)), row('Axis tilt / rotation', `${d.axisTilt}° / ${d.axisRotation}°`), row('Rev / speed', `${d.revRpm} rpm / ${d.speedMph} mph (${d.source})`))),
+        h('div', null, h('h2', null, 'Ball'), h('table', null, row('Ball', `${f.ball.brand} ${f.ball.name}`), row('Weight', f.ball.weightLb + ' lb'), row('RG / Diff / Int', `${f.ball.rg} / ${f.ball.diff} / ${f.ball.intDiff}`), row('Surface', f.ball.grit >= 10000 ? 'Polished' : f.ball.grit + ' grit')), svg)),
+      h('h2', null, 'Notes'), h('p', null, [p.goals, p.health, hnd.notes, f.layout.notes].filter(Boolean).join(' · ') || '—'),
+      h('div', { class: 'sig' }, h('span', null, 'Driller signature'), h('span', null, 'Customer signature')));
+  }
+
+  // ---------- toast ----------
+  function toast(msg, bad) { const t = h('div', { class: 'toast' + (bad ? ' bad' : '') }, msg); R.toasts.append(t); setTimeout(() => t.remove(), 3800); }
+
+  // ---------- boot ----------
+  setTab('client');
+  const lastRaw = store('lanelab.last'); let lastSel = null; try { lastSel = JSON.parse(lastRaw); } catch { /* none */ }
+  UI.pristine = JSON.parse(JSON.stringify(defaultFitting()));
+  buildAllForms(); renderGhosts();
+  if (lastSel && bank.getClient(lastSel.c)) loadFitting(lastSel.c, lastSel.f); else { updateChips(); simulateNow(true); }
+  bank.connect().then(() => { setSaveText();  });
+  R.saveState.dataset.s = 'saved'; setSaveText();
+  window.__lanelab = { S, bank, get run() { return run; }, simulateNow };
+}
+
+/* ---- js/main.js ---- */
+
+start();
+
+})();
+
+</script>
