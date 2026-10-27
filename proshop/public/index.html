@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LaneLab - Pro Shop Ball Reaction Studio</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand"><svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#0e7490"/><circle cx="11" cy="11" r="2" fill="#0b0f14"/><circle cx="16" cy="9" r="2" fill="#0b0f14"/><circle cx="14" cy="15" r="2.4" fill="#0b0f14"/></svg><span>LaneLab</span></div>
+  <button class="chipbtn" id="btnBank" title="Open the Data Bank"><span id="clientChip">New client</span> <small>▾</small></button>
+  <div class="grow"></div>
+  <div class="savebox" id="saveState" data-s="saved" aria-live="polite"><i></i><span id="saveText">Ready</span></div>
+  <span class="badge" id="bankMode" data-m="local">Browser storage</span>
+  <button class="btn" id="btnBank2" onclick="document.getElementById('btnBank').click()">Data Bank</button>
+  <button class="btn" id="btnPrint">Print drill sheet</button>
+  <button class="btn ghost" id="btnUnit" title="Switch inches / mm">in</button>
+  <button class="btn ghost" id="btnTheme" title="Light / dark">◐</button>
+</header>
+
+<main class="app">
+  <section class="panel left">
+    <nav class="tabs" id="tabs">
+      <button data-tab="client" class="on">Client</button><button data-tab="grip">Hand &amp; grip</button><button data-tab="delivery">Delivery</button><button data-tab="ball">Ball &amp; layout</button>
+    </nav>
+    <div id="formPanes">
+      <div class="pane on" data-pane="client"><div id="formClient"></div></div>
+      <div class="pane" data-pane="grip"><div id="formGrip"></div></div>
+      <div class="pane" data-pane="delivery"><div id="formDelivery"></div></div>
+      <div class="pane" data-pane="ball"><div id="formBall"></div></div>
+    </div>
+  </section>
+
+  <section class="panel center">
+    <div class="bar">
+      <div class="seg" id="viewSeg"><button data-v="overhead" class="on">Overhead</button><button data-v="chase">Chase cam</button></div>
+      <div class="seg" id="heatSeg"><button data-v="oil" class="on">Oil</button><button data-v="mu">Friction</button></div>
+      <div class="grow"></div>
+      <label class="inline">Speed <select id="speedSel"><option value="0.15">0.15×</option><option value="0.3">0.3×</option><option value="0.5" selected>0.5×</option><option value="1">1×</option></select></label>
+      <button class="btn" id="btnPlay">⏯</button>
+      <button class="btn primary" id="btnThrow">▶ Throw</button>
+    </div>
+    <div class="stagewrap"><div class="stage"><canvas id="laneCanvas"></canvas></div></div>
+    <input type="range" id="timeline" min="0" max="2500" value="0" aria-label="Timeline">
+    <div class="live" id="live"></div>
+    <div class="bar wrap">
+      <button class="btn" id="btnAim">Auto-aim to pocket</button>
+      <button class="btn" id="btnLayoutLab">Layout lab</button>
+      <button class="btn" id="btnPin">Pin line to compare</button>
+      <button class="btn ghost" id="btnClearGhosts">Clear</button>
+      <div id="ghosts" class="ghosts"></div>
+    </div>
+    <details class="lane" open><summary>Lane conditions</summary><div id="formLane"></div></details>
+  </section>
+
+  <section class="panel right">
+    <div class="title" id="titleLine"></div>
+    <div class="vis">
+      <div class="ballbox"><canvas id="ballCanvas" width="170" height="170"></canvas><div class="cap">Ball in 3-D · <span style="color:#22c55e">PAP</span> <span style="color:#ef4444">pin</span> · light band = oil track</div></div>
+      <div class="pinbox"><div class="pinwrap"><canvas id="pinCanvas"></canvas></div><div id="leave" class="leave"></div></div>
+    </div>
+    <div class="carry" id="carryBox">—</div>
+    <div class="cards" id="metrics"></div>
+    <div class="rating" id="rating"></div>
+    <h3>Pro-shop notes</h3><ul class="advice" id="advice"></ul>
+    <h3>Ball path <small>board vs distance</small></h3><div class="chart"><canvas id="chart1"></canvas></div>
+    <h3>Speed (mph) &amp; rev rate (rpm)</h3><div class="chart"><canvas id="chart2"></canvas></div>
+    <h3>Friction μ &amp; slip speed (m/s)</h3><div class="chart"><canvas id="chart3"></canvas></div>
+    <p class="fine">Educational simulation: a physics model with calibrated assumptions, not a guarantee of on-lane results. Final drilling decisions rest with the certified driller.</p>
+  </section>
+</main>
+
+<dialog id="bankDlg"><div class="dlg">
+  <div class="dlghead"><h2>Data Bank</h2><button class="btn ghost" onclick="this.closest('dialog').close()">✕</button></div>
+  <p class="muted" id="bankStatus"></p>
+  <div class="bar wrap"><input type="search" id="bankSearch" placeholder="Search name, phone, email, league…"><button class="btn primary" id="btnNewClient">+ New client</button><button class="btn" id="btnNewFitting">+ New fitting (same client)</button></div>
+  <div id="clientList" class="list"></div>
+  <h3>Your ball library</h3><div id="ballList" class="list"></div>
+  <h3>Backup &amp; sharing</h3>
+  <div class="bar wrap"><button class="btn" id="btnExport">Export backup (.json)</button><label class="btn">Import backup<input type="file" id="fileImport" accept=".json" hidden></label><button class="btn" id="btnCsv">Clients (.csv)</button><button class="btn ghost" id="btnToken">Server token…</button></div>
+</div></dialog>
+<dialog id="labDlg"><div class="dlg"><div class="dlghead"><h2>Layout lab</h2><button class="btn ghost" onclick="this.closest('dialog').close()">✕</button></div><div id="labResults"></div></div></dialog>
+<div id="sheet"></div>
+<div id="toasts"></div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

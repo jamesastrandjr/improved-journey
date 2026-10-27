@@ -1,0 +1,13 @@
+{
+  "name": "lanelab",
+  "version": "1.0.0",
+  "description": "LaneLab - pro shop fitting, ball-reaction simulation and customer data bank for bowling ball drillers",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.5" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.js\""
+  }
+}
