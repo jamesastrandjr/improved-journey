@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vox Populi — The Ox Experiment</title>
+<style>
+  :root{
+    --bg:#f6f1e7; --panel:#fffdf8; --ink:#2b2118; --muted:#7a6a58; --line:#e2d8c6;
+    --you:#c2410c; --crowd:#1d4ed8; --truth:#15803d; --bar:#d3c3a3; --btn:#2b2118; --btnink:#fffdf8;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#16130f; --panel:#211c16; --ink:#f1e9da; --muted:#a39580; --line:#3a3227;
+      --you:#fb923c; --crowd:#60a5fa; --truth:#4ade80; --bar:#5d503c; --btn:#f1e9da; --btnink:#16130f;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--sans)}
+  .wrap{max-width:860px;margin:0 auto;padding:0 16px 64px}
+  header{padding:28px 0 12px;display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between}
+  h1{font:700 2rem/1.1 var(--serif);margin:0;letter-spacing:-.01em}
+  h1 small{display:block;font:400 .9rem var(--sans);color:var(--muted);letter-spacing:0;margin-top:6px}
+  h2{font:700 1.45rem/1.25 var(--serif);margin:0 0 6px}
+  h3{font:700 1.1rem var(--serif);margin:24px 0 6px}
+  nav{display:flex;gap:4px;background:var(--line);padding:4px;border-radius:999px}
+  nav button{border:0;background:none;color:var(--muted);font:600 .9rem var(--sans);padding:8px 16px;border-radius:999px;cursor:pointer}
+  nav button[aria-selected=true]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:22px;margin-top:16px}
+  .muted{color:var(--muted)}
+  .center{text-align:center}
+  .progress{display:flex;gap:6px;margin-top:20px}
+  .progress i{flex:1;height:5px;border-radius:3px;background:var(--line)}
+  .progress i.done{background:var(--ink)} .progress i.now{background:var(--you)}
+  .qicon{font-size:3rem;line-height:1}
+  .bigval{font:700 2.8rem/1.1 var(--serif);margin:14px 0 2px;font-variant-numeric:tabular-nums}
+  .bigval.empty{color:var(--line)}
+  .unit{color:var(--muted);font:500 .95rem var(--sans)}
+  input[type=range]{width:100%;margin:14px 0;accent-color:var(--you);height:28px}
+  input[type=range].untouched{opacity:.55}
+  .row{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+  input[type=number]{width:170px;padding:10px 12px;font:600 1rem var(--sans);border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+  button.primary{border:0;background:var(--btn);color:var(--btnink);font:700 1rem var(--sans);padding:12px 26px;border-radius:12px;cursor:pointer}
+  button.primary:disabled{opacity:.3;cursor:not-allowed}
+  button.ghost{border:1px solid var(--line);background:none;color:var(--ink);font:600 .9rem var(--sans);padding:8px 14px;border-radius:10px;cursor:pointer}
+  button.ghost:hover{border-color:var(--muted)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:16px 0}
+  .stat{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:var(--bg)}
+  .stat b{display:block;font:700 1.3rem var(--serif);font-variant-numeric:tabular-nums}
+  .stat span{font-size:.8rem;color:var(--muted)}
+  .stat em{font-style:normal;font-size:.8rem}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+  canvas{width:100%;height:270px;display:block}
+  canvas.short{height:230px}
+  .verdict{font:600 1.1rem/1.4 var(--serif);margin:14px 0 4px}
+  .fact{font-size:.9rem;color:var(--muted);margin:6px 0 18px}
+  table{width:100%;border-collapse:collapse;font-size:.9rem;margin:12px 0}
+  th,td{text-align:right;padding:8px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  th:first-child,td:first-child{text-align:left}
+  th{color:var(--muted);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+  .win{color:var(--you);font-weight:700} .lose{color:var(--crowd);font-weight:700}
+  .controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:6px 24px}
+  .ctl label{display:flex;justify-content:space-between;font-size:.88rem;font-weight:600}
+  .ctl label output{color:var(--you);font-variant-numeric:tabular-nums}
+  .ctl small{color:var(--muted);font-size:.78rem}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px}
+  .callout{border-left:4px solid var(--truth);background:var(--bg);padding:10px 14px;border-radius:0 10px 10px 0;margin:14px 0 0;font-size:.95rem}
+  .story p{max-width:64ch}
+  .story ol{padding-left:1.2em;max-width:64ch}
+  .story li{margin-bottom:6px}
+  code.eq{display:block;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;font:600 1rem var(--serif);margin:12px 0}
+  [hidden]{display:none!important}
+  @media (max-width:520px){h1{font-size:1.6rem}.bigval{font-size:2.2rem}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Vox Populi<small>Can you out-guess the crowd? Galton's ox experiment, 1906.</small></h1>
+    <nav role="tablist">
+      <button role="tab" data-tab="play" aria-selected="true">Play</button>
+      <button role="tab" data-tab="lab" aria-selected="false">Crowd Lab</button>
+      <button role="tab" data-tab="story" aria-selected="false">The Story</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-play"><div id="stage"></div></section>
+
+    <section id="tab-lab" hidden>
+      <div class="card">
+        <h2>Crowd Lab</h2>
+        <p class="muted" style="margin:0">A simulated crowd guesses the ox's weight (1,198&nbsp;lbs). Break the ingredients of wisdom and watch it fail.</p>
+        <div class="presets">
+          <button class="ghost" data-preset="good">Independent crowd</button>
+          <button class="ghost" data-preset="small">Tiny crowd</button>
+          <button class="ghost" data-preset="bias">Shared bias</button>
+          <button class="ghost" data-preset="herd">Herd mentality</button>
+          <button class="ghost" id="reshuffle">🎲 New crowd</button>
+        </div>
+        <div class="controls" style="margin-top:14px">
+          <div class="ctl"><label for="c-n">Crowd size <output id="o-n"></output></label><input type="range" id="c-n" min="0" max="1000" value="1000"><small>How many people guess</small></div>
+          <div class="ctl"><label for="c-s">Individual noise <output id="o-s"></output></label><input type="range" id="c-s" min="5" max="80" value="25"><small>How wrong a typical person is</small></div>
+          <div class="ctl"><label for="c-b">Shared bias <output id="o-b"></output></label><input type="range" id="c-b" min="-30" max="30" value="0"><small>A misconception everyone holds</small></div>
+          <div class="ctl"><label for="c-h">Peer influence <output id="o-h"></output></label><input type="range" id="c-h" min="0" max="95" value="0"><small>How much people copy earlier guesses</small></div>
+        </div>
+        <div class="callout" id="lab-msg" aria-live="polite"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">The guesses</h3>
+        <canvas id="lab-hist" role="img" aria-label="Histogram of crowd guesses"></canvas>
+        <div class="stats" id="lab-stats"></div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">Watch the average settle</h3>
+        <p class="muted" style="margin:0 0 8px;font-size:.9rem">Each dot is one guess, in the order they were made. The line is the running average. Log scale on the x-axis.</p>
+        <canvas id="lab-conv" class="short" role="img" aria-label="Running mean of guesses converging"></canvas>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0">The Diversity Prediction Theorem</h3>
+        <code class="eq">crowd error² = average individual error² − diversity²</code>
+        <div class="stats" id="lab-dpt"></div>
+        <p class="muted" style="margin:0;font-size:.9rem">The crowd is always at least as good as its average member, and the more the guesses disagree, the bigger the edge. Herding shrinks the diversity, so the edge disappears.</p>
+      </div>
+    </section>
+
+    <section id="tab-story" class="story" hidden>
+      <div class="card">
+        <h2>The ox at Plymouth</h2>
+        <p>In 1906 the statistician <b>Francis Galton</b> visited the West of England Fat Stock and Poultry Exhibition. A weight-judging contest was running: for sixpence you could write your name and your guess for the weight of a live ox, after it had been slaughtered and dressed.</p>
+        <p>Galton, a believer in the superiority of the expert and an enthusiast for measuring everything, collected the tickets afterward, expecting to demonstrate how poor the average person's judgment was. About 800 people entered, and <b>787</b> tickets were usable.</p>
+        <p>The ox weighed <b>1,198&nbsp;lbs</b>. The crowd's <b>median</b> guess was 1,207&nbsp;lbs and the <b>mean</b> was <b>1,197&nbsp;lbs</b>, one pound off. Most individuals did worse. Galton reported it in <i>Nature</i> in 1907 under the title <i>Vox Populi</i> ("the voice of the people") and admitted the result was "more creditable to the trustworthiness of a democratic judgment than might have been expected."</p>
+        <h3>Why it works</h3>
+        <p>Each person's guess is the truth plus an error. If those errors are independent and don't all lean the same way, they cancel when you average. Some people guess high, some low, and the average keeps the part they all share: the signal.</p>
+        <p>James Surowiecki's <i>The Wisdom of Crowds</i> lists four conditions:</p>
+        <ol>
+          <li><b>Diversity of opinion</b>: people bring different information and intuitions.</li>
+          <li><b>Independence</b>: guesses aren't swayed by those of others.</li>
+          <li><b>Decentralization</b>: people draw on local, specialized knowledge.</li>
+          <li><b>Aggregation</b>: something turns many guesses into one answer.</li>
+        </ol>
+        <p>Remove one and the magic fails. Try it in the <b>Crowd Lab</b>: add peer influence and the guesses clump together while the average drifts away from the truth, or add a shared bias and a million guessers all converge on the wrong answer.</p>
+        <h3>About this app</h3>
+        <p class="muted">The crowds in this app are <b>simulated</b>: each of the 800 guessers is drawn from a log-normal distribution around the real answer, with a different amount of noise and shared bias for each question. The original 1906 tickets don't survive in this form, but the statistics above are Galton's.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+'use strict';
+/* ---------- utilities ---------- */
+const $ = s => document.querySelector(s);
+const fmt = (n, d = 0) => Number(n).toLocaleString(undefined, {maximumFractionDigits: d});
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const sorted = a => [...a].sort((x, y) => x - y);
+const median = a => { const s = sorted(a), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const pct = (v, t) => Math.abs(v - t) / t * 100;
+
+function rng(seed) {
+  return () => {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function normal(r) { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); }
+
+/* Log-normal crowd around the truth. `bias` shifts the crowd's mean by a factor of e^bias.
+   `herd` blends each guess with the running average of everyone before them. */
+function makeCrowd(n, truth, {sigma, bias = 0, herd = 0, seed}) {
+  const r = rng(seed), out = [];
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    let g = truth * Math.exp(bias - sigma * sigma / 2 + sigma * normal(r));
+    if (herd > 0 && i > 0) g = (1 - herd) * g + herd * (sum / i);
+    out.push(g); sum += g;
+  }
+  return out;
+}
+
+/* ---------- canvas charts ---------- */
+function setupCanvas(c) {
+  const dpr = window.devicePixelRatio || 1, w = c.clientWidth, h = c.clientHeight;
+  c.width = w * dpr; c.height = h * dpr;
+  const x = c.getContext('2d'); x.setTransform(dpr, 0, 0, dpr, 0, 0); x.clearRect(0, 0, w, h);
+  return {x, w, h};
+}
+const tick = v => fmt(v, Math.abs(v) < 10 ? 1 : 0);
+
+function drawHist(c, data, marks) {
+  const {x, w, h} = setupCanvas(c);
+  const ROWS = 3, top = 16 + ROWS * 15, bot = h - 24, L = 10, R = 10, BINS = 40;
+  const s = sorted(data), q = p => s[Math.min(s.length - 1, Math.floor(p * s.length))];
+  let lo = Math.min(q(.01), ...marks.map(m => m.v)), hi = Math.max(q(.99), ...marks.map(m => m.v));
+  const pad = (hi - lo) * .06 || 1; lo = Math.max(0, lo - pad); hi += pad;
+  const sx = v => L + (v - lo) / (hi - lo) * (w - L - R);
+  const counts = new Array(BINS).fill(0);
+  for (const v of data) if (v >= lo && v < hi) counts[Math.floor((v - lo) / (hi - lo) * BINS)]++;
+  const max = Math.max(...counts, 1), bw = (w - L - R) / BINS;
+  x.fillStyle = css('--bar');
+  counts.forEach((cnt, i) => {
+    const bh = (bot - top) * cnt / max;
+    x.fillRect(L + i * bw + .5, bot - bh, bw - 1, bh);
+  });
+  x.strokeStyle = css('--line'); x.lineWidth = 1;
+  x.beginPath(); x.moveTo(L, bot + .5); x.lineTo(w - R, bot + .5); x.stroke();
+  x.fillStyle = css('--muted'); x.font = '11px system-ui,sans-serif'; x.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) { const v = lo + (hi - lo) * i / 4; x.fillText(tick(v), Math.min(w - 16, Math.max(16, sx(v))), h - 8); }
+  x.font = '600 12px system-ui,sans-serif'; x.textAlign = 'left';
+  const rowEnd = new Array(ROWS).fill(-Infinity);
+  for (const m of [...marks].sort((a, b) => a.v - b.v)) {
+    const tw = x.measureText(m.label).width, lx = Math.min(w - tw - 2, Math.max(2, sx(m.v) - tw / 2));
+    let row = rowEnd.findIndex(e => lx >= e + 6); if (row < 0) row = ROWS - 1;
+    rowEnd[row] = lx + tw;
+    const y = 14 + row * 15;
+    x.strokeStyle = m.color; x.lineWidth = 2.5;
+    x.beginPath(); x.moveTo(sx(m.v), y + 4); x.lineTo(sx(m.v), bot); x.stroke();
+    x.fillStyle = m.color; x.fillText(m.label, lx, y);
+  }
+}
+
+function drawConv(c, data, truth) {
+  const {x, w, h} = setupCanvas(c);
+  const L = 46, R = 12, T = 10, B = 26, n = data.length;
+  const s = sorted(data), q = p => s[Math.min(n - 1, Math.floor(p * n))];
+  let lo = Math.min(q(.03), truth), hi = Math.max(q(.97), truth);
+  const pad = (hi - lo) * .08 || 1; lo -= pad; hi += pad;
+  const sx = i => L + Math.log(i) / Math.log(Math.max(n, 2)) * (w - L - R);
+  const sy = v => T + (1 - (v - lo) / (hi - lo)) * (h - T - B);
+  x.font = '11px system-ui,sans-serif'; x.fillStyle = css('--muted'); x.strokeStyle = css('--line'); x.lineWidth = 1;
+  x.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const v = lo + (hi - lo) * i / 4, y = Math.round(sy(v)) + .5;
+    x.beginPath(); x.moveTo(L, y); x.lineTo(w - R, y); x.stroke(); x.fillText(tick(v), L - 6, y + 4);
+  }
+  x.textAlign = 'center';
+  const xt = [1, 10, 100, 1000].filter(t => t <= n); if (n > 1 && !xt.includes(n)) xt.push(n);
+  for (const t of xt) x.fillText(fmt(t), Math.min(w - 12, sx(t)), h - 8);
+  x.fillStyle = css('--bar'); x.globalAlpha = .75;
+  data.forEach((v, i) => { if (v >= lo && v <= hi) { x.beginPath(); x.arc(sx(i + 1), sy(v), 2, 0, 7); x.fill(); } });
+  x.globalAlpha = 1;
+  x.strokeStyle = css('--truth'); x.lineWidth = 2; x.setLineDash([6, 4]);
+  x.beginPath(); x.moveTo(L, sy(truth)); x.lineTo(w - R, sy(truth)); x.stroke(); x.setLineDash([]);
+  x.strokeStyle = css('--crowd'); x.lineWidth = 2.5; x.beginPath();
+  let sum = 0;
+  data.forEach((v, i) => { sum += v; const px = sx(i + 1), py = sy(Math.min(hi, Math.max(lo, sum / (i + 1)))); i ? x.lineTo(px, py) : x.moveTo(px, py); });
+  x.stroke();
+}
+
+/* ---------- game ---------- */
+const CROWD_N = 800;
+const QUESTIONS = [
+  {icon: '🐂', q: 'How much did this ox weigh after being slaughtered and dressed?', hint: 'Plymouth, England. 1906. The ox that started it all.',
+   unit: 'lbs', lo: 300, hi: 3000, truth: 1198, sigma: .10, bias: -.005, seed: 11,
+   fact: 'The real contest crowd was butchers and farmers, so it was unusually well-calibrated. Their mean was 1,197 lbs.'},
+  {icon: '🗼', q: 'How tall is the Eiffel Tower, including its antennas?', hint: 'In meters.',
+   unit: 'm', lo: 50, hi: 1500, truth: 330, sigma: .45, bias: -.08, seed: 23,
+   fact: 'It was the tallest man-made structure in the world until 1930. Most people lowball it.'},
+  {icon: '✈️', q: 'How far is it from New York City to London?', hint: 'Great-circle distance, in miles.',
+   unit: 'miles', lo: 500, hi: 12000, truth: 3459, sigma: .30, bias: .04, seed: 37,
+   fact: 'About 5,567 km. Long distances are hard for human intuition, which is exactly where crowds shine.'},
+  {icon: '🏔️', q: 'How tall is Mount Everest above sea level?', hint: 'In meters.',
+   unit: 'm', lo: 1000, hi: 30000, truth: 8849, sigma: .35, bias: -.07, seed: 41,
+   fact: 'The Nepal–China survey of 2020 set the official height at 8,848.86 m.'},
+  {icon: '🌍', q: 'How many countries are members of the United Nations?', hint: 'Member states, not counting observers.',
+   unit: 'countries', lo: 20, hi: 600, truth: 193, sigma: .22, bias: .02, seed: 59,
+   fact: 'Two more, the Holy See and Palestine, are non-member observer states.'},
+];
+let G = null, playRedraw = null;
+
+function startGame() { G = {i: 0, res: [], seed: Math.floor(Math.random() * 1e6)}; renderQuestion(); }
+
+function progressBar() {
+  return `<div class="progress">${QUESTIONS.map((_, i) => `<i class="${i < G.i ? 'done' : i === G.i ? 'now' : ''}"></i>`).join('')}</div>`;
+}
+
+function renderQuestion() {
+  playRedraw = null;
+  const Q = QUESTIONS[G.i];
+  $('#stage').innerHTML = `${progressBar()}
+  <div class="card center">
+    <div class="muted" style="font-size:.85rem">Question ${G.i + 1} of ${QUESTIONS.length}</div>
+    <div class="qicon">${Q.icon}</div>
+    <h2>${Q.q}</h2>
+    <p class="muted" style="margin:0">${Q.hint}</p>
+    <div class="bigval empty" id="gv">—</div>
+    <div class="unit">${Q.unit}</div>
+    <input type="range" id="sl" class="untouched" min="0" max="1000" value="500" aria-label="Your guess">
+    <div class="row"><input type="number" id="num" min="0" placeholder="or type it" aria-label="Type your guess"><button class="primary" id="lock" disabled>Lock in guess</button></div>
+  </div>`;
+  const sl = $('#sl'), num = $('#num'), gv = $('#gv'), lock = $('#lock');
+  let guess = null;
+  const set = v => {
+    guess = v; gv.textContent = fmt(v); gv.classList.remove('empty'); sl.classList.remove('untouched'); lock.disabled = false;
+  };
+  sl.addEventListener('input', () => {
+    const v = Math.round(Q.lo * Math.pow(Q.hi / Q.lo, sl.value / 1000));
+    num.value = v; set(v);
+  });
+  num.addEventListener('input', () => {
+    const v = +num.value; if (!(v > 0)) return;
+    sl.value = Math.max(0, Math.min(1000, Math.log(v / Q.lo) / Math.log(Q.hi / Q.lo) * 1000)); set(v);
+  });
+  num.addEventListener('keydown', e => { if (e.key === 'Enter' && guess) lock.click(); });
+  lock.addEventListener('click', () => { G.res.push({guess}); renderReveal(); });
+}
+
+function renderReveal() {
+  const Q = QUESTIONS[G.i], r = G.res[G.i];
+  const crowd = makeCrowd(CROWD_N, Q.truth, {sigma: Q.sigma, bias: Q.bias, seed: Q.seed + G.seed});
+  r.crowdMean = mean(crowd); r.crowdMedian = median(crowd);
+  r.youErr = pct(r.guess, Q.truth); r.crowdErr = pct(r.crowdMean, Q.truth);
+  r.beat = crowd.filter(g => pct(g, Q.truth) > r.youErr).length / CROWD_N * 100;
+  const youWin = r.youErr < r.crowdErr;
+  r.win = youWin;
+  const ratio = r.youErr / Math.max(r.crowdErr, .01);
+  const verdict = youWin
+    ? `You out-guessed the crowd's average. That's rare: the average usually beats almost everyone.`
+    : ratio > 3 ? `The crowd's average was ${fmt(ratio, 1)}× closer than you.`
+    : `The crowd's average edged you out.`;
+  const last = G.i === QUESTIONS.length - 1;
+  const stat = (color, label, val, sub) => `<div class="stat"><span><i class="dot" style="background:${color}"></i>${label}</span><b>${val}</b><em class="muted">${sub}</em></div>`;
+  $('#stage').innerHTML = `${progressBar()}
+  <div class="card">
+    <div class="muted" style="font-size:.85rem">${Q.icon} ${Q.q}</div>
+    <div class="verdict" aria-live="polite">${youWin ? '🎉 ' : ''}${verdict}</div>
+    <div class="stats">
+      ${stat('var(--truth)', 'Truth', fmt(Q.truth) + ' ' + Q.unit, 'the real answer')}
+      ${stat('var(--you)', 'You', fmt(r.guess), `${fmt(r.youErr, 1)}% off · beat ${fmt(r.beat)}% of the crowd`)}
+      ${stat('var(--crowd)', 'Crowd average', fmt(r.crowdMean), `${fmt(r.crowdErr, 1)}% off · median ${fmt(r.crowdMedian)}`)}
+    </div>
+    <canvas id="hist" role="img" aria-label="Histogram of 800 simulated guesses with your guess, the crowd average and the truth marked"></canvas>
+    <p class="fact">${Q.fact} <span style="opacity:.8">(800 simulated guessers.)</span></p>
+    <div class="center"><button class="primary" id="next">${last ? 'See my results' : 'Next question →'}</button></div>
+  </div>`;
+  playRedraw = () => drawHist($('#hist'), crowd, [
+    {label: 'Truth', v: Q.truth, color: css('--truth')},
+    {label: 'Crowd avg', v: r.crowdMean, color: css('--crowd')},
+    {label: 'You', v: r.guess, color: css('--you')}]);
+  playRedraw();
+  $('#next').addEventListener('click', () => { G.i++; last ? renderEnd() : renderQuestion(); });
+}
+
+function renderEnd() {
+  playRedraw = null;
+  const R = G.res, wins = R.filter(r => r.win).length;
+  const you = mean(R.map(r => r.youErr)), crowd = mean(R.map(r => r.crowdErr)), beat = mean(R.map(r => r.beat));
+  let best = null;
+  try {
+    best = +localStorage.getItem('voxpopuli.bestWins');
+    if (!(best >= wins)) { localStorage.setItem('voxpopuli.bestWins', wins); }
+  } catch (e) {}
+  const title = wins >= 4 ? 'Galton would be suspicious.' : wins >= 2 ? 'Better than most humans.' : wins === 1 ? 'You beat the crowd once. Not bad.' : 'Outwitted by the many.';
+  const msg = `Your typical guess landed in the top ${fmt(100 - beat)}% of the crowd (you beat ${fmt(beat)}% of guessers on average), yet the crowd's <i>average</i> was off by only ${fmt(crowd, 1)}% compared with your ${fmt(you, 1)}%. That is wisdom of the crowd: the average beats nearly every individual, including most of the people who made it.`;
+  $('#stage').innerHTML = `${progressBar()}
+  <div class="card">
+    <h2>${title}</h2>
+    <p style="margin:6px 0 0">You beat the crowd average on <b>${wins} of ${QUESTIONS.length}</b> questions.${best > wins ? ` <span class="muted">(Your best: ${best}.)</span>` : ''}</p>
+    <p class="muted">${msg}</p>
+    <table><thead><tr><th>Question</th><th>You</th><th>Crowd</th><th>Truth</th><th>Winner</th></tr></thead><tbody>
+    ${R.map((r, i) => { const Q = QUESTIONS[i]; return `<tr><td>${Q.icon} ${Q.unit}</td><td>${fmt(r.guess)} <span class="muted">(${fmt(r.youErr)}%)</span></td><td>${fmt(r.crowdMean)} <span class="muted">(${fmt(r.crowdErr, 1)}%)</span></td><td>${fmt(Q.truth)}</td><td class="${r.win ? 'win' : 'lose'}">${r.win ? 'You' : 'Crowd'}</td></tr>`; }).join('')}
+    </tbody></table>
+    <div class="row" style="margin-top:18px"><button class="primary" id="again">Play again</button><button class="ghost" id="tolab">Break the crowd in the Lab →</button></div>
+  </div>`;
+  $('#again').addEventListener('click', startGame);
+  $('#tolab').addEventListener('click', () => showTab('lab'));
+}
+
+/* ---------- lab ---------- */
+const LAB_TRUTH = 1198;
+let labSeed = 7, labRedraw = null;
+const labN = () => Math.max(1, Math.round(Math.pow(CROWD_N, $('#c-n').value / 1000)));
+const PRESETS = {
+  good: {n: 1000, s: 25, b: 0, h: 0},
+  small: {n: 150, s: 25, b: 0, h: 0},
+  bias: {n: 1000, s: 25, b: 20, h: 0},
+  herd: {n: 1000, s: 25, b: 0, h: 85},
+};
+
+function updateLab() {
+  const n = labN(), sigma = $('#c-s').value / 100, bias = $('#c-b').value / 100, herd = $('#c-h').value / 100;
+  $('#o-n').textContent = fmt(n); $('#o-s').textContent = fmt(sigma * 100) + '%';
+  $('#o-b').textContent = (bias > 0 ? '+' : '') + fmt(bias * 100) + '%'; $('#o-h').textContent = fmt(herd * 100) + '%';
+  const data = makeCrowd(n, LAB_TRUTH, {sigma, bias, herd, seed: labSeed});
+  const m = mean(data), med = median(data), errPct = pct(m, LAB_TRUTH);
+  const indRms = Math.sqrt(mean(data.map(g => (g - LAB_TRUTH) ** 2)));
+  const sd = Math.sqrt(mean(data.map(g => (g - m) ** 2)));
+  const beaten = data.filter(g => Math.abs(g - LAB_TRUTH) > Math.abs(m - LAB_TRUTH)).length / n * 100;
+  const stat = (color, label, val, sub) => `<div class="stat"><span>${color ? `<i class="dot" style="background:${color}"></i>` : ''}${label}</span><b>${val}</b><em class="muted">${sub}</em></div>`;
+  $('#lab-stats').innerHTML =
+    stat('var(--crowd)', 'Crowd average', fmt(m) + ' lbs', `${fmt(errPct, 1)}% off the truth`) +
+    stat('', 'Median', fmt(med) + ' lbs', `${fmt(pct(med, LAB_TRUTH), 1)}% off`) +
+    stat('', 'Average beats', fmt(beaten) + '%', 'of individual guessers');
+  $('#lab-dpt').innerHTML =
+    stat('', 'Typical individual error', fmt(indRms) + ' lbs', 'root-mean-square') +
+    stat('', 'Diversity of guesses', '− ' + fmt(sd) + ' lbs', 'standard deviation') +
+    stat('var(--crowd)', 'Crowd error', fmt(Math.abs(m - LAB_TRUTH), 1) + ' lbs', 'of √(error² − diversity²)');
+  let msg;
+  if (herd >= .4) msg = `Peer influence of ${fmt(herd * 100)}%: people anchor on the early guessers, so the crowd looks confident (tight spread) while the average is only as good as the first few opinions. Hit <b>New crowd</b> to see how much it varies.`;
+  else if (Math.abs(bias) >= .08) msg = `A shared bias of ${bias > 0 ? '+' : ''}${fmt(bias * 100)}% means every guesser is wrong in the same direction. Averaging cannot cancel an error they all share, so adding more people just makes the crowd precisely wrong.`;
+  else if (n < 30) msg = `Only ${n} guessers: not enough independent errors to cancel. Slide the crowd size up and watch the line settle.`;
+  else msg = `Diverse, independent, and large. The errors point in all directions and cancel, leaving the average ${fmt(errPct, 1)}% from the truth, better than ${fmt(beaten)}% of the people in it.`;
+  $('#lab-msg').innerHTML = msg;
+  labRedraw = () => {
+    drawHist($('#lab-hist'), data, [{label: 'Truth', v: LAB_TRUTH, color: css('--truth')}, {label: 'Crowd avg', v: m, color: css('--crowd')}]);
+    drawConv($('#lab-conv'), data, LAB_TRUTH);
+  };
+  labRedraw();
+}
+
+['c-n', 'c-s', 'c-b', 'c-h'].forEach(id => $('#' + id).addEventListener('input', updateLab));
+document.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+  const p = PRESETS[b.dataset.preset];
+  $('#c-n').value = Math.log(p.n) / Math.log(CROWD_N) * 1000;
+  $('#c-s').value = p.s; $('#c-b').value = p.b; $('#c-h').value = p.h; updateLab();
+}));
+$('#reshuffle').addEventListener('click', () => { labSeed = Math.floor(Math.random() * 1e6); updateLab(); });
+
+/* ---------- tabs / lifecycle ---------- */
+function showTab(name) {
+  document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  ['play', 'lab', 'story'].forEach(t => { $('#tab-' + t).hidden = t !== name; });
+  if (name === 'lab') updateLab();
+  else if (name === 'play' && playRedraw) playRedraw();
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+const redrawAll = () => { if (!$('#tab-play').hidden && playRedraw) playRedraw(); if (!$('#tab-lab').hidden && labRedraw) labRedraw(); };
+window.addEventListener('resize', redrawAll);
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change', redrawAll);
+
+$('#c-n').value = 1000;
+startGame();
+</script>
+</body>
+</html>
